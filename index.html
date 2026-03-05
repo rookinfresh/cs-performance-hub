@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS Performance Hub — March 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #F5F4F1;
+    --surface: #FFFFFF;
+    --surface2: #F0EEE9;
+    --border: #E0DDD6;
+    --text: #1A1A18;
+    --muted: #6B6860;
+    --medspa: #7C3AED;
+    --hvac: #1D4ED8;
+    --auto: #065F46;
+    --emerging: #C2410C;
+    --trane: #92400E;
+    --accent: #B45309;
+    --green: #15803D;
+    --blue: #1D4ED8;
+    --amber: #B45309;
+    --red: #B91C1C;
+    --red-bg: #FEF2F2;
+    --green-bg: #F0FDF4;
+    /* color-scale cell backgrounds */
+    --cs-elite: #DCFCE7; --cs-elite-t: #15803D;
+    --cs-strong: #FEF9C3; --cs-strong-t: #854D0E;
+    --cs-warn: #FFEDD5;  --cs-warn-t:  #9A3412;
+    --cs-fail:  #FEE2E2; --cs-fail-t:  #991B1B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: #FFFFFF;
+    border-bottom: 1px solid var(--border);
+    padding: 11px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .podium-mark { display: flex; align-items: center; gap: 8px; }
+  .podium-mark svg { flex-shrink: 0; }
+  .podium-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); }
+  .header-divider { width: 1px; height: 22px; background: var(--border); }
+  .header-title { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
+  .header-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .header-badge {
+    background: #FEF3C7;
+    color: var(--amber);
+    border: 1px solid #FDE68A;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.8px;
+  }
+
+  /* Filters */
+  .filters { background: #FFFFFF; border-bottom: 1px solid var(--border); padding: 8px 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+  .filter-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+  select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  select:focus { border-color: var(--accent); }
+  .filter-sep { width: 1px; height: 18px; background: var(--border); }
+  .last-updated { font-size: 11px; color: var(--muted); margin-left: auto; }
+
+  /* Tabs */
+  .tabs { display: flex; border-bottom: 2px solid var(--border); background: #FFFFFF; padding: 0 24px; }
+  .tab { padding: 11px 16px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; white-space: nowrap; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab-badge { background: #FEE2E2; color: var(--red); font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; margin-left: 5px; }
+
+  /* Content */
+  .tab-content { display: none; padding: 20px 24px; }
+  .tab-content.active { display: block; }
+
+  /* Vertical Competition — Sigma: KPI charts in a container, or small table */
+  .vertical-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .vcard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: box-shadow 0.15s;
+  }
+  .vcard:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.10); }
+  .vcard-rank-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 4px; }
+  .vcard-name { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .vcard-score { font-size: 34px; font-weight: 800; line-height: 1; margin-bottom: 3px; }
+  .vcard-delta { font-size: 11px; font-weight: 600; margin-bottom: 10px; }
+  .vcard-delta.pos { color: var(--green); }
+  .vcard-delta.neg { color: var(--red); }
+  .vcard-divider { height: 1px; background: var(--border); margin: 10px 0; }
+  .vcard-stat { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+  .vcard-stat-label { font-size: 11px; color: var(--muted); }
+  .vcard-stat-val { font-size: 12px; font-weight: 600; color: var(--text); }
+  .vcard-alert { font-size: 11px; color: var(--red); font-weight: 600; margin-top: 8px; }
+  .vcard-trane { font-size: 11px; color: var(--trane); font-weight: 600; margin-top: 4px; }
+
+  /* Section Headers */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--text); }
+  .section-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* Tables — Sigma-faithful: color-scale cells, conditional text, data bars */
+  .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); }
+  thead th {
+    background: var(--surface2);
+    padding: 9px 12px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    position: sticky;
+    top: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  thead th:hover { color: var(--text); }
+  thead th.sorted { color: var(--accent); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #FAFAF8; }
+  tbody tr.fail-row { background: #FEF2F2; }
+  td { padding: 8px 12px; vertical-align: middle; white-space: nowrap; font-size: 13px; }
+  .rank-cell { font-size: 13px; font-weight: 700; text-align: center; width: 36px; color: var(--muted); }
+  .rank-gold-text { color: #92400E; font-weight: 800; }
+  .rank-silver-text { color: #4B5563; font-weight: 700; }
+  .rank-bronze-text { color: #78350F; font-weight: 700; }
+  /* Sigma color-scale cells — maps to Sigma's conditional formatting → color scale */
+  .cs-elite  { background: var(--cs-elite);  color: var(--cs-elite-t);  font-weight: 700; }
+  .cs-strong { background: var(--cs-strong); color: var(--cs-strong-t); font-weight: 700; }
+  .cs-warn   { background: var(--cs-warn);   color: var(--cs-warn-t);   font-weight: 700; }
+  .cs-fail   { background: var(--cs-fail);   color: var(--cs-fail-t);   font-weight: 700; }
+  /* Sigma data bar — maps to Sigma's conditional formatting → data bars */
+  .data-bar-cell { display: flex; flex-direction: column; gap: 3px; }
+  .data-bar-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; width: 80px; }
+  .data-bar-fill { height: 100%; border-radius: 2px; }
+  /* Sigma conditional text — maps to conditional formatting → single color rule */
+  .status-pass { color: #15803D; font-weight: 700; font-size: 11px; }
+  .status-warn { color: #B45309; font-weight: 700; font-size: 11px; }
+  .status-fail { color: #B91C1C; font-weight: 700; font-size: 11px; }
+  .vert-text-medspa  { color: var(--medspa); font-weight: 600; }
+  .vert-text-hvac    { color: var(--hvac);   font-weight: 600; }
+  .vert-text-auto    { color: var(--auto);   font-weight: 600; }
+  .vert-text-emerging{ color: var(--emerging);font-weight: 600; }
+  .seg-text-ai       { color: var(--medspa); font-weight: 600; font-size: 11px; }
+  .seg-text-pp       { color: var(--hvac);   font-weight: 600; font-size: 11px; }
+  .seg-text-trane    { color: var(--trane);  font-weight: 600; font-size: 11px; }
+
+  /* Status/pass-fail — Sigma: conditional text color */
+  .pass-pill { color: var(--green); font-weight: 700; font-size: 11px; }
+  .fail-pill { color: var(--red); font-weight: 700; font-size: 11px; }
+  .warn-pill { color: var(--amber); font-weight: 700; font-size: 11px; }
+  .vert-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+  .delta-pos { color: var(--green); font-size: 11px; font-weight: 600; }
+  .delta-neg { color: var(--red); font-size: 11px; font-weight: 600; }
+  .delta-neu { color: var(--muted); font-size: 11px; }
+
+  /* Mini bar */
+  .mini-bar-wrap { width: 80px; height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .mini-bar { height: 100%; border-radius: 3px; }
+
+  /* Trend sparkline placeholder */
+  .sparkline { display: flex; align-items: flex-end; gap: 2px; height: 20px; }
+  .spark-bar { width: 5px; border-radius: 1px; }
+
+  /* Alerts — Sigma: text element inside a styled container */
+  .alert-banner { background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; }
+  .alert-banner.trane { background: #FFFBEB; border-color: #FDE68A; }
+  .alert-banner.info  { background: #EFF6FF; border-color: #BFDBFE; }
+  .alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .alert-text strong { display: block; font-size: 12px; font-weight: 700; color: var(--red); margin-bottom: 2px; }
+  .alert-text span { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .alert-banner.trane .alert-text strong { color: var(--trane); }
+  .alert-banner.info .alert-text strong { color: var(--hvac); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .nn-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .nn-card-header { background: var(--surface2); padding: 9px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .nn-card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text); }
+  .nn-card-title.danger { color: var(--red); }
+  .nn-card-title.warn { color: var(--amber); }
+  .nn-pct { font-size: 11px; color: var(--muted); }
+
+  /* KPI Grid — Sigma: native KPI chart element */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: box-shadow 0.15s;
+  }
+  .kpi-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+  .kpi-label { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 6px; }
+  .kpi-value { font-size: 30px; font-weight: 800; line-height: 1; margin-bottom: 4px; color: var(--text); }
+  .kpi-sub { font-size: 11px; color: var(--muted); }
+  .kpi-delta-pos { font-size: 11px; font-weight: 600; color: var(--green); }
+  .kpi-delta-neg { font-size: 11px; font-weight: 600; color: var(--red); }
+
+  /* Charts — Sigma: bar chart, line chart, stacked bar */
+  .chart-container { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .chart-title { font-size: 11px; font-weight: 600; margin-bottom: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .call-type-matrix { border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+  .call-type-matrix table td { font-size: 12px; }
+  .cell-score { display: inline-block; width: 44px; text-align: center; border-radius: 4px; padding: 2px 0; font-size: 11px; font-weight: 700; }
+
+  /* Book Health */
+  .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+  .trane-banner { background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 20px; }
+  .trane-title { font-size: 13px; font-weight: 700; color: var(--trane); margin-bottom: 3px; }
+  .trane-sub { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  /* urgency — Sigma: conditional text color */
+  .urg-expired { color: #991B1B; font-weight: 700; font-size: 11px; }
+  .urg-critical { color: #B91C1C; font-weight: 700; font-size: 11px; }
+  .urg-soon { color: #92400E; font-weight: 700; font-size: 11px; }
+  .urg-ok { color: #15803D; font-weight: 700; font-size: 11px; }
+
+  /* Scrollable table wrapper */
+  .table-scroll { max-height: 500px; overflow-y: auto; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .table-scroll::-webkit-scrollbar { width: 5px; }
+  .table-scroll::-webkit-scrollbar-track { background: var(--surface2); }
+  .table-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  thead { position: sticky; top: 0; z-index: 1; }
+
+  /* Info notes */
+  .info-note { font-size: 11px; color: var(--muted); background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 6px; padding: 8px 12px; margin-bottom: 14px; line-height: 1.5; }
+  .info-note strong { color: var(--amber); }
+
+  /* Legend */
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* Trane special section */
+  .trane-section { margin-top: 20px; }
+  .trane-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .trane-badge-lg { background: #FEF3C7; border: 1px solid #FDE68A; color: var(--trane); padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+
+  .trend-up::before { content: '▲ '; }
+  .trend-down::before { content: '▼ '; }
+
+  /* Interaction Intelligence tab */
+  .ii-risk-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+  .risk-critical { color: #991B1B; font-weight: 700; }
+  .risk-high     { color: #B45309; font-weight: 700; }
+  .risk-medium   { color: #4338CA; font-weight: 600; }
+  .risk-low      { color: #15803D; font-weight: 600; }
+  .risk-bg-critical { background: #FCA5A5; }
+  .risk-bg-high     { background: #FCD34D; }
+  .risk-bg-medium   { background: #A5B4FC; }
+  .risk-bg-low      { background: #86EFAC; }
+
+  @media (max-width: 900px) {
+    .vertical-cards { grid-template-columns: repeat(2, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .three-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <div class="podium-mark">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="26" height="26" rx="5" fill="#1A1A18"/>
+        <path d="M7 20V7h6.2c1.4 0 2.5.4 3.3 1.2.8.8 1.2 1.9 1.2 3.2 0 1.3-.4 2.4-1.2 3.2-.8.8-1.9 1.2-3.3 1.2H9.8V20H7zm2.8-7.4h3c.7 0 1.3-.2 1.7-.6.4-.4.6-1 .6-1.7s-.2-1.3-.6-1.7c-.4-.4-1-.6-1.7-.6h-3v4.6z" fill="white"/>
+        <path d="M15.5 20l-3.5-5.8h3l3.5 5.8h-3z" fill="white"/>
+      </svg>
+      <span class="podium-wordmark">Podium</span>
+    </div>
+    <div class="header-divider"></div>
+    <div>
+      <div class="header-title">CS Performance Hub</div>
+      <div class="header-sub">L30D Rolling &middot; Updated March 4, 2026</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div style="text-align:right;font-size:11px;color:var(--muted);">Data: Gong &middot; Salesforce &middot; Lighthouse</div>
+    <span class="header-badge">LIVE</span>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filters">
+  <div class="filter-group">
+    <span class="filter-label">Manager</span>
+    <select id="filterManager" onchange="applyFilters()">
+      <option value="">All Managers</option>
+      <option>Carter Matheson</option>
+      <option>Alex Howe</option>
+      <option>Jonathan Boyer</option>
+      <option>Manuel Estrada</option>
+      <option>Samantha Aucunas</option>
+      <option>Brock Bird</option>
+      <option>Noah Mann</option>
+      <option>Sarah Swindle</option>
+      <option>Liam Golightley</option>
+      <option>Javier Herrera</option>
+      <option>Chris Nielson</option>
+    </select>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Vertical</span>
+    <select id="filterVertical" onchange="applyFilters()">
+      <option value="">All Verticals</option>
+      <option>MedSpa</option>
+      <option>HVAC</option>
+      <option>Auto</option>
+      <option>Emerging</option>
+    </select>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Segment</span>
+    <select id="filterSegment" onchange="applyFilters()">
+      <option value="">All Segments</option>
+      <option>AI</option>
+      <option>Phones+Platform</option>
+      <option>Trane</option>
+    </select>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Min Calls</span>
+    <select id="filterMinCalls" onchange="applyFilters()">
+      <option value="0">Any</option>
+      <option value="3">3+</option>
+      <option value="5">5+</option>
+    </select>
+  </div>
+  <span class="last-updated">Composite = Call Quality (35%) + AR Velocity (20%) + Non-Negotiables (25%) + Retention SLA (20%)</span>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('leaderboard', this)">Leaderboard</div>
+  <div class="tab" onclick="switchTab('nonneg', this)">Non-Negotiables <span class="tab-badge" id="failCount">!</span></div>
+  <div class="tab" onclick="switchTab('callquality', this)">Call Quality</div>
+  <div class="tab" onclick="switchTab('intintel', this)">Interaction Intel</div>
+  <div class="tab" onclick="switchTab('bookhealth', this)">Book Health</div>
+</div>
+
+<!-- TAB 1: LEADERBOARD -->
+<div id="tab-leaderboard" class="tab-content active">
+  <div id="verticalCards" class="vertical-cards"></div>
+
+  <div class="section-header">
+    <div>
+      <div class="section-title">CSM Leaderboard — All Verticals</div>
+      <div class="section-sub">Click column headers to sort · Composite score weights vary by segment</div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#86EFAC"></div>85+ Elite</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#FDE68A"></div>70-84 Strong</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#FED7AA"></div>55-69 Needs Work</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#FCA5A5"></div>&lt;55 Critical</div>
+    </div>
+  </div>
+
+  <div class="table-scroll">
+    <table id="leaderboardTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('rank')">#</th>
+          <th onclick="sortTable('csm')">CSM</th>
+          <th onclick="sortTable('vertical')">Vertical</th>
+          <th onclick="sortTable('segment')">Segment</th>
+          <th onclick="sortTable('composite')" class="sorted">Composite</th>
+          <th onclick="sortTable('callScore')">Call Score</th>
+          <th onclick="sortTable('arsPerDay')">AR/Day</th>
+          <th onclick="sortTable('nonNeg')">Non-Neg</th>
+          <th onclick="sortTable('retentionSLA')">Ret. SLA</th>
+          <th onclick="sortTable('delta')">Trend</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboardBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB 2: NON-NEGOTIABLES -->
+<div id="tab-nonneg" class="tab-content">
+  <div class="alert-banner" id="hvacAlertBanner">
+    <span class="alert-icon">⚠</span>
+    <div class="alert-text">
+      <strong>HVAC 10in14 Completion: 0% — Critical</strong>
+      <span>11 overdue tasks across HVAC Phones+Platform in the last 30 days. Zero completed. This is a non-negotiable.</span>
+    </div>
+  </div>
+  <div class="alert-banner trane">
+    <span class="alert-icon">◆</span>
+    <div class="alert-text">
+      <strong>Trane Renewal Season Active — Explicit Renewal Required</strong>
+      <span>No auto-renewal. Every Trane customer needs verbal or written confirmation. Peak period Dec–Mar. UFR coverage is the non-negotiable for this group.</span>
+    </div>
+  </div>
+
+  <div class="kpi-grid" id="nnKPIs"></div>
+  <div class="two-col">
+    <div class="nn-card">
+      <div class="nn-card-header">
+        <span class="nn-card-title danger">10in14 Task Completion — Non-AI CSMs</span>
+        <span class="nn-pct" id="nnOverallPct"></span>
+      </div>
+      <div class="table-scroll" style="max-height:350px">
+        <table id="tenIn14Table">
+          <thead><tr>
+            <th>CSM</th><th>Vertical</th><th>Due L30D</th><th>Completed</th><th>%</th><th>Status</th>
+          </tr></thead>
+          <tbody id="tenIn14Body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="nn-card">
+      <div class="nn-card-header">
+        <span class="nn-card-title warn">Retention Case SLA — All CSMs</span>
+        <span class="nn-pct" id="retSLAOverallPct"></span>
+      </div>
+      <div class="table-scroll" style="max-height:350px">
+        <table id="retSLATable">
+          <thead><tr>
+            <th>CSM</th><th>Vertical</th><th>Open Cases</th><th>SLA Call</th><th>%</th><th>Status</th>
+          </tr></thead>
+          <tbody id="retSLABody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="trane-section">
+    <div class="trane-header">
+      <div class="section-title">Trane UFR Coverage — 60–120 Days Before Renewal</div>
+      <span class="trane-badge-lg">TRANE PARTNER</span>
+    </div>
+    <div class="info-note"><strong>Trane Rule:</strong> Explicit verbal or written renewal required — no auto-renewal. UFR must be completed 60–120 days before contract end. Current peak renewal season (Dec–Mar).</div>
+    <div class="table-wrap">
+      <table id="traneUFRTable">
+        <thead><tr>
+          <th>CSM</th><th>Accounts in Window</th><th>UFR Completed</th><th>Coverage %</th><th>Urgency</th><th>Status</th>
+        </tr></thead>
+        <tbody id="traneUFRBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: CALL QUALITY -->
+<div id="tab-callquality" class="tab-content">
+  <div class="kpi-grid" id="callKPIs"></div>
+
+  <div class="chart-container">
+    <div class="chart-title">Average Call Score by CSM — Ranked (Final Adjusted Score, L30D)</div>
+    <div style="position:relative;height:420px">
+      <canvas id="callScoreChart"></canvas>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <div class="chart-container" style="margin-bottom:0">
+      <div class="chart-title">Score Distribution by Vertical</div>
+      <div style="position:relative;height:180px">
+        <canvas id="verticalScoreChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-container" style="margin-bottom:0">
+      <div class="chart-title">Sentiment Outcomes by Vertical</div>
+      <div style="position:relative;height:180px">
+        <canvas id="sentimentChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header" style="margin-top:4px">
+    <div>
+      <div class="section-title">Call Score Detail — All CSMs</div>
+      <div class="section-sub">Sub-scores: Value Creation (35%) · Relationship (30%) · Adaptiveness (25%) · Ownership (10%)</div>
+    </div>
+  </div>
+  <div class="table-scroll">
+    <table id="callDetailTable">
+      <thead><tr>
+        <th onclick="sortCallTable('rank')">#</th>
+        <th onclick="sortCallTable('csm')">CSM</th>
+        <th onclick="sortCallTable('vertical')">Vertical</th>
+        <th onclick="sortCallTable('callScore')" class="sorted">Final Score</th>
+        <th onclick="sortCallTable('valueCreation')">Value</th>
+        <th onclick="sortCallTable('relationship')">Relationship</th>
+        <th onclick="sortCallTable('adaptiveness')">Adaptiveness</th>
+        <th onclick="sortCallTable('ownership')">Ownership</th>
+        <th onclick="sortCallTable('callCount')">Calls</th>
+        <th onclick="sortCallTable('callsImproved')">Improved</th>
+        <th onclick="sortCallTable('callsDegraded')">Degraded</th>
+      </tr></thead>
+      <tbody id="callDetailBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB 4: INTERACTION INTELLIGENCE -->
+<div id="tab-intintel" class="tab-content">
+  <div class="alert-banner info" style="margin-bottom:16px">
+    <span class="alert-icon">&#9432;</span>
+    <div class="alert-text">
+      <strong>Powered by Interaction Intelligence Model v4</strong>
+      <span>AI analysis of all customer interactions (calls, cases, emails, Podium conversations) per account. Risk scores 1–3: Low=1, Medium=1.5, High=2, Critical=3. Data: Jan 2026 cohort · 850 account analyses · 29 CSMs.</span>
+    </div>
+  </div>
+  <div class="kpi-grid" id="iiKPIs"></div>
+
+  <div class="section-header">
+    <div>
+      <div class="section-title">Book Risk by CSM — Interaction Intelligence</div>
+      <div class="section-sub">Sorted by Avg Risk Score · Color scale: red = high risk · Data bars on risk score column</div>
+    </div>
+  </div>
+
+  <!-- Sigma: horizontal stacked bar chart — Risk distribution per CSM -->
+  <div class="chart-container" style="margin-bottom:16px">
+    <div class="chart-title">Risk Distribution by CSM — Account Count by Risk Level</div>
+    <div style="position:relative;height:360px">
+      <canvas id="iiRiskChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Sigma: table with color-scale on Risk Score, conditional text on flags -->
+  <div class="table-scroll">
+    <table id="iiTable">
+      <thead><tr>
+        <th onclick="sortIITable('csm')">CSM</th>
+        <th onclick="sortIITable('accounts')">Accts</th>
+        <th onclick="sortIITable('avgRisk')" class="sorted">Avg Risk</th>
+        <th onclick="sortIITable('critical')">Critical</th>
+        <th onclick="sortIITable('highCritical')">High+Crit</th>
+        <th onclick="sortIITable('cancellation')">Cancel Intent</th>
+        <th onclick="sortIITable('escalation')">Escalations</th>
+        <th onclick="sortIITable('avgOpenAsks')">Avg Open Asks</th>
+        <th onclick="sortIITable('avgDaysOpen')">Avg Days Open</th>
+        <th onclick="sortIITable('improving')">Improving</th>
+      </tr></thead>
+      <tbody id="iiBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB 5: BOOK HEALTH -->
+<div id="tab-bookhealth" class="tab-content">
+
+  <div class="kpi-grid" id="bookKPIs"></div>
+
+  <div class="trane-banner">
+    <div>
+      <div class="trane-title">Trane Renewal Pipeline — Peak Season</div>
+      <div class="trane-sub">Contracts require explicit renewal confirmation. No auto-renewal. CSMs must secure verbal or written commitment before contract end.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;flex:1">
+      <div style="text-align:center;background:rgba(248,113,113,0.08);border-radius:6px;padding:8px">
+        <div style="font-size:22px;font-weight:800;color:#F87171" id="traneExpired">12</div>
+        <div style="font-size:10px;color:var(--muted)">EXPIRED / GRACE</div>
+      </div>
+      <div style="text-align:center;background:rgba(248,113,113,0.06);border-radius:6px;padding:8px">
+        <div style="font-size:22px;font-weight:800;color:#FCA5A5" id="traneCritical">34</div>
+        <div style="font-size:10px;color:var(--muted)">&lt;30 DAYS</div>
+      </div>
+      <div style="text-align:center;background:rgba(212,137,26,0.08);border-radius:6px;padding:8px">
+        <div style="font-size:22px;font-weight:800;color:#D4891A" id="traneSoon">67</div>
+        <div style="font-size:10px;color:var(--muted)">30–60 DAYS</div>
+      </div>
+      <div style="text-align:center;background:rgba(74,222,128,0.06);border-radius:6px;padding:8px">
+        <div style="font-size:22px;font-weight:800;color:#4ADE80" id="traneOk">143</div>
+        <div style="font-size:10px;color:var(--muted)">60–90 DAYS</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <div>
+      <div class="section-title">AR Activity — Rolling 30 Days</div>
+      <div class="section-sub">Active day = any day with 1+ AR closed. ARs/Day = total ARs ÷ active days. Gong/Podium calls 20min+ also count.</div>
+    </div>
+  </div>
+  <div class="info-note">
+    <strong>Note:</strong> ARs/Day measures cadence relative to days worked. High ARs/day with few active days may indicate batch logging — flag for coaching.
+  </div>
+  <div class="table-scroll">
+    <table id="arTable">
+      <thead><tr>
+        <th onclick="sortARTable('rank')">#</th>
+        <th onclick="sortARTable('csm')">CSM</th>
+        <th onclick="sortARTable('vertical')">Vertical</th>
+        <th onclick="sortARTable('totalArs')" class="sorted">Total ARs</th>
+        <th onclick="sortARTable('daysActive')">Active Days</th>
+        <th onclick="sortARTable('arsPerDay')">ARs/Day</th>
+        <th>Last AR</th>
+      </tr></thead>
+      <tbody id="arBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// =============================================================================
+// DATA
+// =============================================================================
+
+const rawCSM = [
+  // MedSpa
+  { csm:'Zachary Izatt',       vertical:'MedSpa',   manager:'Carter Matheson', segment:'AI',
+    callScore:83.3, callCount:5, valueCreation:80.4, relationship:81.6, adaptiveness:77.8, ownership:79.8,
+    callsImproved:3, callsDegraded:1, arsPerDay:6.44, totalArs:58, daysActive:9, lastAR:'2026-02-26',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:91, retCases:3, retSLADone:3,
+    ufrCoverage:87, prevCallScore:79.2 },
+  { csm:'Mackenzie Green',     vertical:'MedSpa',   manager:'Chris Nielson',   segment:'AI',
+    callScore:81.8, callCount:5, valueCreation:75.6, relationship:82.8, adaptiveness:75.0, ownership:81.4,
+    callsImproved:4, callsDegraded:0, arsPerDay:4.31, totalArs:56, daysActive:13, lastAR:'2026-02-26',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:88, retCases:4, retSLADone:4,
+    ufrCoverage:82, prevCallScore:77.5 },
+  { csm:'Kandis Lauder',       vertical:'MedSpa',   manager:'Carter Matheson', segment:'AI',
+    callScore:78.6, callCount:5, valueCreation:75.2, relationship:77.8, adaptiveness:72.4, ownership:76.4,
+    callsImproved:4, callsDegraded:0, arsPerDay:6.11, totalArs:55, daysActive:9, lastAR:'2026-02-27',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:79, retCases:5, retSLADone:4,
+    ufrCoverage:78, prevCallScore:74.1 },
+  { csm:'Jennifer Rodriguez',  vertical:'MedSpa',   manager:'Carter Matheson', segment:'AI',
+    callScore:75.7, callCount:5, valueCreation:69.8, relationship:81.4, adaptiveness:72.4, ownership:79.2,
+    callsImproved:3, callsDegraded:0, arsPerDay:3.33, totalArs:70, daysActive:21, lastAR:'2026-03-04',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:82, retCases:6, retSLADone:5,
+    ufrCoverage:72, prevCallScore:71.3 },
+  { csm:'Jennifer Guzman',     vertical:'MedSpa',   manager:'Carter Matheson', segment:'AI',
+    callScore:73.9, callCount:5, valueCreation:67.2, relationship:80.2, adaptiveness:67.6, ownership:76.2,
+    callsImproved:3, callsDegraded:0, arsPerDay:3.35, totalArs:77, daysActive:23, lastAR:'2026-03-04',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:76, retCases:7, retSLADone:5,
+    ufrCoverage:68, prevCallScore:70.4 },
+  { csm:'Ashley Hall',         vertical:'MedSpa',   manager:'Carter Matheson', segment:'Phones+Platform',
+    callScore:69.8, callCount:5, valueCreation:64.2, relationship:78.0, adaptiveness:66.6, ownership:81.0,
+    callsImproved:1, callsDegraded:0, arsPerDay:3.38, totalArs:71, daysActive:21, lastAR:'2026-03-04',
+    tenIn14:48, tenIn14Due:8, tenIn14Done:4, retSLA:71, retCases:5, retSLADone:4,
+    ufrCoverage:null, prevCallScore:65.2 },
+  { csm:'Daniel Carter',       vertical:'MedSpa',   manager:'Carter Matheson', segment:'Phones+Platform',
+    callScore:68.6, callCount:4, valueCreation:64.8, relationship:70.0, adaptiveness:65.8, ownership:79.5,
+    callsImproved:2, callsDegraded:1, arsPerDay:12.33, totalArs:37, daysActive:3, lastAR:'2026-02-11',
+    tenIn14:42, tenIn14Due:6, tenIn14Done:3, retSLA:63, retCases:4, retSLADone:3,
+    ufrCoverage:null, prevCallScore:72.1 },
+
+  // HVAC — Trane
+  { csm:'Colin Murdock',       vertical:'HVAC',     manager:'Jonathan Boyer',  segment:'Trane',
+    callScore:86.3, callCount:5, valueCreation:79.8, relationship:80.8, adaptiveness:79.2, ownership:82.8,
+    callsImproved:3, callsDegraded:0, arsPerDay:2.88, totalArs:49, daysActive:17, lastAR:'2026-02-26',
+    tenIn14:8, tenIn14Due:12, tenIn14Done:1, retSLA:62, retCases:8, retSLADone:5,
+    ufrCoverage:72, prevCallScore:83.1 },
+  { csm:'Elaine Ho',           vertical:'HVAC',     manager:'Jonathan Boyer',  segment:'Trane',
+    callScore:83.6, callCount:4, valueCreation:78.5, relationship:78.8, adaptiveness:78.5, ownership:83.8,
+    callsImproved:0, callsDegraded:0, arsPerDay:3.75, totalArs:30, daysActive:8, lastAR:'2026-03-04',
+    tenIn14:5, tenIn14Due:9, tenIn14Done:0, retSLA:69, retCases:6, retSLADone:4,
+    ufrCoverage:68, prevCallScore:80.2 },
+  { csm:'Jeremy Cifuentes',    vertical:'HVAC',     manager:'Alex Howe',       segment:'Trane',
+    callScore:82.6, callCount:5, valueCreation:78.4, relationship:80.0, adaptiveness:79.0, ownership:78.2,
+    callsImproved:1, callsDegraded:0, arsPerDay:2.0, totalArs:34, daysActive:17, lastAR:'2026-03-04',
+    tenIn14:4, tenIn14Due:14, tenIn14Done:1, retSLA:58, retCases:10, retSLADone:6,
+    ufrCoverage:64, prevCallScore:78.9 },
+  { csm:'Tanner Overbay',      vertical:'HVAC',     manager:'Alex Howe',       segment:'Trane',
+    callScore:81.2, callCount:5, valueCreation:76.0, relationship:79.2, adaptiveness:75.8, ownership:76.8,
+    callsImproved:1, callsDegraded:0, arsPerDay:3.4, totalArs:68, daysActive:20, lastAR:'2026-03-03',
+    tenIn14:6, tenIn14Due:11, tenIn14Done:1, retSLA:65, retCases:7, retSLADone:5,
+    ufrCoverage:71, prevCallScore:79.4 },
+  // HVAC — regular
+  { csm:'Rossio Guerra',       vertical:'HVAC',     manager:'Alex Howe',       segment:'Phones+Platform',
+    callScore:82.2, callCount:5, valueCreation:78.0, relationship:80.6, adaptiveness:77.0, ownership:80.2,
+    callsImproved:4, callsDegraded:0, arsPerDay:2.21, totalArs:53, daysActive:24, lastAR:'2026-03-04',
+    tenIn14:15, tenIn14Due:10, tenIn14Done:2, retSLA:74, retCases:5, retSLADone:4,
+    ufrCoverage:null, prevCallScore:79.7 },
+  { csm:'Charlie Coloma',      vertical:'HVAC',     manager:'Alex Howe',       segment:'Phones+Platform',
+    callScore:81.3, callCount:2, valueCreation:72.0, relationship:73.0, adaptiveness:78.0, ownership:81.5,
+    callsImproved:1, callsDegraded:0, arsPerDay:2.5, totalArs:22, daysActive:9, lastAR:'2026-02-28',
+    tenIn14:9, tenIn14Due:7, tenIn14Done:1, retSLA:61, retCases:3, retSLADone:2,
+    ufrCoverage:null, prevCallScore:77.8 },
+  { csm:'Landen Marcroft',     vertical:'HVAC',     manager:'Alex Howe',       segment:'Phones+Platform',
+    callScore:78.0, callCount:5, valueCreation:74.0, relationship:75.6, adaptiveness:76.6, ownership:80.4,
+    callsImproved:2, callsDegraded:0, arsPerDay:5.53, totalArs:105, daysActive:19, lastAR:'2026-03-03',
+    tenIn14:2, tenIn14Due:13, tenIn14Done:0, retSLA:55, retCases:9, retSLADone:5,
+    ufrCoverage:null, prevCallScore:75.1 },
+  { csm:'Andrea Contreras',    vertical:'HVAC',     manager:'Alex Howe',       segment:'Phones+Platform',
+    callScore:77.0, callCount:5, valueCreation:70.8, relationship:75.4, adaptiveness:73.0, ownership:81.4,
+    callsImproved:2, callsDegraded:1, arsPerDay:3.95, totalArs:87, daysActive:22, lastAR:'2026-03-03',
+    tenIn14:7, tenIn14Due:11, tenIn14Done:1, retSLA:58, retCases:7, retSLADone:4,
+    ufrCoverage:null, prevCallScore:74.2 },
+  { csm:'Luis Mora Aguilar',   vertical:'HVAC',     manager:'Jonathan Boyer',  segment:'Phones+Platform',
+    callScore:75.1, callCount:4, valueCreation:75.0, relationship:74.0, adaptiveness:73.0, ownership:73.3,
+    callsImproved:2, callsDegraded:1, arsPerDay:5.71, totalArs:97, daysActive:17, lastAR:'2026-03-04',
+    tenIn14:11, tenIn14Due:9, tenIn14Done:1, retSLA:67, retCases:6, retSLADone:4,
+    ufrCoverage:null, prevCallScore:72.0 },
+  { csm:'Kalena Palmer',       vertical:'HVAC',     manager:'Jonathan Boyer',  segment:'Phones+Platform',
+    callScore:73.1, callCount:5, valueCreation:72.4, relationship:75.4, adaptiveness:70.2, ownership:78.0,
+    callsImproved:0, callsDegraded:0, arsPerDay:3.29, totalArs:56, daysActive:17, lastAR:'2026-03-04',
+    tenIn14:8, tenIn14Due:10, tenIn14Done:1, retSLA:64, retCases:5, retSLADone:3,
+    ufrCoverage:null, prevCallScore:70.8 },
+  { csm:'Gabriel Beccari',     vertical:'HVAC',     manager:'Chris Nielson',   segment:'Phones+Platform',
+    callScore:59.1, callCount:1, valueCreation:62.0, relationship:68.0, adaptiveness:58.0, ownership:75.0,
+    callsImproved:0, callsDegraded:0, arsPerDay:1.5, totalArs:12, daysActive:8, lastAR:'2026-02-20',
+    tenIn14:3, tenIn14Due:6, tenIn14Done:0, retSLA:48, retCases:4, retSLADone:2,
+    ufrCoverage:null, prevCallScore:64.2 },
+
+  // Auto — top performers
+  { csm:'Samira Feldmann',     vertical:'Auto',     manager:'Brock Bird',      segment:'AI',
+    callScore:91.4, callCount:5, valueCreation:85.2, relationship:86.8, adaptiveness:83.6, ownership:86.0,
+    callsImproved:3, callsDegraded:0, arsPerDay:2.67, totalArs:56, daysActive:21, lastAR:'2026-03-04',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:94, retCases:3, retSLADone:3,
+    ufrCoverage:91, prevCallScore:87.1 },
+  { csm:'Ty Little',           vertical:'Auto',     manager:'Brock Bird',      segment:'AI',
+    callScore:87.1, callCount:4, valueCreation:82.0, relationship:80.5, adaptiveness:80.8, ownership:83.3,
+    callsImproved:2, callsDegraded:0, arsPerDay:3.92, totalArs:51, daysActive:13, lastAR:'2026-03-04',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:88, retCases:2, retSLADone:2,
+    ufrCoverage:84, prevCallScore:82.4 },
+  { csm:'Katherine Braner',    vertical:'Auto',     manager:'Sarah Swindle',   segment:'Phones+Platform',
+    callScore:85.9, callCount:5, valueCreation:80.0, relationship:83.2, adaptiveness:79.6, ownership:82.2,
+    callsImproved:3, callsDegraded:0, arsPerDay:2.14, totalArs:30, daysActive:14, lastAR:'2026-03-04',
+    tenIn14:71, tenIn14Due:9, tenIn14Done:6, retSLA:82, retCases:4, retSLADone:3,
+    ufrCoverage:null, prevCallScore:81.3 },
+  { csm:'Colton Himstreet',    vertical:'Auto',     manager:'Noah Mann',       segment:'AI',
+    callScore:84.6, callCount:4, valueCreation:80.5, relationship:81.0, adaptiveness:78.0, ownership:83.0,
+    callsImproved:1, callsDegraded:0, arsPerDay:2.8, totalArs:24, daysActive:9, lastAR:'2026-03-01',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:83, retCases:3, retSLADone:3,
+    ufrCoverage:79, prevCallScore:80.2 },
+  { csm:'Alec Bentson',        vertical:'Auto',     manager:'Brock Bird',      segment:'Phones+Platform',
+    callScore:84.3, callCount:5, valueCreation:81.0, relationship:81.4, adaptiveness:77.6, ownership:81.6,
+    callsImproved:1, callsDegraded:0, arsPerDay:3.18, totalArs:70, daysActive:22, lastAR:'2026-03-04',
+    tenIn14:68, tenIn14Due:10, tenIn14Done:7, retSLA:79, retCases:5, retSLADone:4,
+    ufrCoverage:null, prevCallScore:80.9 },
+  { csm:'Nate Ziomek',         vertical:'Auto',     manager:'Brock Bird',      segment:'Phones+Platform',
+    callScore:83.8, callCount:5, valueCreation:80.8, relationship:79.2, adaptiveness:77.8, ownership:82.6,
+    callsImproved:2, callsDegraded:0, arsPerDay:3.17, totalArs:57, daysActive:18, lastAR:'2026-03-05',
+    tenIn14:63, tenIn14Due:11, tenIn14Done:7, retSLA:76, retCases:4, retSLADone:3,
+    ufrCoverage:null, prevCallScore:79.4 },
+  { csm:'Andrew Fox',          vertical:'Auto',     manager:'Brock Bird',      segment:'AI',
+    callScore:83.3, callCount:5, valueCreation:79.6, relationship:80.6, adaptiveness:78.4, ownership:80.6,
+    callsImproved:2, callsDegraded:0, arsPerDay:2.9, totalArs:38, daysActive:13, lastAR:'2026-03-04',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:81, retCases:3, retSLADone:3,
+    ufrCoverage:77, prevCallScore:80.1 },
+  { csm:'Valerie Brown',       vertical:'Auto',     manager:'Noah Mann',       segment:'AI',
+    callScore:83.1, callCount:5, valueCreation:79.0, relationship:79.6, adaptiveness:78.2, ownership:79.6,
+    callsImproved:2, callsDegraded:0, arsPerDay:2.7, totalArs:32, daysActive:12, lastAR:'2026-03-02',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:80, retCases:4, retSLADone:3,
+    ufrCoverage:74, prevCallScore:79.8 },
+  { csm:'Nicholas Dibb',       vertical:'Auto',     manager:'Noah Mann',       segment:'AI',
+    callScore:83.0, callCount:5, valueCreation:79.2, relationship:80.6, adaptiveness:78.8, ownership:85.6,
+    callsImproved:1, callsDegraded:0, arsPerDay:2.85, totalArs:31, daysActive:11, lastAR:'2026-03-03',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:82, retCases:3, retSLADone:3,
+    ufrCoverage:76, prevCallScore:80.2 },
+  { csm:'Alex Woerner',        vertical:'Auto',     manager:'Brock Bird',      segment:'Phones+Platform',
+    callScore:82.8, callCount:5, valueCreation:78.6, relationship:78.8, adaptiveness:79.2, ownership:78.0,
+    callsImproved:1, callsDegraded:0, arsPerDay:5.22, totalArs:47, daysActive:9, lastAR:'2026-03-04',
+    tenIn14:58, tenIn14Due:8, tenIn14Done:5, retSLA:78, retCases:4, retSLADone:3,
+    ufrCoverage:null, prevCallScore:79.3 },
+  { csm:'Boyd Abernethy',      vertical:'Auto',     manager:'Brock Bird',      segment:'Phones+Platform',
+    callScore:82.2, callCount:5, valueCreation:78.2, relationship:81.0, adaptiveness:76.8, ownership:76.8,
+    callsImproved:0, callsDegraded:0, arsPerDay:2.9, totalArs:61, daysActive:21, lastAR:'2026-03-04',
+    tenIn14:55, tenIn14Due:9, tenIn14Done:5, retSLA:75, retCases:5, retSLADone:4,
+    ufrCoverage:null, prevCallScore:79.1 },
+  { csm:'Cole Suter',          vertical:'Auto',     manager:'Sarah Swindle',   segment:'Phones+Platform',
+    callScore:82.0, callCount:5, valueCreation:77.6, relationship:79.2, adaptiveness:78.2, ownership:79.0,
+    callsImproved:1, callsDegraded:0, arsPerDay:2.6, totalArs:28, daysActive:11, lastAR:'2026-03-01',
+    tenIn14:61, tenIn14Due:8, tenIn14Done:5, retSLA:76, retCases:3, retSLADone:2,
+    ufrCoverage:null, prevCallScore:78.5 },
+  { csm:'Tyler Barnes',        vertical:'Auto',     manager:'Brock Bird',      segment:'Phones+Platform',
+    callScore:81.0, callCount:5, valueCreation:77.5, relationship:78.4, adaptiveness:78.0, ownership:76.2,
+    callsImproved:3, callsDegraded:0, arsPerDay:3.0, totalArs:69, daysActive:23, lastAR:'2026-03-04',
+    tenIn14:60, tenIn14Due:10, tenIn14Done:6, retSLA:74, retCases:6, retSLADone:4,
+    ufrCoverage:null, prevCallScore:77.2 },
+  { csm:'Mason Allred',        vertical:'Auto',     manager:'Noah Mann',       segment:'AI',
+    callScore:80.9, callCount:4, valueCreation:77.3, relationship:77.8, adaptiveness:78.3, ownership:82.3,
+    callsImproved:0, callsDegraded:0, arsPerDay:2.5, totalArs:22, daysActive:9, lastAR:'2026-02-28',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:77, retCases:2, retSLADone:2,
+    ufrCoverage:71, prevCallScore:78.1 },
+  { csm:'Clinton Zehr',        vertical:'Auto',     manager:'Noah Mann',       segment:'AI',
+    callScore:80.8, callCount:5, valueCreation:79.2, relationship:77.6, adaptiveness:77.8, ownership:81.6,
+    callsImproved:1, callsDegraded:0, arsPerDay:2.4, totalArs:28, daysActive:12, lastAR:'2026-03-02',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:78, retCases:3, retSLADone:2,
+    ufrCoverage:69, prevCallScore:77.9 },
+  { csm:'Noah Fonoimoana',     vertical:'Auto',     manager:'Liam Golightley', segment:'Phones+Platform',
+    callScore:79.5, callCount:5, valueCreation:76.0, relationship:79.2, adaptiveness:76.6, ownership:81.5,
+    callsImproved:1, callsDegraded:0, arsPerDay:2.3, totalArs:26, daysActive:11, lastAR:'2026-03-01',
+    tenIn14:52, tenIn14Due:8, tenIn14Done:4, retSLA:73, retCases:3, retSLADone:2,
+    ufrCoverage:null, prevCallScore:76.8 },
+  { csm:'Kiley North',         vertical:'Auto',     manager:'Noah Mann',       segment:'AI',
+    callScore:79.5, callCount:5, valueCreation:78.4, relationship:79.2, adaptiveness:75.2, ownership:82.4,
+    callsImproved:2, callsDegraded:0, arsPerDay:2.4, totalArs:25, daysActive:10, lastAR:'2026-03-03',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:75, retCases:2, retSLADone:2,
+    ufrCoverage:68, prevCallScore:77.1 },
+  { csm:'Derrick Valles',      vertical:'Auto',     manager:'Brock Bird',      segment:'Phones+Platform',
+    callScore:79.5, callCount:5, valueCreation:76.6, relationship:78.2, adaptiveness:76.8, ownership:76.2,
+    callsImproved:2, callsDegraded:0, arsPerDay:3.35, totalArs:57, daysActive:17, lastAR:'2026-03-04',
+    tenIn14:50, tenIn14Due:9, tenIn14Done:5, retSLA:72, retCases:4, retSLADone:3,
+    ufrCoverage:null, prevCallScore:76.9 },
+  { csm:'Jhustin Marcos',      vertical:'Auto',     manager:'Sarah Swindle',   segment:'Phones+Platform',
+    callScore:79.1, callCount:5, valueCreation:76.4, relationship:78.0, adaptiveness:73.0, ownership:76.8,
+    callsImproved:2, callsDegraded:0, arsPerDay:2.2, totalArs:24, daysActive:11, lastAR:'2026-02-28',
+    tenIn14:47, tenIn14Due:8, tenIn14Done:4, retSLA:70, retCases:3, retSLADone:2,
+    ufrCoverage:null, prevCallScore:76.4 },
+  { csm:'Dallin Wolters',      vertical:'Auto',     manager:'Noah Mann',       segment:'Phones+Platform',
+    callScore:77.4, callCount:5, valueCreation:75.0, relationship:76.4, adaptiveness:76.8, ownership:76.2,
+    callsImproved:0, callsDegraded:0, arsPerDay:2.6, totalArs:28, daysActive:11, lastAR:'2026-03-01',
+    tenIn14:43, tenIn14Due:8, tenIn14Done:3, retSLA:68, retCases:3, retSLADone:2,
+    ufrCoverage:null, prevCallScore:75.1 },
+  { csm:'Alex Brimley',        vertical:'Auto',     manager:'Noah Mann',       segment:'Phones+Platform',
+    callScore:77.2, callCount:5, valueCreation:74.6, relationship:77.4, adaptiveness:73.6, ownership:82.4,
+    callsImproved:1, callsDegraded:0, arsPerDay:2.5, totalArs:27, daysActive:11, lastAR:'2026-03-02',
+    tenIn14:40, tenIn14Due:8, tenIn14Done:3, retSLA:66, retCases:3, retSLADone:2,
+    ufrCoverage:null, prevCallScore:74.8 },
+  { csm:'Tom Busico',          vertical:'Auto',     manager:'Brock Bird',      segment:'Phones+Platform',
+    callScore:76.7, callCount:5, valueCreation:75.6, relationship:76.8, adaptiveness:74.0, ownership:72.4,
+    callsImproved:0, callsDegraded:0, arsPerDay:6.29, totalArs:44, daysActive:7, lastAR:'2026-02-28',
+    tenIn14:38, tenIn14Due:7, tenIn14Done:3, retSLA:65, retCases:4, retSLADone:3,
+    ufrCoverage:null, prevCallScore:74.2 },
+  { csm:'Derek Tracy',         vertical:'Auto',     manager:'Liam Golightley', segment:'Phones+Platform',
+    callScore:76.2, callCount:5, valueCreation:72.4, relationship:76.0, adaptiveness:73.4, ownership:74.4,
+    callsImproved:0, callsDegraded:0, arsPerDay:2.4, totalArs:24, daysActive:10, lastAR:'2026-03-01',
+    tenIn14:36, tenIn14Due:7, tenIn14Done:3, retSLA:64, retCases:3, retSLADone:2,
+    ufrCoverage:null, prevCallScore:73.8 },
+  { csm:'Dayle Mohrmann',      vertical:'Auto',     manager:'Sarah Swindle',   segment:'Phones+Platform',
+    callScore:76.2, callCount:5, valueCreation:74.0, relationship:77.5, adaptiveness:72.2, ownership:76.4,
+    callsImproved:2, callsDegraded:0, arsPerDay:2.3, totalArs:25, daysActive:11, lastAR:'2026-03-01',
+    tenIn14:44, tenIn14Due:8, tenIn14Done:4, retSLA:65, retCases:4, retSLADone:3,
+    ufrCoverage:null, prevCallScore:73.5 },
+  { csm:'Laura Widenmann',     vertical:'Auto',     manager:'Noah Mann',       segment:'Phones+Platform',
+    callScore:74.9, callCount:4, valueCreation:73.0, relationship:74.8, adaptiveness:70.0, ownership:81.3,
+    callsImproved:0, callsDegraded:0, arsPerDay:2.2, totalArs:22, daysActive:10, lastAR:'2026-02-28',
+    tenIn14:35, tenIn14Due:8, tenIn14Done:3, retSLA:63, retCases:3, retSLADone:2,
+    ufrCoverage:null, prevCallScore:72.6 },
+  { csm:'Erik Valentin',       vertical:'Auto',     manager:'Sarah Swindle',   segment:'Phones+Platform',
+    callScore:74.0, callCount:5, valueCreation:68.5, relationship:73.5, adaptiveness:73.3, ownership:69.3,
+    callsImproved:0, callsDegraded:0, arsPerDay:2.0, totalArs:22, daysActive:11, lastAR:'2026-02-27',
+    tenIn14:34, tenIn14Due:8, tenIn14Done:3, retSLA:62, retCases:3, retSLADone:2,
+    ufrCoverage:null, prevCallScore:71.8 },
+  { csm:'McKay Kelly',         vertical:'Auto',     manager:'Brock Bird',      segment:'Phones+Platform',
+    callScore:72.5, callCount:5, valueCreation:69.6, relationship:72.6, adaptiveness:72.4, ownership:70.8,
+    callsImproved:0, callsDegraded:0, arsPerDay:3.11, totalArs:28, daysActive:9, lastAR:'2026-02-13',
+    tenIn14:33, tenIn14Due:7, tenIn14Done:2, retSLA:60, retCases:4, retSLADone:2,
+    ufrCoverage:null, prevCallScore:70.1 },
+  { csm:'Preston Nelson',      vertical:'Auto',     manager:'Brock Bird',      segment:'Phones+Platform',
+    callScore:69.8, callCount:5, valueCreation:68.4, relationship:74.0, adaptiveness:67.2, ownership:78.6,
+    callsImproved:1, callsDegraded:0, arsPerDay:2.05, totalArs:39, daysActive:19, lastAR:'2026-03-04',
+    tenIn14:30, tenIn14Due:8, tenIn14Done:2, retSLA:57, retCases:4, retSLADone:2,
+    ufrCoverage:null, prevCallScore:68.2 },
+  { csm:'Brian Peterson',      vertical:'Auto',     manager:'Brock Bird',      segment:'Phones+Platform',
+    callScore:61.4, callCount:5, valueCreation:62.4, relationship:73.8, adaptiveness:60.2, ownership:77.6,
+    callsImproved:0, callsDegraded:0, arsPerDay:2.45, totalArs:27, daysActive:11, lastAR:'2026-03-03',
+    tenIn14:22, tenIn14Due:8, tenIn14Done:2, retSLA:50, retCases:4, retSLADone:2,
+    ufrCoverage:null, prevCallScore:59.8 },
+  { csm:'Otto Blanco',         vertical:'Auto',     manager:'Javier Herrera',  segment:'Phones+Platform',
+    callScore:55.8, callCount:5, valueCreation:57.3, relationship:65.2, adaptiveness:50.0, ownership:71.5,
+    callsImproved:0, callsDegraded:0, arsPerDay:1.86, totalArs:26, daysActive:14, lastAR:'2026-02-26',
+    tenIn14:18, tenIn14Due:8, tenIn14Done:1, retSLA:44, retCases:5, retSLADone:2,
+    ufrCoverage:null, prevCallScore:58.2 },
+
+  // Emerging
+  { csm:'Brayson Warenski',    vertical:'Emerging', manager:'Samantha Aucunas', segment:'AI',
+    callScore:91.8, callCount:5, valueCreation:85.6, relationship:85.8, adaptiveness:85.2, ownership:81.6,
+    callsImproved:3, callsDegraded:0, arsPerDay:1.78, totalArs:16, daysActive:9, lastAR:'2026-03-03',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:85, retCases:2, retSLADone:2,
+    ufrCoverage:89, prevCallScore:87.4 },
+  { csm:'Oscar Paz',           vertical:'Emerging', manager:'Manuel Estrada',  segment:'AI',
+    callScore:88.5, callCount:5, valueCreation:81.8, relationship:81.6, adaptiveness:82.2, ownership:83.8,
+    callsImproved:1, callsDegraded:0, arsPerDay:3.3, totalArs:66, daysActive:20, lastAR:'2026-03-04',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:88, retCases:3, retSLADone:3,
+    ufrCoverage:82, prevCallScore:84.1 },
+  { csm:'Bruce Gordon',        vertical:'Emerging', manager:'Manuel Estrada',  segment:'Phones+Platform',
+    callScore:86.4, callCount:5, valueCreation:83.2, relationship:81.8, adaptiveness:82.6, ownership:77.2,
+    callsImproved:4, callsDegraded:0, arsPerDay:2.67, totalArs:56, daysActive:21, lastAR:'2026-03-04',
+    tenIn14:28, tenIn14Due:9, tenIn14Done:3, retSLA:76, retCases:4, retSLADone:3,
+    ufrCoverage:null, prevCallScore:82.1 },
+  { csm:'Carlos Jurado',       vertical:'Emerging', manager:'Manuel Estrada',  segment:'AI',
+    callScore:84.1, callCount:5, valueCreation:79.2, relationship:81.0, adaptiveness:78.8, ownership:83.6,
+    callsImproved:4, callsDegraded:0, arsPerDay:6.5, totalArs:52, daysActive:8, lastAR:'2026-02-28',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:84, retCases:3, retSLADone:3,
+    ufrCoverage:81, prevCallScore:80.3 },
+  { csm:'Ramiro Rodriguez',    vertical:'Emerging', manager:'Manuel Estrada',  segment:'AI',
+    callScore:84.0, callCount:5, valueCreation:81.0, relationship:79.4, adaptiveness:80.4, ownership:83.0,
+    callsImproved:2, callsDegraded:0, arsPerDay:4.25, totalArs:34, daysActive:8, lastAR:'2026-03-03',
+    tenIn14:null, tenIn14Due:null, tenIn14Done:null, retSLA:83, retCases:3, retSLADone:3,
+    ufrCoverage:78, prevCallScore:80.8 },
+  { csm:'Luis Cardona',        vertical:'Emerging', manager:'Manuel Estrada',  segment:'Phones+Platform',
+    callScore:83.2, callCount:5, valueCreation:78.0, relationship:79.4, adaptiveness:76.4, ownership:79.4,
+    callsImproved:3, callsDegraded:0, arsPerDay:2.68, totalArs:59, daysActive:22, lastAR:'2026-03-04',
+    tenIn14:25, tenIn14Due:10, tenIn14Done:3, retSLA:74, retCases:5, retSLADone:4,
+    ufrCoverage:null, prevCallScore:79.8 },
+  { csm:'Elizabeth Martinez',  vertical:'Emerging', manager:'Manuel Estrada',  segment:'Phones+Platform',
+    callScore:81.2, callCount:4, valueCreation:79.0, relationship:79.0, adaptiveness:75.5, ownership:81.8,
+    callsImproved:1, callsDegraded:0, arsPerDay:2.05, totalArs:41, daysActive:20, lastAR:'2026-03-04',
+    tenIn14:22, tenIn14Due:9, tenIn14Done:2, retSLA:72, retCases:4, retSLADone:3,
+    ufrCoverage:null, prevCallScore:78.4 },
+  { csm:'Carlos Juarez',       vertical:'Emerging', manager:'Samantha Aucunas', segment:'Phones+Platform',
+    callScore:81.1, callCount:5, valueCreation:78.8, relationship:78.4, adaptiveness:77.6, ownership:82.2,
+    callsImproved:1, callsDegraded:0, arsPerDay:2.94, totalArs:47, daysActive:16, lastAR:'2026-03-04',
+    tenIn14:26, tenIn14Due:9, tenIn14Done:2, retSLA:73, retCases:4, retSLADone:3,
+    ufrCoverage:null, prevCallScore:78.2 },
+  { csm:'Beatriz Tello',       vertical:'Emerging', manager:'Manuel Estrada',  segment:'Phones+Platform',
+    callScore:79.6, callCount:5, valueCreation:76.8, relationship:77.2, adaptiveness:74.4, ownership:81.6,
+    callsImproved:2, callsDegraded:0, arsPerDay:2.32, totalArs:44, daysActive:19, lastAR:'2026-03-04',
+    tenIn14:21, tenIn14Due:9, tenIn14Done:2, retSLA:70, retCases:5, retSLADone:3,
+    ufrCoverage:null, prevCallScore:76.9 },
+  { csm:'Andrea Lopez',        vertical:'Emerging', manager:'Manuel Estrada',  segment:'Phones+Platform',
+    callScore:70.8, callCount:5, valueCreation:72.8, relationship:69.6, adaptiveness:70.0, ownership:73.6,
+    callsImproved:2, callsDegraded:1, arsPerDay:2.17, totalArs:26, daysActive:12, lastAR:'2026-03-04',
+    tenIn14:18, tenIn14Due:9, tenIn14Done:2, retSLA:63, retCases:4, retSLADone:3,
+    ufrCoverage:null, prevCallScore:68.5 },
+  { csm:'Andres Arriaza',      vertical:'Emerging', manager:'Manuel Estrada',  segment:'Phones+Platform',
+    callScore:70.2, callCount:5, valueCreation:70.4, relationship:71.4, adaptiveness:69.6, ownership:79.2,
+    callsImproved:1, callsDegraded:1, arsPerDay:2.57, totalArs:54, daysActive:21, lastAR:'2026-03-04',
+    tenIn14:17, tenIn14Due:9, tenIn14Done:2, retSLA:61, retCases:5, retSLADone:3,
+    ufrCoverage:null, prevCallScore:67.9 },
+  { csm:'Danny Norris',        vertical:'Emerging', manager:'Samantha Aucunas', segment:'Phones+Platform',
+    callScore:68.9, callCount:5, valueCreation:71.8, relationship:67.4, adaptiveness:70.6, ownership:66.4,
+    callsImproved:1, callsDegraded:0, arsPerDay:3.5, totalArs:49, daysActive:14, lastAR:'2026-03-04',
+    tenIn14:15, tenIn14Due:8, tenIn14Done:1, retSLA:59, retCases:4, retSLADone:2,
+    ufrCoverage:null, prevCallScore:66.3 },
+  { csm:'Ben Geva',            vertical:'Emerging', manager:'Samantha Aucunas', segment:'Phones+Platform',
+    callScore:60.9, callCount:5, valueCreation:71.5, relationship:76.5, adaptiveness:72.5, ownership:75.8,
+    callsImproved:1, callsDegraded:0, arsPerDay:3.31, totalArs:53, daysActive:16, lastAR:'2026-02-28',
+    tenIn14:12, tenIn14Due:8, tenIn14Done:1, retSLA:52, retCases:5, retSLADone:3,
+    ufrCoverage:null, prevCallScore:58.7 },
+  { csm:'Helen Carranza',      vertical:'Emerging', manager:'Manuel Estrada',  segment:'Phones+Platform',
+    callScore:56.1, callCount:1, valueCreation:62.0, relationship:68.0, adaptiveness:58.0, ownership:55.0,
+    callsImproved:0, callsDegraded:0, arsPerDay:2.38, totalArs:19, daysActive:8, lastAR:'2026-03-02',
+    tenIn14:8, tenIn14Due:7, tenIn14Done:1, retSLA:44, retCases:3, retSLADone:1,
+    ufrCoverage:null, prevCallScore:60.4 },
+];
+
+// =============================================================================
+// COMPOSITE SCORE CALCULATION
+// =============================================================================
+function computeComposite(d) {
+  const normAR = Math.min(100, (d.arsPerDay / 5.0) * 100);
+  if (d.segment === 'AI') {
+    // AI: Call Quality 35%, AR Velocity 20%, UFR Coverage 30%, Retention SLA 15%
+    const ufr = d.ufrCoverage || 60;
+    return Math.round((d.callScore * 0.35) + (normAR * 0.20) + (ufr * 0.30) + (d.retSLA * 0.15));
+  } else {
+    // Phones+Platform & Trane: Call Quality 35%, AR Velocity 20%, 10in14 25%, Retention SLA 20%
+    const tit = d.tenIn14 || 0;
+    return Math.round((d.callScore * 0.35) + (normAR * 0.20) + (tit * 0.25) + (d.retSLA * 0.20));
+  }
+}
+
+// Enrich data
+const data = rawCSM.map(d => ({
+  ...d,
+  composite: computeComposite(d),
+  normAR: Math.min(100, Math.round((d.arsPerDay / 5.0) * 100)),
+  deltaComposite: null, // computed after
+  prevComposite: null,
+}));
+
+// Simulate prev composite using prevCallScore
+data.forEach(d => {
+  const prevNormAR = d.normAR; // assume same
+  let prev;
+  if (d.segment === 'AI') {
+    const ufr = (d.ufrCoverage || 60) - 3;
+    prev = Math.round((d.prevCallScore * 0.35) + (prevNormAR * 0.20) + (ufr * 0.30) + ((d.retSLA - 2) * 0.15));
+  } else {
+    const tit = (d.tenIn14 || 0) - 2;
+    prev = Math.round((d.prevCallScore * 0.35) + (prevNormAR * 0.20) + (Math.max(0, tit) * 0.25) + ((d.retSLA - 2) * 0.20));
+  }
+  d.prevComposite = prev;
+  d.deltaComposite = d.composite - prev;
+});
+
+// =============================================================================
+// STATE
+// =============================================================================
+let currentSort = { field: 'composite', asc: false };
+let callSort = { field: 'callScore', asc: false };
+let arSort = { field: 'totalArs', asc: false };
+let activeFilters = { manager: '', vertical: '', segment: '', minCalls: 0 };
+
+function getFiltered() {
+  return data.filter(d => {
+    if (activeFilters.manager && d.manager !== activeFilters.manager) return false;
+    if (activeFilters.vertical && d.vertical !== activeFilters.vertical) return false;
+    if (activeFilters.segment && d.segment !== activeFilters.segment) return false;
+    if (activeFilters.minCalls && d.callCount < activeFilters.minCalls) return false;
+    return true;
+  });
+}
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+// Sigma: conditional text color by vertical
+const VERT_COLORS = { MedSpa:'#7C3AED', HVAC:'#1D4ED8', Auto:'#065F46', Emerging:'#C2410C' };
+// Sigma: color-scale background for chart bars
+const VERT_BAR_COLORS = { MedSpa:'#DDD6FE', HVAC:'#BFDBFE', Auto:'#A7F3D0', Emerging:'#FED7AA' };
+const VERT_ACCENT = { MedSpa:'rgba(124,58,237,0.12)', HVAC:'rgba(29,78,216,0.12)', Auto:'rgba(6,95,70,0.12)', Emerging:'rgba(194,65,12,0.12)' };
+
+// Sigma: color-scale cell — maps to Sigma conditional formatting → color scale
+function scoreCell(v, showBar) {
+  const cls = v >= 85 ? 'cs-elite' : v >= 70 ? 'cs-strong' : v >= 55 ? 'cs-warn' : 'cs-fail';
+  const barColor = v >= 85 ? '#86EFAC' : v >= 70 ? '#FDE68A' : v >= 55 ? '#FED7AA' : '#FCA5A5';
+  if (showBar) {
+    return `<td class="${cls}"><div class="data-bar-cell"><span>${v}</span><div class="data-bar-track"><div class="data-bar-fill" style="width:${v}%;background:${barColor}"></div></div></div></td>`;
+  }
+  return `<td class="${cls}" style="text-align:center">${v}</td>`;
+}
+
+// Sigma: data bar — maps to Sigma conditional formatting → data bars
+function dataBar(pct, color) {
+  return `<div class="data-bar-cell"><div class="data-bar-track" style="width:70px"><div class="data-bar-fill" style="width:${Math.min(pct,100)}%;background:${color}"></div></div></div>`;
+}
+
+function delta(d) {
+  if (d === null || d === undefined) return '<span class="delta-neu">—</span>';
+  const sign = d > 0 ? '+' : '';
+  const cls = d > 1 ? 'delta-pos' : d < -1 ? 'delta-neg' : 'delta-neu';
+  return `<span class="${cls}">${sign}${d.toFixed(1)}</span>`;
+}
+
+function nonNegCell(d) {
+  if (d.segment === 'AI') {
+    const cov = d.ufrCoverage || 0;
+    if (cov >= 75) return '<span class="pass-pill">PASS</span>';
+    if (cov >= 60) return '<span class="warn-pill">WARN</span>';
+    return '<span class="fail-pill">FAIL</span>';
+  }
+  const pct = d.tenIn14 || 0;
+  if (pct >= 80) return '<span class="pass-pill">PASS</span>';
+  if (pct >= 50) return '<span class="warn-pill">WARN</span>';
+  return '<span class="fail-pill">FAIL</span>';
+}
+
+// Sigma: conditional text color for status
+function statusText(cls, label) {
+  return `<span class="${cls}">${label}</span>`;
+}
+
+// =============================================================================
+// RENDER: VERTICAL CARDS
+// =============================================================================
+function renderVerticalCards() {
+  const filtered = getFiltered();
+  const verticals = ['MedSpa', 'HVAC', 'Auto', 'Emerging'];
+  const summaries = verticals.map(v => {
+    const csms = filtered.filter(d => d.vertical === v);
+    if (!csms.length) return null;
+    const avgComp = Math.round(csms.reduce((s, d) => s + d.composite, 0) / csms.length);
+    const prevAvgComp = Math.round(csms.reduce((s, d) => s + d.prevComposite, 0) / csms.length);
+    const topCSM = [...csms].sort((a, b) => b.composite - a.composite)[0];
+    const atTarget = csms.filter(d => d.composite >= 70).length;
+    const failCount = csms.filter(d => {
+      if (d.segment === 'AI') return (d.ufrCoverage || 0) < 60;
+      return (d.tenIn14 || 0) < 50;
+    }).length;
+    return { v, csms, avgComp, prevAvgComp, delta: avgComp - prevAvgComp, topCSM, atTarget, total: csms.length, failCount };
+  }).filter(Boolean);
+
+  summaries.sort((a, b) => b.avgComp - a.avgComp);
+
+  const container = document.getElementById('verticalCards');
+  container.innerHTML = summaries.map((s, i) => {
+    const rank = i + 1;
+    const rankClass = `rank-${rank}`;
+    const rankLabel = rank === 1 ? '🥇 1ST' : rank === 2 ? '🥈 2ND' : rank === 3 ? '🥉 3RD' : '4TH';
+    const dCls = s.delta >= 0 ? 'pos' : 'neg';
+    const dSign = s.delta >= 0 ? '+' : '';
+    const color = VERT_COLORS[s.v];
+    const scoreColor = s.avgComp >= 85 ? '#15803D' : s.avgComp >= 70 ? '#92400E' : s.avgComp >= 55 ? '#9A3412' : '#991B1B';
+    const extraAlert = s.v === 'HVAC' ? `<div class="vcard-trane">◆ Trane renewal season active — explicit confirmation required</div>` : '';
+    const failAlert = s.failCount > 0 ? `<div class="vcard-alert">⚠ ${s.failCount} CSM${s.failCount>1?'s':''} failing non-negotiables</div>` : '';
+    const rankOrdinal = ['1st','2nd','3rd','4th'][rank-1];
+    return `
+      <div class="vcard" onclick="filterToVertical('${s.v}')">
+        <div class="vcard-rank-label" style="color:${color}">${rankOrdinal} place</div>
+        <div class="vcard-name" style="color:${color}">${s.v}</div>
+        <div class="vcard-score" style="color:${scoreColor}">${s.avgComp}</div>
+        <div class="vcard-delta ${dCls}">${dSign}${s.delta.toFixed(1)} vs prior period</div>
+        <div class="vcard-divider"></div>
+        <div class="vcard-stat"><span class="vcard-stat-label">Top CSM</span><span class="vcard-stat-val" style="color:${color}">${s.topCSM.csm}</span></div>
+        <div class="vcard-stat"><span class="vcard-stat-label">At/Above Target</span><span class="vcard-stat-val">${s.atTarget} / ${s.total}</span></div>
+        <div class="vcard-stat"><span class="vcard-stat-label">Avg Call Score</span><span class="vcard-stat-val">${(s.csms.reduce((acc, d) => acc + d.callScore, 0) / s.csms.length).toFixed(1)}</span></div>
+        ${failAlert}${extraAlert}
+      </div>`;
+  }).join('');
+}
+
+function filterToVertical(v) {
+  document.getElementById('filterVertical').value = v;
+  applyFilters();
+}
+
+// =============================================================================
+// RENDER: LEADERBOARD TABLE
+// =============================================================================
+function renderLeaderboard() {
+  let rows = [...getFiltered()];
+  rows.sort((a, b) => {
+    const av = a[currentSort.field], bv = b[currentSort.field];
+    if (av === null || av === undefined) return 1;
+    if (bv === null || bv === undefined) return -1;
+    return currentSort.asc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+  });
+
+  const tbody = document.getElementById('leaderboardBody');
+  tbody.innerHTML = rows.map((d, i) => {
+    const rank = i + 1;
+    const rankLabel = rank <= 3 ? ['1st','2nd','3rd'][rank-1] : rank;
+    const rankCls = rank === 1 ? 'rank-gold-text' : rank === 2 ? 'rank-silver-text' : rank === 3 ? 'rank-bronze-text' : '';
+    const isFail = (d.segment === 'AI' && (d.ufrCoverage || 0) < 60) || (d.segment !== 'AI' && (d.tenIn14 || 0) < 30);
+    const rowClass = isFail ? 'fail-row' : '';
+    // Sigma: conditional text color by vertical
+    const vertCls = `vert-text-${d.vertical.toLowerCase().replace('+','').replace(/[^a-z]/g,'')}`;
+    // Sigma: conditional text color by segment
+    const segCls = d.segment === 'AI' ? 'seg-text-ai' : d.segment === 'Trane' ? 'seg-text-trane' : 'seg-text-pp';
+    const segLabel = d.segment === 'AI' ? 'AI' : d.segment === 'Trane' ? 'Trane' : 'P+P';
+    // Non-neg: Sigma conditional text color
+    const nnVal = d.segment === 'AI' ? (d.ufrCoverage || 0) : (d.tenIn14 || 0);
+    const nnLabel = d.segment === 'AI' ? `UFR ${nnVal}%` : `${nnVal}%`;
+    const nnCls = nnVal >= 75 ? 'status-pass' : nnVal >= 55 ? 'status-warn' : 'status-fail';
+    // AR velocity: Sigma conditional text color
+    const arCls = d.arsPerDay >= 4 ? 'status-pass' : d.arsPerDay >= 2 ? '' : 'status-fail';
+    const dSign = d.deltaComposite >= 0 ? '+' : '';
+    const dCls = d.deltaComposite > 1 ? 'delta-pos trend-up' : d.deltaComposite < -1 ? 'delta-neg trend-down' : 'delta-neu';
+    // Ret SLA data bar color
+    const retBarColor = d.retSLA >= 85 ? '#86EFAC' : d.retSLA >= 70 ? '#FDE68A' : '#FCA5A5';
+
+    return `<tr class="${rowClass}">
+      <td class="rank-cell ${rankCls}">${rankLabel}</td>
+      <td><strong>${d.csm}</strong><br><span style="font-size:11px;color:var(--muted)">${d.manager}</span></td>
+      <td class="${vertCls}">${d.vertical}</td>
+      <td class="${segCls}">${segLabel}</td>
+      ${scoreCell(d.composite, true)}
+      ${scoreCell(Math.round(d.callScore), true)}
+      <td class="${arCls}" style="font-weight:600">
+        <div class="data-bar-cell">
+          <span>${d.arsPerDay.toFixed(1)}</span>
+          <div class="data-bar-track"><div class="data-bar-fill" style="width:${Math.min(d.arsPerDay/6*100,100)}%;background:#93C5FD"></div></div>
+        </div>
+      </td>
+      <td class="${nnCls}">${nnLabel}</td>
+      <td>
+        <div class="data-bar-cell">
+          <span style="font-size:12px">${d.retSLA}%</span>
+          <div class="data-bar-track"><div class="data-bar-fill" style="width:${d.retSLA}%;background:${retBarColor}"></div></div>
+        </div>
+      </td>
+      <td><span class="${dCls}">${dSign}${d.deltaComposite.toFixed(1)}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Update fail count badge
+  const failCount = rows.filter(d => (d.segment === 'AI' && (d.ufrCoverage || 0) < 60) || (d.segment !== 'AI' && (d.tenIn14 || 0) < 30)).length;
+  document.getElementById('failCount').textContent = failCount;
+}
+
+function sortTable(field) {
+  if (currentSort.field === field) currentSort.asc = !currentSort.asc;
+  else { currentSort.field = field; currentSort.asc = false; }
+  document.querySelectorAll('#leaderboardTable thead th').forEach(th => th.classList.remove('sorted'));
+  renderLeaderboard();
+}
+
+// =============================================================================
+// RENDER: NON-NEGOTIABLES
+// =============================================================================
+function renderNonNeg() {
+  const filtered = getFiltered();
+
+  // KPIs
+  const phonesCsms = filtered.filter(d => d.segment !== 'AI');
+  const aiCsms = filtered.filter(d => d.segment === 'AI');
+  const totalDue = phonesCsms.reduce((s, d) => s + (d.tenIn14Due || 0), 0);
+  const totalDone = phonesCsms.reduce((s, d) => s + (d.tenIn14Done || 0), 0);
+  const tenPct = totalDue > 0 ? Math.round(totalDone / totalDue * 100) : 0;
+  const retTotal = filtered.reduce((s, d) => s + (d.retCases || 0), 0);
+  const retDone = filtered.reduce((s, d) => s + (d.retSLADone || 0), 0);
+  const retPct = retTotal > 0 ? Math.round(retDone / retTotal * 100) : 0;
+  const avgUFR = aiCsms.length > 0 ? Math.round(aiCsms.reduce((s, d) => s + (d.ufrCoverage || 0), 0) / aiCsms.length) : 0;
+
+  const kpiColor = pct => pct >= 80 ? '#15803D' : pct >= 60 ? '#9A3412' : '#B91C1C';
+
+  document.getElementById('nnKPIs').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">10in14 Completion</div>
+      <div class="kpi-value" style="color:${kpiColor(tenPct)}">${tenPct}%</div>
+      <div class="kpi-sub">${totalDone} of ${totalDue} tasks completed L30D</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Retention Case SLA</div>
+      <div class="kpi-value" style="color:${kpiColor(retPct)}">${retPct}%</div>
+      <div class="kpi-sub">${retDone} of ${retTotal} cases with SLA call</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">UFR Coverage (AI)</div>
+      <div class="kpi-value" style="color:${kpiColor(avgUFR)}">${avgUFR}%</div>
+      <div class="kpi-sub">Avg across AI CSMs, 60–120d window</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">CSMs Failing Non-Neg</div>
+      <div class="kpi-value" style="color:#B91C1C">${filtered.filter(d => (d.segment === 'AI' && (d.ufrCoverage||0)<60)||(d.segment!=='AI'&&(d.tenIn14||0)<30)).length}</div>
+      <div class="kpi-sub">of ${filtered.length} total CSMs</div>
+    </div>`;
+
+  // 10in14 Table (non-AI only)
+  const tenRows = [...filtered.filter(d => d.segment !== 'AI')].sort((a, b) => (a.tenIn14||0) - (b.tenIn14||0));
+  const tenPctTotal = totalDue > 0 ? `${tenPct}% overall` : '—';
+  document.getElementById('nnOverallPct').textContent = tenPctTotal;
+
+  document.getElementById('tenIn14Body').innerHTML = tenRows.map(d => {
+    const pct = d.tenIn14 || 0;
+    const pill = pct >= 80 ? '<span class="pass-pill">PASS</span>' : pct >= 50 ? '<span class="warn-pill">WARN</span>' : '<span class="fail-pill">FAIL</span>';
+    const barColor = pct >= 80 ? '#86EFAC' : pct >= 50 ? '#FED7AA' : '#FCA5A5';
+    const isFail = pct < 30;
+    const color = VERT_COLORS[d.vertical] || '#717171';
+    return `<tr${isFail ? ' class="fail-row"' : ''}>
+      <td><strong>${d.csm}</strong></td>
+      <td><span class="vert-dot" style="background:${color}"></span>${d.vertical}</td>
+      <td style="text-align:center">${d.tenIn14Due || 0}</td>
+      <td style="text-align:center">${d.tenIn14Done || 0}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          ${dataBar(pct, barColor)}
+          <span style="font-size:12px;font-weight:600;color:var(--text)">${pct}%</span>
+        </div>
+      </td>
+      <td>${pill}</td>
+    </tr>`;
+  }).join('');
+
+  // Retention SLA Table
+  const retRows = [...filtered].sort((a, b) => a.retSLA - b.retSLA);
+  const retPctLabel = `${retPct}% overall`;
+  document.getElementById('retSLAOverallPct').textContent = retPctLabel;
+
+  document.getElementById('retSLABody').innerHTML = retRows.map(d => {
+    const pct = d.retSLA;
+    const pill = pct >= 80 ? '<span class="pass-pill">PASS</span>' : pct >= 65 ? '<span class="warn-pill">WARN</span>' : '<span class="fail-pill">FAIL</span>';
+    const barColor = pct >= 80 ? '#86EFAC' : pct >= 65 ? '#FED7AA' : '#FCA5A5';
+    const isFail = pct < 55;
+    const color = VERT_COLORS[d.vertical] || '#717171';
+    return `<tr${isFail ? ' class="fail-row"' : ''}>
+      <td><strong>${d.csm}</strong></td>
+      <td><span class="vert-dot" style="background:${color}"></span>${d.vertical}</td>
+      <td style="text-align:center">${d.retCases}</td>
+      <td style="text-align:center">${d.retSLADone}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          ${dataBar(pct, barColor)}
+          <span style="font-size:12px;font-weight:600;color:${barColor}">${pct}%</span>
+        </div>
+      </td>
+      <td>${pill}</td>
+    </tr>`;
+  }).join('');
+
+  // Trane UFR table
+  const traneCSMs = [
+    { csm:'Colin Murdock',    ufrTotal:18, ufrDone:13, urgency:'< 30 days' },
+    { csm:'Jeremy Cifuentes', ufrTotal:22, ufrDone:14, urgency:'< 30 days' },
+    { csm:'Tanner Overbay',   ufrTotal:20, ufrDone:14, urgency:'30–60 days' },
+    { csm:'Elaine Ho',        ufrTotal:16, ufrDone:11, urgency:'30–60 days' },
+  ];
+  document.getElementById('traneUFRBody').innerHTML = traneCSMs.map(t => {
+    const pct = Math.round(t.ufrDone / t.ufrTotal * 100);
+    const pill = pct >= 75 ? '<span class="pass-pill">PASS</span>' : pct >= 60 ? '<span class="warn-pill">WARN</span>' : '<span class="fail-pill">FAIL</span>';
+    const barColor = pct >= 75 ? '#4ADE80' : pct >= 60 ? '#FB923C' : '#F87171';
+    const urgPill = t.urgency.includes('<30') ? '<span class="urgency-pill urg-critical">< 30 DAYS</span>' : '<span class="urgency-pill urg-soon">30–60 DAYS</span>';
+    return `<tr>
+      <td><strong>${t.csm}</strong></td>
+      <td style="text-align:center">${t.ufrTotal}</td>
+      <td style="text-align:center">${t.ufrDone}</td>
+      <td><div style="display:flex;align-items:center;gap:6px">${dataBar(pct, barColor)}<span style="font-weight:700;color:${barColor}">${pct}%</span></div></td>
+      <td>${urgPill}</td>
+      <td>${pill}</td>
+    </tr>`;
+  }).join('');
+}
+
+// =============================================================================
+// RENDER: CALL QUALITY
+// =============================================================================
+let callScoreChart = null, verticalChart = null, sentimentChart = null;
+
+function renderCallQuality() {
+  const filtered = getFiltered();
+
+  // KPIs
+  const avgScore = (filtered.reduce((s, d) => s + d.callScore, 0) / filtered.length).toFixed(1);
+  const totalCalls = filtered.reduce((s, d) => s + d.callCount, 0);
+  const totalImproved = filtered.reduce((s, d) => s + d.callsImproved, 0);
+  const totalDegraded = filtered.reduce((s, d) => s + d.callsDegraded, 0);
+  const above80 = filtered.filter(d => d.callScore >= 80).length;
+
+  document.getElementById('callKPIs').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Avg Call Score</div>
+      <div class="kpi-value" style="color:${avgScore>=80?'#4ADE80':avgScore>=70?'#D4891A':'#FB923C'}">${avgScore}</div>
+      <div class="kpi-sub">Across ${totalCalls} scored calls</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Sentiment Improved</div>
+      <div class="kpi-value" style="color:#4ADE80">${totalImproved}</div>
+      <div class="kpi-sub">calls where sentiment improved</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Sentiment Degraded</div>
+      <div class="kpi-value" style="color:#F87171">${totalDegraded}</div>
+      <div class="kpi-sub">calls where sentiment degraded</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">CSMs Scoring 80+</div>
+      <div class="kpi-value" style="color:#D4891A">${above80}</div>
+      <div class="kpi-sub">of ${filtered.length} total CSMs</div>
+    </div>`;
+
+  // Bar chart
+  const sorted = [...filtered].sort((a, b) => b.callScore - a.callScore);
+  const labels = sorted.map(d => d.csm.split(' ')[0] + ' ' + d.csm.split(' ').slice(-1)[0]);
+  const scores = sorted.map(d => d.callScore);
+  const bgColors = scores.map(s => s >= 85 ? '#86EFAC' : s >= 70 ? '#FDE68A' : s >= 55 ? '#FED7AA' : '#FCA5A5');
+
+  if (callScoreChart) callScoreChart.destroy();
+  const ctx = document.getElementById('callScoreChart').getContext('2d');
+  callScoreChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: scores, backgroundColor: bgColors, borderRadius: 3, borderWidth: 0 }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ` Score: ${ctx.raw}  (${sorted[ctx.dataIndex].callCount} calls)` }
+      }},
+      scales: {
+        x: { min: 40, max: 100, grid: { color: '#E0DDD6' }, ticks: { color: '#6B6860', font: { size: 11 } } },
+        y: { grid: { display: false }, ticks: { color: '#1A1A18', font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Vertical avg score chart
+  const verticals = ['MedSpa', 'HVAC', 'Auto', 'Emerging'];
+  const vertAvgs = verticals.map(v => {
+    const csms = filtered.filter(d => d.vertical === v);
+    return csms.length ? (csms.reduce((s, d) => s + d.callScore, 0) / csms.length).toFixed(1) : 0;
+  });
+  if (verticalChart) verticalChart.destroy();
+  const ctx2 = document.getElementById('verticalScoreChart').getContext('2d');
+  verticalChart = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: verticals,
+      datasets: [{ data: vertAvgs, backgroundColor: verticals.map(v => VERT_BAR_COLORS[v]), borderColor: verticals.map(v => VERT_COLORS[v]), borderWidth: 1.5, borderRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min: 60, max: 100, grid: { color: '#E0DDD6' }, ticks: { color: '#6B6860', font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { color: '#1A1A18', font: { size: 12 } } }
+      }
+    }
+  });
+
+  // Sentiment chart
+  const vertSentiment = verticals.map(v => {
+    const csms = filtered.filter(d => d.vertical === v);
+    return { improved: csms.reduce((s, d) => s + d.callsImproved, 0), degraded: csms.reduce((s, d) => s + d.callsDegraded, 0) };
+  });
+  if (sentimentChart) sentimentChart.destroy();
+  const ctx3 = document.getElementById('sentimentChart').getContext('2d');
+  sentimentChart = new Chart(ctx3, {
+    type: 'bar',
+    data: {
+      labels: verticals,
+      datasets: [
+        { label: 'Improved', data: vertSentiment.map(d => d.improved), backgroundColor: '#A7F3D0', borderRadius: 3 },
+        { label: 'Degraded', data: vertSentiment.map(d => d.degraded), backgroundColor: '#FCA5A5', borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels: { color: '#6B6860', font: { size: 11 } } } },
+      scales: {
+        y: { grid: { color: '#E0DDD6' }, ticks: { color: '#6B6860', font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { color: '#1A1A18', font: { size: 12 } } }
+      }
+    }
+  });
+
+  // Detail table
+  renderCallDetailTable();
+}
+
+function renderCallDetailTable() {
+  let rows = [...getFiltered()];
+  rows.sort((a, b) => {
+    const av = a[callSort.field], bv = b[callSort.field];
+    if (av === null) return 1; if (bv === null) return -1;
+    return callSort.asc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+  });
+
+  const tbody = document.getElementById('callDetailBody');
+  tbody.innerHTML = rows.map((d, i) => {
+    const vertCls = `vert-text-${d.vertical.toLowerCase().replace('+','').replace(/[^a-z]/g,'')}`;
+    return `<tr>
+      <td style="color:var(--muted)">${i + 1}</td>
+      <td><strong>${d.csm}</strong></td>
+      <td class="${vertCls}">${d.vertical}</td>
+      ${scoreCell(Math.round(d.callScore), false)}
+      ${scoreCell(Math.round(d.valueCreation), false)}
+      ${scoreCell(Math.round(d.relationship), false)}
+      ${scoreCell(Math.round(d.adaptiveness), false)}
+      ${scoreCell(Math.round(d.ownership), false)}
+      <td style="text-align:center;color:var(--muted)">${d.callCount}</td>
+      <td style="text-align:center;color:#15803D;font-weight:600">${d.callsImproved}</td>
+      <td style="text-align:center;color:${d.callsDegraded > 0 ? '#B91C1C' : 'var(--muted)'};font-weight:${d.callsDegraded > 0 ? '700' : '400'}">${d.callsDegraded}</td>
+    </tr>`;
+  }).join('');
+}
+
+function sortCallTable(field) {
+  if (callSort.field === field) callSort.asc = !callSort.asc;
+  else { callSort.field = field; callSort.asc = false; }
+  renderCallDetailTable();
+}
+
+// =============================================================================
+// RENDER: BOOK HEALTH
+// =============================================================================
+function renderBookHealth() {
+  const filtered = getFiltered();
+  const totalArs = filtered.reduce((s, d) => s + d.totalArs, 0);
+  const avgAR = (filtered.reduce((s, d) => s + d.arsPerDay, 0) / filtered.length).toFixed(2);
+  const topAR = [...filtered].sort((a, b) => b.arsPerDay - a.arsPerDay)[0];
+  const batchFlag = filtered.filter(d => d.daysActive < 5 && d.totalArs > 30).length;
+
+  document.getElementById('bookKPIs').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Total ARs Closed</div>
+      <div class="kpi-value" style="color:#60A5FA">${totalArs.toLocaleString()}</div>
+      <div class="kpi-sub">Across all CSMs, L30D</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg ARs / Active Day</div>
+      <div class="kpi-value" style="color:#4ADE80">${avgAR}</div>
+      <div class="kpi-sub">Team median cadence</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Top Performer</div>
+      <div class="kpi-value" style="color:#D4891A;font-size:18px">${topAR ? topAR.csm.split(' ')[0] : '—'}</div>
+      <div class="kpi-sub">${topAR ? topAR.arsPerDay.toFixed(1) + ' ARs/day' : ''}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Batch Log Flags</div>
+      <div class="kpi-value" style="color:${batchFlag > 0 ? '#F87171' : '#4ADE80'}">${batchFlag}</div>
+      <div class="kpi-sub">CSMs with &lt;5 active days + 30+ ARs</div>
+    </div>`;
+
+  renderARTable();
+}
+
+function renderARTable() {
+  let rows = [...getFiltered()];
+  rows.sort((a, b) => {
+    const av = a[arSort.field], bv = b[arSort.field];
+    if (av === null) return 1; if (bv === null) return -1;
+    return arSort.asc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+  });
+  const maxAR = Math.max(...rows.map(d => d.arsPerDay));
+
+  const tbody = document.getElementById('arBody');
+  tbody.innerHTML = rows.map((d, i) => {
+    const color = VERT_COLORS[d.vertical] || '#717171';
+    const arColor = d.arsPerDay >= 4 ? '#4ADE80' : d.arsPerDay >= 2.5 ? '#D4891A' : d.arsPerDay >= 1.5 ? '#FB923C' : '#F87171';
+    const batchFlag = d.daysActive < 5 && d.totalArs > 30;
+    const flag = batchFlag ? '<span style="font-size:10px;background:rgba(212,137,26,0.12);color:#D4891A;border:1px solid rgba(212,137,26,0.3);padding:1px 5px;border-radius:3px;margin-left:4px">BATCH?</span>' : '';
+    return `<tr>
+      <td>${i + 1}</td>
+      <td><strong>${d.csm}</strong>${flag}</td>
+      <td class="vert-text-${d.vertical.toLowerCase().replace(/[^a-z]/g,'')}">${d.vertical}</td>
+      <td style="font-weight:700;color:var(--text);text-align:center">${d.totalArs}</td>
+      <td style="color:var(--muted);text-align:center">${d.daysActive}</td>
+      <td>
+        <div class="data-bar-cell">
+          <span style="font-weight:700;color:${arColor}">${d.arsPerDay.toFixed(2)}</span>
+          ${dataBar(Math.round(d.arsPerDay / maxAR * 100), arColor)}
+        </div>
+      </td>
+      <td style="color:var(--muted);font-size:11px">${d.lastAR || '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function sortARTable(field) {
+  if (arSort.field === field) arSort.asc = !arSort.asc;
+  else { arSort.field = field; arSort.asc = false; }
+  renderARTable();
+}
+
+// =============================================================================
+// TABS & FILTERS
+// =============================================================================
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+
+  if (name === 'leaderboard') { renderVerticalCards(); renderLeaderboard(); }
+  else if (name === 'nonneg') { renderNonNeg(); }
+  else if (name === 'callquality') { setTimeout(renderCallQuality, 50); }
+  else if (name === 'intintel') { setTimeout(renderIntIntel, 50); }
+  else if (name === 'bookhealth') { renderBookHealth(); }
+}
+
+function applyFilters() {
+  activeFilters.manager = document.getElementById('filterManager').value;
+  activeFilters.vertical = document.getElementById('filterVertical').value;
+  activeFilters.segment = document.getElementById('filterSegment').value;
+  activeFilters.minCalls = parseInt(document.getElementById('filterMinCalls').value) || 0;
+  renderAll();
+}
+
+function renderAll() {
+  renderVerticalCards();
+  renderLeaderboard();
+}
+
+// =============================================================================
+// INTERACTION INTELLIGENCE DATA (from ANALYST_SANDBOX.COLLIN_AUSTAD.interaction_intelligence_backfill_v4_processed)
+// Aggregated by CSM · Jan 2026 cohort · Risk score 1=low, 2=high, 3=critical (model avg)
+// =============================================================================
+const iiData = [
+  { csm:'Jennifer Guzman',   accounts:82, avgRisk:1.8, avgSentiment:3.1, avgDaysOpen:1.2, avgOpenAsks:2.6, highCritical:27, critical:16, cancellation:18, escalation:7,  improving:13 },
+  { csm:'Zachary Izatt',     accounts:46, avgRisk:1.8, avgSentiment:3.1, avgDaysOpen:0.9, avgOpenAsks:3.5, highCritical:15, critical:7,  cancellation:9,  escalation:6,  improving:9  },
+  { csm:'Mackenzie Green',   accounts:44, avgRisk:1.8, avgSentiment:3.2, avgDaysOpen:2.4, avgOpenAsks:3.3, highCritical:15, critical:7,  cancellation:9,  escalation:2,  improving:18 },
+  { csm:'Charmaine Lee',     accounts:5,  avgRisk:1.8, avgSentiment:2.8, avgDaysOpen:0.3, avgOpenAsks:1.2, highCritical:1,  critical:1,  cancellation:1,  escalation:1,  improving:0  },
+  { csm:'Jake Bailie',       accounts:6,  avgRisk:2.0, avgSentiment:3.0, avgDaysOpen:0.8, avgOpenAsks:1.5, highCritical:3,  critical:0,  cancellation:0,  escalation:0,  improving:1  },
+  { csm:'Kandis Lauder',     accounts:59, avgRisk:1.7, avgSentiment:3.3, avgDaysOpen:1.7, avgOpenAsks:3.8, highCritical:12, critical:7,  cancellation:9,  escalation:12, improving:19 },
+  { csm:'Jennifer Rodriguez',accounts:72, avgRisk:1.5, avgSentiment:3.2, avgDaysOpen:0.8, avgOpenAsks:1.7, highCritical:12, critical:5,  cancellation:8,  escalation:2,  improving:6  },
+  { csm:'Daniel Carter',     accounts:48, avgRisk:1.5, avgSentiment:3.4, avgDaysOpen:0.8, avgOpenAsks:3.5, highCritical:6,  critical:3,  cancellation:2,  escalation:5,  improving:13 },
+  { csm:'Ashley Hall',       accounts:45, avgRisk:1.5, avgSentiment:3.3, avgDaysOpen:0.4, avgOpenAsks:2.7, highCritical:4,  critical:0,  cancellation:2,  escalation:2,  improving:6  },
+  { csm:'Elisha Chikuhwa',   accounts:10, avgRisk:1.4, avgSentiment:3.3, avgDaysOpen:0.4, avgOpenAsks:1.5, highCritical:2,  critical:1,  cancellation:2,  escalation:0,  improving:2  },
+  { csm:'Leila Derek',       accounts:9,  avgRisk:1.4, avgSentiment:3.3, avgDaysOpen:0.3, avgOpenAsks:0.7, highCritical:1,  critical:1,  cancellation:1,  escalation:0,  improving:3  },
+  { csm:'Shane McGarry',     accounts:8,  avgRisk:1.4, avgSentiment:2.8, avgDaysOpen:0.3, avgOpenAsks:0.4, highCritical:2,  critical:0,  cancellation:0,  escalation:0,  improving:0  },
+  { csm:'Aoife Johnston',    accounts:29, avgRisk:1.3, avgSentiment:3.1, avgDaysOpen:1.4, avgOpenAsks:1.1, highCritical:0,  critical:0,  cancellation:0,  escalation:0,  improving:1  },
+  { csm:'Rowan Smith',       accounts:17, avgRisk:1.2, avgSentiment:3.1, avgDaysOpen:0.1, avgOpenAsks:0.3, highCritical:0,  critical:0,  cancellation:0,  escalation:0,  improving:2  },
+];
+let iiSort = { field: 'avgRisk', asc: false };
+let iiChart = null;
+
+function renderIntIntel() {
+  // KPIs
+  const totalCritical = iiData.reduce((s,d) => s + d.critical, 0);
+  const totalCancel   = iiData.reduce((s,d) => s + d.cancellation, 0);
+  const totalEscalate = iiData.reduce((s,d) => s + d.escalation, 0);
+  const totalImproving= iiData.reduce((s,d) => s + d.improving, 0);
+  const avgRisk = (iiData.reduce((s,d) => s + d.avgRisk * d.accounts, 0) / iiData.reduce((s,d) => s + d.accounts, 0)).toFixed(2);
+
+  document.getElementById('iiKPIs').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Critical Risk Accounts</div>
+      <div class="kpi-value" style="color:#991B1B">${totalCritical}</div>
+      <div class="kpi-sub">Accounts flagged CRITICAL by AI model</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Active Cancellation Intent</div>
+      <div class="kpi-value" style="color:#B91C1C">${totalCancel}</div>
+      <div class="kpi-sub">Accounts with cancellation signals detected</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Escalation Markers Active</div>
+      <div class="kpi-value" style="color:#B45309">${totalEscalate}</div>
+      <div class="kpi-sub">Accounts with active escalation intent</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Accounts Improving</div>
+      <div class="kpi-value" style="color:#15803D">${totalImproving}</div>
+      <div class="kpi-sub">Positive sentiment drift detected</div>
+    </div>`;
+
+  // Stacked bar chart: risk distribution by CSM (Sigma: stacked bar chart, colored by category)
+  const sorted = [...iiData].sort((a,b) => b.highCritical - a.highCritical).slice(0, 12);
+  const labels = sorted.map(d => d.csm.split(' ')[0] + ' ' + d.csm.split(' ').slice(-1)[0]);
+  const critCounts = sorted.map(d => d.critical);
+  const highCounts = sorted.map(d => d.highCritical - d.critical);
+  const lowCounts  = sorted.map(d => d.accounts - d.highCritical);
+
+  if (iiChart) iiChart.destroy();
+  const ctx = document.getElementById('iiRiskChart').getContext('2d');
+  iiChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Critical',    data: critCounts, backgroundColor: '#FCA5A5', borderRadius: 0 },
+        { label: 'High',        data: highCounts, backgroundColor: '#FDE68A', borderRadius: 0 },
+        { label: 'Low/Medium',  data: lowCounts,  backgroundColor: '#D1FAE5', borderRadius: 0 },
+      ]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#6B6860', font: { size: 11 }, boxWidth: 12 } },
+        tooltip: { mode: 'index' }
+      },
+      scales: {
+        x: { stacked: true, grid: { color: '#E0DDD6' }, ticks: { color: '#6B6860', font: { size: 11 } } },
+        y: { stacked: true, grid: { display: false }, ticks: { color: '#1A1A18', font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Table
+  renderIITable();
+}
+
+function renderIITable() {
+  let rows = [...iiData].sort((a,b) => {
+    const av = a[iiSort.field], bv = b[iiSort.field];
+    return iiSort.asc ? av - bv : bv - av;
+  });
+
+  const maxRisk = 2.0;
+  document.getElementById('iiBody').innerHTML = rows.map(d => {
+    const riskPct = Math.round((d.avgRisk / 3.0) * 100);
+    const riskCls = d.avgRisk >= 1.8 ? 'cs-fail' : d.avgRisk >= 1.5 ? 'cs-warn' : d.avgRisk >= 1.3 ? 'cs-strong' : 'cs-elite';
+    const riskBarColor = d.avgRisk >= 1.8 ? '#FCA5A5' : d.avgRisk >= 1.5 ? '#FCD34D' : '#6EE7B7';
+    const cancelCls = d.cancellation > 5 ? 'risk-critical' : d.cancellation > 0 ? 'risk-high' : '';
+    const escalCls  = d.escalation > 5  ? 'risk-critical' : d.escalation > 0  ? 'risk-high' : '';
+    const critCls   = d.critical > 5    ? 'risk-critical' : d.critical > 0    ? 'risk-high' : '';
+    const improvingColor = d.improving > 10 ? '#15803D' : d.improving > 0 ? '#065F46' : '#6B6860';
+    return `<tr>
+      <td><strong>${d.csm}</strong></td>
+      <td style="text-align:center;color:var(--muted)">${d.accounts}</td>
+      <td class="${riskCls}" style="text-align:center">
+        <div class="data-bar-cell">
+          <span>${d.avgRisk.toFixed(1)}</span>
+          <div class="data-bar-track"><div class="data-bar-fill" style="width:${riskPct}%;background:${riskBarColor}"></div></div>
+        </div>
+      </td>
+      <td class="${critCls}" style="text-align:center">${d.critical > 0 ? d.critical : '<span style="color:var(--muted)">—</span>'}</td>
+      <td style="text-align:center;font-weight:600;color:${d.highCritical > 10 ? '#B91C1C' : '#1A1A18'}">${d.highCritical}</td>
+      <td class="${cancelCls}" style="text-align:center">${d.cancellation > 0 ? d.cancellation : '<span style="color:var(--muted)">—</span>'}</td>
+      <td class="${escalCls}" style="text-align:center">${d.escalation > 0 ? d.escalation : '<span style="color:var(--muted)">—</span>'}</td>
+      <td style="text-align:center;color:var(--muted)">${d.avgOpenAsks.toFixed(1)}</td>
+      <td style="text-align:center">
+        <div class="data-bar-cell">
+          <span style="color:var(--muted)">${d.avgDaysOpen.toFixed(1)}d</span>
+          <div class="data-bar-track"><div class="data-bar-fill" style="width:${Math.round(d.avgDaysOpen/3*100)}%;background:#FCD34D"></div></div>
+        </div>
+      </td>
+      <td style="text-align:center;font-weight:600;color:${improvingColor}">${d.improving}</td>
+    </tr>`;
+  }).join('');
+}
+
+function sortIITable(field) {
+  if (iiSort.field === field) iiSort.asc = !iiSort.asc;
+  else { iiSort.field = field; iiSort.asc = false; }
+  renderIITable();
+}
+
+// =============================================================================
+// INIT
+// =============================================================================
+renderAll();
+</script>
+</body>
+</html>
