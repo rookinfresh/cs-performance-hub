@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS Performance Hub — March 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  /* ── Design tokens ──────────────────────────────────────────────── */
+  :root {
+    /* Surfaces */
+    --bg:        #F7F7F6;
+    --surface:   #FFFFFF;
+    --surface2:  #F3F3F1;
+    --surface3:  #ECEAE6;
+    --border:    #E4E2DC;
+    --border2:   #CFCDC6;
+
+    /* Text */
+    --text:      #0D0D0C;
+    --text2:     #3D3C38;
+    --muted:     #7A7870;
+    --muted2:    #A8A69E;
+
+    /* Accent — teal-green (Robinhood-inspired) */
+    --accent:    #00C274;
+    --accent-bg: #E6FBF2;
+
+    /* Performance states */
+    --green:     #00A86B;
+    --green-bg:  #EDFBF4;
+    --green-t:   #006644;
+    --amber:     #E8860A;
+    --amber-bg:  #FFF4E5;
+    --amber-t:   #7A4400;
+    --red:       #E03131;
+    --red-bg:    #FFF0F0;
+    --red-t:     #8B1010;
+
+    /* Vertical brand */
+    --medspa:  #7C3AED;
+    --hvac:    #0284C7;
+    --auto:    #059669;
+    --emerging:#EA580C;
+    --oem:     #2563EB;
+    --fam:     #D97706;
+    --jewelry: #DB2777;
+    --retail:  #475569;
+    --trane:   #92400E;
+
+    /* Color-scale cells */
+    --cs-elite:  #EDFBF4; --cs-elite-t:  #006644;
+    --cs-strong: #FFF4E5; --cs-strong-t: #7A4400;
+    --cs-warn:   #FFF0E5; --cs-warn-t:   #7A3300;
+    --cs-fail:   #FFF0F0; --cs-fail-t:   #8B1010;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.03);
+    --shadow-md: 0 4px 14px rgba(0,0,0,0.09), 0 2px 4px rgba(0,0,0,0.04);
+  }
+
+  /* ── Dark mode ──────────────────────────────────────────────────── */
+  [data-theme="dark"] {
+    --bg:        #0C0C0B;
+    --surface:   #161615;
+    --surface2:  #1E1E1C;
+    --surface3:  #252523;
+    --border:    #2A2A27;
+    --border2:   #3A3A36;
+    --text:      #F2F1EE;
+    --text2:     #C4C2BB;
+    --muted:     #7A7870;
+    --muted2:    #555450;
+    --accent:    #00D880;
+    --accent-bg: rgba(0,200,116,0.12);
+    --green:     #00C274;
+    --green-bg:  rgba(0,168,107,0.16);
+    --green-t:   #00E08A;
+    --amber:     #F59E0B;
+    --amber-bg:  rgba(232,134,10,0.16);
+    --amber-t:   #FBB63C;
+    --red:       #F04747;
+    --red-bg:    rgba(224,49,49,0.16);
+    --red-t:     #FF7070;
+    --cs-elite:  rgba(0,168,107,0.18);  --cs-elite-t:  #00C274;
+    --cs-strong: rgba(232,134,10,0.18); --cs-strong-t: #F59E0B;
+    --cs-warn:   rgba(234,88,12,0.18);  --cs-warn-t:   #FB923C;
+    --cs-fail:   rgba(224,49,49,0.18);  --cs-fail-t:   #F04747;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 14px rgba(0,0,0,0.5);
+  }
+  /* ── Global reset & base ────────────────────────────────────────── */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 13px;
+    min-height: 100vh;
+    transition: background 0.2s, color 0.2s;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Header ─────────────────────────────────────────────────────── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .podium-mark { display: flex; align-items: center; gap: 8px; }
+  .podium-mark svg { flex-shrink: 0; }
+  .podium-wordmark { font-size: 15px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
+  .header-divider { width: 1px; height: 24px; background: var(--border); }
+  .header-title { font-size: 14px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); }
+  .header-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .header-badge { background: var(--accent-bg); color: var(--accent); border: 1px solid rgba(0,194,116,0.3); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; letter-spacing: 0.8px; }
+  .theme-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 5px 11px; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px; transition: border-color 0.15s, color 0.15s; white-space: nowrap; }
+  .theme-btn:hover { border-color: var(--border2); color: var(--text); }
+
+  /* ── Filter bar ─────────────────────────────────────────────────── */
+  .filters { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 24px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+  .filter-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+  select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 6px; font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; outline: none; transition: border-color 0.15s, background 0.2s; }
+  select:focus { border-color: var(--accent); }
+  .filter-sep { width: 1px; height: 20px; background: var(--border); }
+  .last-updated { font-size: 11px; color: var(--muted); margin-left: auto; }
+
+  /* ── Tabs ────────────────────────────────────────────────────────── */
+  .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); padding: 0 24px; gap: 2px; }
+  .tab { padding: 12px 16px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; white-space: nowrap; letter-spacing: -0.1px; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab-badge { background: var(--red-bg); color: var(--red); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px; }
+
+  /* ── Tab content ─────────────────────────────────────────────────── */
+  .tab-content { display: none; padding: 20px 24px; }
+  .tab-content.active { display: block; }
+
+  /* ── Vertical KPI cards ──────────────────────────────────────────── */
+  .vertical-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .vcard { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; cursor: pointer; box-shadow: var(--shadow-sm); transition: box-shadow 0.2s, border-color 0.2s, transform 0.1s; min-height: 220px; }
+  .vcard:hover { box-shadow: var(--shadow-md); border-color: var(--border2); transform: translateY(-1px); }
+  .vcard-rank-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted2); margin-bottom: 6px; }
+  .vcard-name { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; line-height: 1.1; }
+  .vcard-score { font-size: 38px; font-weight: 800; line-height: 1; letter-spacing: -2px; }
+  .vcard-divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+  /* ── Section headers ────────────────────────────────────────────── */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .section-title { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+  .section-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* ── Tables ─────────────────────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+  .table-scroll { max-height: 540px; overflow-y: auto; border-radius: 10px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+  .table-scroll::-webkit-scrollbar { width: 5px; }
+  .table-scroll::-webkit-scrollbar-track { background: var(--surface2); }
+  .table-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); }
+  thead { position: sticky; top: 0; z-index: 1; }
+  thead th { background: var(--surface2); padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; cursor: pointer; user-select: none; border-bottom: 1px solid var(--border); transition: color 0.15s; }
+  thead th:hover { color: var(--text); }
+  thead th.sorted { color: var(--accent); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr.fail-row { border-left: 3px solid var(--red); }
+  td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; font-size: 13px; color: var(--text); }
+  .rank-cell { font-size: 12px; font-weight: 700; text-align: center; width: 36px; color: var(--muted); }
+  .rank-gold-text   { color: #D97706; font-weight: 800; }
+  .rank-silver-text { color: #64748B; font-weight: 700; }
+  .rank-bronze-text { color: #92400E; font-weight: 700; }
+
+  /* ── Color-scale cells ──────────────────────────────────────────── */
+  .cs-elite  { background: var(--cs-elite);  color: var(--cs-elite-t);  font-weight: 700; }
+  .cs-strong { background: var(--cs-strong); color: var(--cs-strong-t); font-weight: 700; }
+  .cs-warn   { background: var(--cs-warn);   color: var(--cs-warn-t);   font-weight: 700; }
+  .cs-fail   { background: var(--cs-fail);   color: var(--cs-fail-t);   font-weight: 700; }
+
+  /* ── Data bars ───────────────────────────────────────────────────── */
+  .data-bar-cell { display: flex; flex-direction: column; gap: 3px; }
+  .data-bar-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; width: 80px; }
+  .data-bar-fill { height: 100%; border-radius: 2px; }
+  .mini-bar-wrap { width: 80px; height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+  .mini-bar { height: 100%; border-radius: 2px; }
+
+  /* ── Pills / chips ───────────────────────────────────────────────── */
+  .pass-pill { display:inline-block; background:var(--green-bg); color:var(--green-t); font-weight:700; font-size:10px; padding:2px 8px; border-radius:20px; border:1px solid rgba(0,168,107,0.2); white-space:nowrap; letter-spacing:0.3px; }
+  .fail-pill { display:inline-block; background:var(--red-bg); color:var(--red-t); font-weight:700; font-size:10px; padding:2px 8px; border-radius:20px; border:1px solid rgba(224,49,49,0.2); white-space:nowrap; letter-spacing:0.3px; }
+  .warn-pill { display:inline-block; background:var(--amber-bg); color:var(--amber-t); font-weight:700; font-size:10px; padding:2px 8px; border-radius:20px; border:1px solid rgba(232,134,10,0.2); white-space:nowrap; letter-spacing:0.3px; }
+
+  /* ── Status text ─────────────────────────────────────────────────── */
+  .status-pass { color: var(--green); font-weight: 700; font-size: 13px; }
+  .status-warn { color: var(--amber); font-weight: 700; font-size: 13px; }
+  .status-fail { color: var(--red);   font-weight: 700; font-size: 13px; }
+
+  /* ── Vertical text colors ────────────────────────────────────────── */
+  .vert-text-medspa   { color: var(--medspa); font-weight: 600; }
+  .vert-text-hvac     { color: var(--hvac);   font-weight: 600; }
+  .vert-text-auto     { color: var(--auto);   font-weight: 600; }
+  .vert-text-emerging { color: var(--emerging); font-weight: 600; }
+  .vert-text-oem      { color: var(--oem);    font-weight: 600; }
+  .vert-text-fam      { color: var(--fam);    font-weight: 600; }
+  .vert-text-jewelry  { color: var(--jewelry); font-weight: 600; }
+  .vert-text-retail   { color: var(--retail); font-weight: 600; }
+  .seg-text-ai    { color: var(--medspa); font-weight: 600; font-size: 11px; }
+  .seg-text-pp    { color: var(--hvac);   font-weight: 600; font-size: 11px; }
+  .seg-text-trane { color: var(--trane);  font-weight: 600; font-size: 11px; }
+  .vert-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+
+  /* ── Delta indicators ────────────────────────────────────────────── */
+  .delta-pos { color: var(--green); font-size: 11px; font-weight: 600; }
+  .delta-neg { color: var(--red);   font-size: 11px; font-weight: 600; }
+  .delta-neu { color: var(--muted); font-size: 11px; }
+
+  /* ── Tooltip system ─────────────────────────────────────────────── */
+  .th-wrap { display:inline-flex; align-items:center; gap:4px; }
+  .tip-icon { font-size:10px; color:var(--muted2); cursor:help; position:relative; }
+  .tip-icon[data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute; top: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%);
+    background: var(--text); color: var(--surface);
+    font-size: 11px; font-weight: 400; padding: 6px 10px;
+    border-radius: 7px; white-space: normal; width: 200px;
+    text-align: center; z-index: 9999; line-height: 1.4;
+    pointer-events: none; box-shadow: var(--shadow-md);
+  }
+  .sort-arrow { font-size: 9px; color: var(--muted2); }
+  th.sorted .sort-arrow { color: var(--accent); }
+
+  /* ── KPI cards ───────────────────────────────────────────────────── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; box-shadow: var(--shadow-sm); transition: box-shadow 0.15s, border-color 0.15s; }
+  .kpi-card:hover { box-shadow: var(--shadow-md); border-color: var(--border2); }
+  .kpi-label { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 8px; letter-spacing: -0.1px; }
+  .kpi-value { font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 5px; letter-spacing: -1px; color: var(--text); }
+  .kpi-sub { font-size: 11px; color: var(--muted); line-height: 1.4; }
+  .kpi-delta-pos { font-size: 11px; font-weight: 600; color: var(--green); }
+  .kpi-delta-neg { font-size: 11px; font-weight: 600; color: var(--red); }
+
+  /* ── Chart containers ────────────────────────────────────────────── */
+  .chart-container { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+  .chart-title { font-size: 10px; font-weight: 700; margin-bottom: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.7px; }
+
+  /* ── Alert banners ───────────────────────────────────────────────── */
+  .alert-banner { background: var(--red-bg); border: 1px solid rgba(224,49,49,0.2); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; }
+  .alert-banner.info { background: var(--accent-bg); border-color: rgba(0,194,116,0.2); }
+  .alert-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+  .alert-text strong { display: block; font-size: 12px; font-weight: 700; color: var(--red); margin-bottom: 2px; }
+  .alert-text span { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .alert-banner.info .alert-text strong { color: var(--accent); }
+
+  /* ── Layout helpers ──────────────────────────────────────────────── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+  .info-note { font-size: 11px; color: var(--muted); background: var(--amber-bg); border: 1px solid rgba(232,134,10,0.2); border-radius: 6px; padding: 8px 12px; margin-bottom: 14px; line-height: 1.5; }
+  .info-note strong { color: var(--amber); }
+
+  /* ── Definitions tab ─────────────────────────────────────────────── */
+  .def-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+  .def-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -0.2px; }
+  .def-formula { font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; font-size: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; color: var(--accent); margin-bottom: 12px; white-space: pre-wrap; }
+  .def-body { font-size: 12.5px; color: var(--text2); line-height: 1.65; margin-bottom: 8px; }
+  .def-body code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: var(--text); }
+  .def-green  { color: var(--green); font-weight: 600; }
+  .def-yellow { color: var(--amber); font-weight: 600; }
+  .def-red    { color: var(--red);   font-weight: 600; }
+  .def-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+  .def-table th { background: var(--surface2); text-align: left; padding: 7px 12px; font-weight: 600; color: var(--muted); border: 1px solid var(--border); text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
+  .def-table td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text2); vertical-align: top; }
+  .def-table td code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; }
+
+  /* ── Responsive ───────────────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .vertical-cards { grid-template-columns: repeat(2, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .three-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <div class="podium-mark">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="26" height="26" rx="5" fill="#1A1A18"/>
+        <path d="M7 20V7h6.2c1.4 0 2.5.4 3.3 1.2.8.8 1.2 1.9 1.2 3.2 0 1.3-.4 2.4-1.2 3.2-.8.8-1.9 1.2-3.3 1.2H9.8V20H7zm2.8-7.4h3c.7 0 1.3-.2 1.7-.6.4-.4.6-1 .6-1.7s-.2-1.3-.6-1.7c-.4-.4-1-.6-1.7-.6h-3v4.6z" fill="white"/>
+        <path d="M15.5 20l-3.5-5.8h3l3.5 5.8h-3z" fill="white"/>
+      </svg>
+      <span class="podium-wordmark">Podium</span>
+    </div>
+    <div class="header-divider"></div>
+    <div>
+      <div class="header-title">CS Performance Hub</div>
+      <div class="header-sub" id="lastUpdatedLabel">L30D Rolling</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button class="theme-btn" id="themeToggle" onclick="toggleTheme()"><span id="themeIcon">☽</span><span id="themeLabel">Dark</span></button>
+    <span class="header-badge">LIVE</span>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filters">
+  <div class="filter-group">
+    <span class="filter-label">Manager</span>
+    <select id="filterManager" onchange="applyFilters()">
+      <option value="">All Managers</option>
+      <option>Alex Howe</option>
+      <option>Brock Bird</option>
+      <option>Carter Matheson</option>
+      <option>Chris Nielson</option>
+      <option>Javier Herrera</option>
+      <option>Jonathan Boyer</option>
+      <option>Liam Golightley</option>
+      <option>Manuel Estrada</option>
+      <option>Samantha Aucunas</option>
+      <option>Sarah Swindle</option>
+    </select>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Vertical</span>
+    <select id="filterVertical" onchange="applyFilters()">
+      <option value="">All Verticals</option>
+      <option>Auto</option>
+      <option>Emerging</option>
+      <option>FAM</option>
+      <option>HVAC</option>
+      <option>Jewelry</option>
+      <option>MedSpa</option>
+      <option>OEM</option>
+      <option>Retail</option>
+    </select>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">Segment</span>
+    <select id="filterSegment" onchange="applyFilters()">
+      <option value="">All Segments</option>
+      <option>AI/SOA</option>
+      <option>Mid Market</option>
+      <option>Phones + Platform</option>
+      <option>Strategic</option>
+    </select>
+  </div>
+</div>
+
+<!-- UFR Month Picker -->
+<div id="ufr-month-bar" style="display:none;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+  <span style="font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.05em;text-transform:uppercase">UFR Month</span>
+  <div id="ufr-month-pills" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('leaderboard', this)">Leaderboard</div>
+  <div class="tab" onclick="switchTab('managerview', this)">Manager View</div>
+  <div class="tab" onclick="switchTab('callquality', this)">Call Quality</div>
+  <div class="tab" onclick="switchTab('definitions', this)">Definitions</div>
+</div>
+
+<!-- TAB 1: LEADERBOARD -->
+<div id="tab-leaderboard" class="tab-content active">
+  <div id="verticalCards" class="vertical-cards"></div>
+
+  <div class="section-header">
+    <div>
+      <div class="section-title">CSM Leaderboard — All Verticals</div>
+      <div class="section-sub">Click column headers to sort · Composite score weights vary by segment</div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--cs-elite);border:1px solid var(--cs-elite-t);opacity:0.8"></div>85+ Elite</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--cs-strong);border:1px solid var(--cs-strong-t);opacity:0.8"></div>70–84 Strong</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--cs-warn);border:1px solid var(--cs-warn-t);opacity:0.8"></div>55–69 Watch</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--cs-fail);border:1px solid var(--cs-fail-t);opacity:0.8"></div>&lt;55 Critical</div>
+    </div>
+  </div>
+
+  <div class="table-scroll">
+    <table id="leaderboardTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('rank')">#</th>
+          <th onclick="sortTable('csm')"><span class="th-wrap">CSM <span class="sort-arrow">↕</span></span></th>
+          <th onclick="sortTable('vertical')">Vertical</th>
+          <th onclick="sortTable('segment')">Segment</th>
+          <th onclick="sortTable('composite')" class="sorted"><span class="th-wrap">Composite <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Equal-weight avg of AR Velocity, Call Quality, and Ret SLA — expressed 0–100">ⓘ</span></span></th>
+          <th onclick="sortTable('callScore')"><span class="th-wrap">Call Score <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Avg V3 AI call score across last 90 days (0–100)">ⓘ</span></span></th>
+          <th onclick="sortTable('arsPerDay')"><span class="th-wrap">AR/Day <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Account reviews per active business day in L30D">ⓘ</span></span></th>
+          <th onclick="sortTable('retSLA')"><span class="th-wrap">Ret. SLA <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="% of retention case tasks with outreach in L30D">ⓘ</span></span></th>
+          <th id="renewalColHeader" onclick="sortTable('renewalCoveragePct')"><span class="th-wrap">Renewal Cov <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="% of renewal cohort accounts with any outreach in 120-day pre-renewal window">ⓘ</span></span></th>
+          <th onclick="sortTable('compositeDelta7d')"><span class="th-wrap">±7d <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Composite score change vs 7 days ago">ⓘ</span></span></th>
+        </tr>
+      </thead>
+      <tbody id="leaderboardBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB: MANAGER VIEW -->
+<div id="tab-managerview" class="tab-content">
+  <div class="kpi-grid" id="managerKPIs"></div>
+
+  <div class="section-header">
+    <div>
+      <div class="section-title">Manager Team Scorecard</div>
+      <div class="section-sub">Team-level rollup · Click column headers to sort</div>
+    </div>
+  </div>
+
+  <div class="table-scroll">
+    <table id="managerViewTable">
+      <thead>
+        <tr>
+          <th onclick="sortManagerView('manager')"><span class="th-wrap">Manager <span class="sort-arrow">↕</span></span></th>
+          <th onclick="sortManagerView('csmCount')"><span class="th-wrap">CSMs <span class="sort-arrow">↕</span></span></th>
+          <th onclick="sortManagerView('avgComposite')" class="sorted"><span class="th-wrap">Composite <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Average composite score across all team members">ⓘ</span></span></th>
+          <th onclick="sortManagerView('avgCallScore')"><span class="th-wrap">Call Score <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Average V3 call score for CSMs with scored calls">ⓘ</span></span></th>
+          <th onclick="sortManagerView('avgArsPerDay')"><span class="th-wrap">AR/Day <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Average account reviews per active business day">ⓘ</span></span></th>
+          <th onclick="sortManagerView('retSLA')"><span class="th-wrap">Ret. SLA <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Weighted Ret SLA across all team cases">ⓘ</span></span></th>
+          <th onclick="sortManagerView('renewalCoverage')"><span class="th-wrap">Renewal Cov <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Weighted renewal coverage across team cohort">ⓘ</span></span></th>
+          <th onclick="sortManagerView('greenCount')">Team Status</th>
+        </tr>
+      </thead>
+      <tbody id="managerViewBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB 3: CALL QUALITY -->
+<div id="tab-callquality" class="tab-content">
+  <div class="kpi-grid" id="callKPIs"></div>
+
+  <div class="chart-container">
+    <div class="chart-title">Average Call Score by CSM — Ranked (Final Adjusted Score, L30D)</div>
+    <div style="position:relative;height:420px">
+      <canvas id="callScoreChart"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-container" style="margin-bottom:16px">
+    <div class="chart-title">Avg Call Score by Vertical</div>
+    <div style="position:relative;height:200px">
+      <canvas id="verticalScoreChart"></canvas>
+    </div>
+  </div>
+
+  <div class="section-header" style="margin-top:8px">
+    <div>
+      <div class="section-title">Call Score Detail — All CSMs</div>
+      <div class="section-sub">Sub-scores: Value Creation · Relationship · Adaptiveness · Ownership · Click headers to sort</div>
+    </div>
+  </div>
+  <div class="table-scroll" style="margin-bottom:20px">
+    <table id="callDetailTable">
+      <thead><tr>
+        <th onclick="sortCallDetail('csm')">#</th>
+        <th onclick="sortCallDetail('csm')">CSM</th>
+        <th onclick="sortCallDetail('vertical')">Vertical</th>
+        <th onclick="sortCallDetail('callScore')" class="sorted">Score</th>
+        <th onclick="sortCallDetail('valueCreation')">Value</th>
+        <th onclick="sortCallDetail('relationship')">Relationship</th>
+        <th onclick="sortCallDetail('adaptiveness')">Adaptiveness</th>
+        <th onclick="sortCallDetail('ownership')">Ownership</th>
+        <th onclick="sortCallDetail('callCount')">Calls</th>
+        <th onclick="sortCallDetail('callScoreDelta')">Δ Score</th>
+      </tr></thead>
+      <tbody id="callDetailBody"></tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB: DEFINITIONS
+     ════════════════════════════════════════════════════════════════════════ -->
+<div id="tab-definitions" class="tab-content">
+  <div style="max-width:900px;margin:0 auto;padding:8px 0 32px">
+
+    <h2 style="font-size:17px;font-weight:700;margin-bottom:20px;color:var(--text)">Metric Definitions &amp; Calculation Logic</h2>
+
+    <!-- ── Composite Score ─────────────────────────────────────────── -->
+    <div class="def-card">
+      <div class="def-title">Composite Score</div>
+      <div class="def-formula">( AR Velocity Score + Call Quality Score + Retention SLA Score ) ÷ 3 × 100</div>
+      <p class="def-body">Equal-weight avg of three pillar scores (0–100). <span class="def-green">≥ 67 green</span> · <span class="def-yellow">≥ 33 yellow</span> · <span class="def-red">&lt; 33 red</span>. 10-in-14 gate overrides green → yellow if unattempted outreach exists.</p>
+    </div>
+
+    <!-- ── AR Velocity ─────────────────────────────────────────────── -->
+    <div class="def-card">
+      <div class="def-title">AR Velocity — ARs / Day</div>
+      <div class="def-formula">Total AR Events (L30) ÷ Active Business Days (L30)</div>
+      <p class="def-body">Closed SFDC Account Review, Gong call ≥ 15 min, or Podium call ≥ 15 min — deduplicated per org per day. Active days = weekdays where ≥ 3 CSMs logged any event (handles lag and holidays).</p>
+      <table class="def-table">
+        <tr><th>Segment</th><th>Green</th><th>Yellow</th><th>Red</th></tr>
+        <tr><td>AI / Mid Market / Strategic</td><td>≥ 1.5/day</td><td>≥ 0.75/day</td><td>&lt; 0.75/day</td></tr>
+        <tr><td>P+P / Offshore</td><td>≥ 1.0/day</td><td>≥ 0.5/day</td><td>&lt; 0.5/day</td></tr>
+      </table>
+    </div>
+
+    <!-- ── Call Quality ────────────────────────────────────────────── -->
+    <div class="def-card">
+      <div class="def-title">Call Quality Score</div>
+      <div class="def-formula">Avg V3 AI score across scored calls in L90, expressed 0–100</div>
+      <p class="def-body">V3 Cortex AI pipeline across HVAC, Auto, MedSpa, Emerging. Trane uses V3 HVAC model. Sub-scores: Value Creation · Relationship · Adaptiveness · Ownership. Source: <code>V3_*_CALL_SCORING_PROCESSED</code> — manual refresh ~weekly.</p>
+    </div>
+
+    <!-- ── Retention SLA ───────────────────────────────────────────── -->
+    <div class="def-card">
+      <div class="def-title">Retention SLA</div>
+      <div class="def-formula">Retention tasks with outreach ÷ Total retention tasks (L30) × 100</div>
+      <p class="def-body"><code>fastball_Retention_Case</code> tasks from <code>BUILD.LIGHTHOUSE.CORE_TASKS</code>. Any closed SFDC AR, Gong call, or Podium call on/after task creation date counts as outreach.</p>
+    </div>
+
+    <!-- ── 10-in-14 ────────────────────────────────────────────────── -->
+    <div class="def-card">
+      <div class="def-title">10-in-14 Compliance</div>
+      <div class="def-formula">10in14 tasks with outreach ÷ Total 10in14 tasks (L30) × 100</div>
+      <p class="def-body"><code>fastball_10in14_Churn_Risk</code> tasks. Any unattempted task caps overall status at yellow regardless of composite score.</p>
+    </div>
+
+    <!-- ── Renewal Coverage ────────────────────────────────────────── -->
+    <div class="def-card">
+      <div class="def-title">Renewal Coverage</div>
+      <div class="def-formula">Renewal orgs with outreach in 120d window ÷ Total cohort orgs × 100</div>
+      <p class="def-body">Non-Trane orgs renewing next calendar month. Any closed SFDC AR, Gong call ≥ 15 min, or Podium call ≥ 15 min within 120 days pre-renewal counts.</p>
+    </div>
+
+    <!-- ── Overall Status ─────────────────────────────────────────── -->
+    <div class="def-card">
+      <div class="def-title">Overall Status</div>
+      <div class="def-formula">Composite Score + 10-in-14 gate → green / yellow / red</div>
+      <table class="def-table">
+        <tr><th>Condition</th><th>Status</th></tr>
+        <tr><td>10-in-14 unattempted AND composite ≥ 33</td><td><span class="def-yellow">yellow</span> (gated)</td></tr>
+        <tr><td>10-in-14 unattempted AND composite &lt; 33</td><td><span class="def-red">red</span></td></tr>
+        <tr><td>Composite ≥ 67</td><td><span class="def-green">green</span></td></tr>
+        <tr><td>Composite ≥ 33</td><td><span class="def-yellow">yellow</span></td></tr>
+        <tr><td>Composite &lt; 33</td><td><span class="def-red">red</span></td></tr>
+      </table>
+    </div>
+
+    <!-- ── Data Sources ───────────────────────────────────────────── -->
+    <div class="def-card">
+      <div class="def-title">Data Sources</div>
+      <table class="def-table">
+        <tr><th>Source</th><th>Table</th><th>Refresh</th></tr>
+        <tr><td>Salesforce ARs + Users</td><td><code>BUILD.SALESFORCE.CORE_CUSTOMER_SUCCESS_ACTIONS</code></td><td>Daily (dbt)</td></tr>
+        <tr><td>Gong calls</td><td><code>BUILD.GONG.CORE_CONVERSATIONS</code></td><td>Daily (dbt)</td></tr>
+        <tr><td>Podium calls</td><td><code>BUILD.PODIUM_INTERNAL.CORE_CALLS</code></td><td>Daily (dbt)</td></tr>
+        <tr><td>Lighthouse tasks</td><td><code>BUILD.LIGHTHOUSE.CORE_TASKS</code></td><td>Daily (Fivetran)</td></tr>
+        <tr><td>V3 call scores</td><td><code>ANALYST_SANDBOX.JOSH_ROOKSTOOL.V3_*_CALL_SCORING_PROCESSED</code></td><td>Manual ~weekly</td></tr>
+        <tr><td>Master table</td><td><code>ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_MASTER</code></td><td>Daily 6 AM MST</td></tr>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// =============================================================================
+// DATA — loaded async from cs_perf_data.json (run export_cs_perf_data.py to refresh)
+// =============================================================================
+let data = [];  // populated by fetch at bottom of script
+
+
+
+// =============================================================================
+// STATE
+// =============================================================================
+let currentSort = { field: 'composite', asc: false };
+let callSort = { field: 'callScore', asc: false };
+let activeFilters = { manager: '', vertical: '', segment: '' };
+
+// UFR month selection
+let renewalByMonth = {};
+let renewalMonthLabels = [];
+let selectedRenewalMonth = null;
+
+function getRenewal(csmName) {
+  if (!selectedRenewalMonth || !renewalByMonth[selectedRenewalMonth]) return null;
+  return renewalByMonth[selectedRenewalMonth][csmName] || null;
+}
+
+function setRenewalMonth(label) {
+  selectedRenewalMonth = label;
+  document.querySelectorAll('.ufr-pill').forEach(b => {
+    b.style.background = b.dataset.month === label ? 'var(--accent)' : 'var(--surface2)';
+    b.style.color      = b.dataset.month === label ? '#fff' : 'var(--text)';
+    b.style.borderColor= b.dataset.month === label ? 'var(--accent)' : 'var(--border2)';
+  });
+  // Update column header
+  const th = document.getElementById('renewalColHeader');
+  if (th) th.innerHTML = `<span class="th-wrap">${label} Cov <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="% of ${label} renewal cohort accounts with any outreach in 120-day pre-renewal window">ⓘ</span></span>`;
+  renderAll();
+}
+
+function getFiltered() {
+  return data.filter(d => {
+    if (activeFilters.manager && d.manager !== activeFilters.manager) return false;
+    if (activeFilters.vertical && d.displayVertical !== activeFilters.vertical) return false;
+    if (activeFilters.segment && d.segment !== activeFilters.segment) return false;
+    return true;
+  });
+}
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+const VERT_COLORS = {
+  OEM:'#2563EB', HVAC:'#0284C7', MedSpa:'#7C3AED', Emerging:'#EA580C',
+  Auto:'#059669', FAM:'#D97706', Jewelry:'#DB2777', Retail:'#475569',
+  'Platform Partnerships':'#7A7870'
+};
+
+function scoreBarColor(v) {
+  return v >= 85 ? '#00C274' : v >= 70 ? '#F59E0B' : v >= 55 ? '#EA580C' : '#E03131';
+}
+
+// Minimal threshold bar color — green / amber / red using design-system CSS vars
+function barCol(v, g, a) {
+  if (v === null || v === undefined) return 'var(--border2)';
+  return v >= g ? 'var(--green)' : v >= a ? 'var(--amber)' : 'var(--red)';
+}
+
+function chartColors() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return {
+    grid:    isDark ? '#2A2A27' : '#E4E2DC',
+    tick:    isDark ? '#7A7870' : '#7A7870',
+    text:    isDark ? '#F2F1EE' : '#0D0D0C',
+    surface: isDark ? '#161615' : '#FFFFFF',
+  };
+}
+
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
+  document.getElementById('themeIcon').textContent  = isDark ? '☽' : '☀';
+  document.getElementById('themeLabel').textContent = isDark ? 'Dark' : 'Light';
+  setTimeout(() => {
+    const activeEl = document.querySelector('.tab-content.active');
+    const tabId = activeEl ? activeEl.id.replace('tab-', '') : '';
+    if (tabId === 'callquality') renderCallQuality();
+  }, 50);
+}
+
+function scoreCell(v, showBar) {
+  if (v === null || v === undefined) {
+    return `<td style="text-align:center;color:var(--muted)">—</td>`;
+  }
+  const cls = v >= 85 ? 'cs-elite' : v >= 70 ? 'cs-strong' : v >= 55 ? 'cs-warn' : 'cs-fail';
+  if (showBar) {
+    return `<td class="${cls}"><div class="data-bar-cell"><span style="letter-spacing:-0.3px">${v}</span><div class="data-bar-track"><div class="data-bar-fill" style="width:${v}%;background:${barCol(v,75,55)}"></div></div></div></td>`;
+  }
+  return `<td class="${cls}" style="text-align:center;letter-spacing:-0.3px">${v}</td>`;
+}
+
+// Sigma: data bar — maps to Sigma conditional formatting → data bars
+function dataBar(pct, color) {
+  return `<div class="data-bar-cell"><div class="data-bar-track" style="width:70px"><div class="data-bar-fill" style="width:${Math.min(pct,100)}%;background:${color}"></div></div></div>`;
+}
+
+function delta(d) {
+  if (d === null || d === undefined) return '<span class="delta-neu">—</span>';
+  const sign = d > 0 ? '+' : '';
+  if (d > 2) return `<span class="delta-pos">▲ ${sign}${d.toFixed(1)}</span>`;
+  if (d < -2) return `<span class="delta-neg">▼ ${d.toFixed(1)}</span>`;
+  return `<span class="delta-neu">${sign}${d.toFixed(1)}</span>`;
+}
+
+// Non-neg status (used in leaderboard)
+function nonNegStatus(d) {
+  if (d.overallStatus === 'green') return '<span class="pass-pill">PASS</span>';
+  if (d.overallStatus === 'yellow') return '<span class="warn-pill">WARN</span>';
+  return '<span class="fail-pill">FAIL</span>';
+}
+
+// Sigma: conditional text color for status
+function statusText(cls, label) {
+  return `<span class="${cls}">${label}</span>`;
+}
+
+// =============================================================================
+// COMPOSITE SCORE CALCULATION (dynamic — uses selected UFR month)
+// =============================================================================
+function calcComposite(d) {
+  // Fall back to pre-computed value if norm fields aren't in the data yet
+  if (d.arScoreNorm == null && d.callScoreNorm == null && d.slaScoreNorm == null) {
+    return d.composite != null ? Math.round(d.composite) : null;
+  }
+  const isPP = d.segment === 'Phones + Platform';
+  const ren = isPP ? null : getRenewal(d.csm);
+  const hasRenewal = ren && ren.total > 0;
+  const arScore      = (d.arScoreNorm  != null) ? d.arScoreNorm  : 0;
+  const callScore    = d.callScoreNorm;   // null = no scored calls → excluded
+  const slaScore     = d.slaScoreNorm;    // null = no ret cases   → excluded
+  const renewalScore = hasRenewal ? (ren.pct / 100) : null;
+  const numerator   = arScore
+                    + (callScore    != null ? callScore    : 0)
+                    + (slaScore     != null ? slaScore     : 0)
+                    + (renewalScore != null ? renewalScore : 0);
+  const denominator = 1.0
+                    + (callScore    != null ? 1.0 : 0.0)
+                    + (slaScore     != null ? 1.0 : 0.0)
+                    + (renewalScore != null ? 1.0 : 0.0);
+  return Math.round((numerator / denominator) * 100);
+}
+
+// =============================================================================
+// RENDER: VERTICAL CARDS
+// =============================================================================
+function renderVerticalCards() {
+  const filtered = getFiltered();
+  const vertSet = [...new Set(filtered.map(d => d.displayVertical))].filter(Boolean).sort();
+
+  const summaries = vertSet.map(v => {
+    const csms = filtered.filter(d => d.displayVertical === v);
+    if (!csms.length) return null;
+    const avgComp = Math.round(csms.reduce((s, d) => s + calcComposite(d), 0) / csms.length);
+    const callCSMs = csms.filter(d => d.callScore !== null && d.callCount > 0);
+    const avgCall = callCSMs.length ? Math.round(callCSMs.reduce((s, d) => s + d.callScore, 0) / callCSMs.length) : null;
+    const avgAR = (csms.reduce((s, d) => s + (d.arsPerDay||0), 0) / csms.length).toFixed(1);
+    const retCasesSum = csms.reduce((s, d) => s + (d.retCases||0), 0);
+    const retDoneSum  = csms.reduce((s, d) => s + (d.retSLADone||0), 0);
+    const retSLA = retCasesSum > 0 ? Math.round(retDoneSum / retCasesSum * 100) : null;
+    // Exclude P+P from UFR aggregation in vertical cards
+    const renewCSMs = csms.filter(d => d.segment !== 'Phones + Platform' && (function(){ const r = getRenewal(d.csm); return r && r.total > 0; })());
+    const renewTotal = renewCSMs.reduce((s,d) => s + (getRenewal(d.csm)?.total  || 0), 0);
+    const renewCalled = renewCSMs.reduce((s,d) => s + (getRenewal(d.csm)?.called || 0), 0);
+    const renewPct = renewTotal > 0 ? Math.round(renewCalled / renewTotal * 100) : null;
+    return { v, csms, avgComp, avgCall, avgAR, retSLA, renewPct, total: csms.length };
+  }).filter(Boolean);
+
+  summaries.sort((a, b) => b.avgComp - a.avgComp);
+
+  const container = document.getElementById('verticalCards');
+  container.innerHTML = summaries.map((s, i) => {
+    const rank = i + 1;
+    const rankLabel = ['1st','2nd','3rd','4th','5th','6th','7th','8th'][rank-1] || `${rank}th`;
+    const color = VERT_COLORS[s.v] || '#717171';
+    const scoreColor = s.avgComp >= 67 ? '#00A86B' : s.avgComp >= 45 ? '#E8860A' : '#E03131';
+
+    const retBarColor  = barCol(s.retSLA, 70, 40);
+    const renBarColor  = barCol(s.renewPct, 70, 40);
+    const callBarColor = barCol(s.avgCall, 80, 70);
+    const arNum = parseFloat(s.avgAR);
+    const arBarColor   = barCol(arNum, 2.0, 1.0);
+
+    function miniStat(label, displayVal, barColor, fillPct) {
+      return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 11px;background:var(--surface2)">
+        <div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px">${label}</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;letter-spacing:-0.3px">${displayVal}</div>
+        <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${Math.min(fillPct,100)}%;background:${barColor};border-radius:2px;transition:width 0.3s"></div>
+        </div>
+      </div>`;
+    }
+
+    const retFill  = s.retSLA !== null ? s.retSLA : 0;
+    const renFill  = s.renewPct !== null ? s.renewPct : 0;
+    const callFill = s.avgCall !== null ? s.avgCall : 0;
+    const arFill   = Math.min(arNum / 4 * 100, 100);
+
+    return `
+      <div class="vcard" onclick="filterToVertical('${s.v}')">
+        <div class="vcard-rank-label">${rankLabel} · ${s.total} CSMs</div>
+        <div class="vcard-name">${s.v}</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px">
+          <div class="vcard-score" style="color:${scoreColor}">${s.avgComp}</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">avg composite</div>
+        </div>
+        <div class="vcard-divider"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          ${miniStat('Ret SLA', s.retSLA !== null ? s.retSLA + '%' : '—', retBarColor, retFill)}
+          ${miniStat('UFR Cov', s.renewPct !== null ? s.renewPct + '%' : '—', renBarColor, renFill)}
+          ${miniStat('Call Score', s.avgCall !== null ? s.avgCall : '—', callBarColor, callFill)}
+          ${miniStat('AR/Day', s.avgAR, arBarColor, arFill)}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterToVertical(v) {
+  document.getElementById('filterVertical').value = v;
+  applyFilters();
+}
+
+// =============================================================================
+// RENDER: LEADERBOARD TABLE
+// =============================================================================
+function renderLeaderKPIs() {
+  const filtered = getFiltered();
+  // Ret SLA: weighted across all CSMs with cases
+  const retCasesTotal = filtered.reduce((s,d) => s + (d.retCases||0), 0);
+  const retDoneTotal  = filtered.reduce((s,d) => s + (d.retSLADone||0), 0);
+  const retSLATeam = retCasesTotal > 0 ? Math.round(retDoneTotal / retCasesTotal * 100) : null;
+  const retColor = retSLATeam === null ? 'var(--muted)' : retSLATeam >= 70 ? '#00A86B' : retSLATeam >= 40 ? '#E8860A' : '#E03131';
+
+  // Renewal coverage: aggregate from selected UFR month
+  const renewalCSMs = filtered.filter(d => { const r = getRenewal(d.csm); return r && r.total > 0; });
+  const renewTotal  = renewalCSMs.reduce((s,d) => s + (getRenewal(d.csm)?.total  || 0), 0);
+  const renewCalled = renewalCSMs.reduce((s,d) => s + (getRenewal(d.csm)?.called || 0), 0);
+  const renewPct = renewTotal > 0 ? (renewCalled / renewTotal * 100).toFixed(1) : null;
+  const renewColor = renewPct === null ? 'var(--muted)' : renewPct >= 70 ? '#00A86B' : renewPct >= 40 ? '#E8860A' : '#E03131';
+  const cohortLabel = (filtered[0] && filtered[0].renewalCohortMonthLabel) || (document.getElementById('renewalColHeader') ? document.getElementById('renewalColHeader').textContent.replace(' Cov','') : 'UFR');
+
+  // Avg call score
+  const scoredCSMs = filtered.filter(d => d.callScore !== null && d.callCount > 0);
+  const avgCall = scoredCSMs.length ? (scoredCSMs.reduce((s,d) => s + d.callScore, 0) / scoredCSMs.length).toFixed(1) : '—';
+  const callColor = avgCall === '—' ? 'var(--muted)' : parseFloat(avgCall) >= 80 ? '#00A86B' : parseFloat(avgCall) >= 70 ? '#E8860A' : '#E03131';
+
+  // Avg AR/day
+  const avgAR = filtered.length ? (filtered.reduce((s,d) => s + (d.arsPerDay||0), 0) / filtered.length).toFixed(2) : '—';
+  const arColor = avgAR === '—' ? 'var(--muted)' : parseFloat(avgAR) >= 1.5 ? '#00A86B' : parseFloat(avgAR) >= 0.75 ? '#E8860A' : '#E03131';
+
+  document.getElementById('leaderKPIs').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Team Ret. SLA</div>
+      <div class="kpi-value" style="color:${retColor}">${retSLATeam !== null ? retSLATeam + '%' : '—'}</div>
+      <div class="kpi-sub">${retDoneTotal}/${retCasesTotal} cases with outreach · L30D</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">${cohortLabel} Renewal Cov</div>
+      <div class="kpi-value" style="color:${renewColor}">${renewPct !== null ? renewPct + '%' : '—'}</div>
+      <div class="kpi-sub">${renewCalled}/${renewTotal} accounts contacted · 120d window</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg Call Score</div>
+      <div class="kpi-value" style="color:${callColor}">${avgCall}</div>
+      <div class="kpi-sub">V3 AI scoring · ${scoredCSMs.length} CSMs with scored calls</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg AR / Day</div>
+      <div class="kpi-value" style="color:${arColor}">${avgAR}</div>
+      <div class="kpi-sub">Account reviews per active business day · L30D</div>
+    </div>`;
+}
+
+function renderLeaderboard() {
+  let rows = [...getFiltered()];
+  rows.sort((a, b) => {
+    const getVal = (d) => currentSort.field === 'composite' ? calcComposite(d) : d[currentSort.field];
+    const av = getVal(a), bv = getVal(b);
+    if (av === null || av === undefined) return 1;
+    if (bv === null || bv === undefined) return -1;
+    return currentSort.asc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+  });
+
+  const tbody = document.getElementById('leaderboardBody');
+  tbody.innerHTML = rows.map((d, i) => {
+    const rank = i + 1;
+    const rankLabel = rank <= 3 ? ['1st','2nd','3rd'][rank-1] : rank;
+    const rankCls = rank === 1 ? 'rank-gold-text' : rank === 2 ? 'rank-silver-text' : rank === 3 ? 'rank-bronze-text' : '';
+    const rowClass = d.overallStatus === 'red' ? 'fail-row' : '';
+    const segLabel = d.segment;
+
+    // AR velocity: segment-aware
+    const isPP = d.segment === 'Phones + Platform';
+    const arCls = isPP
+      ? (d.arsPerDay >= 1.5 ? 'status-pass' : d.arsPerDay >= 0.75 ? 'status-warn' : 'status-fail')
+      : (d.arsPerDay >= 4 ? 'status-pass' : d.arsPerDay >= 2 ? 'status-warn' : 'status-fail');
+
+    // Ret SLA data bar
+    const retSLA = d.retSLA || 0;
+    const retBarColor = barCol(retSLA, 70, 40);
+
+    // Renewal Coverage
+    const ren = getRenewal(d.csm);
+    let renewalCell;
+    if (isPP) {
+      // P+P: show data if available but indicate it doesn't count toward composite
+      if (!ren || !ren.total) {
+        renewalCell = `<td style="text-align:center;color:var(--muted)" title="P+P segment — UFR not counted toward composite">—</td>`;
+      } else {
+        const pct = ren.pct || 0;
+        const rColor = barCol(pct, 70, 40);
+        renewalCell = `<td title="UFR not counted toward composite for P+P">
+          <div class="data-bar-cell">
+            <span style="font-size:12px;font-weight:600;color:var(--muted)">${pct}%</span>
+            <div class="data-bar-track"><div class="data-bar-fill" style="width:${Math.min(pct,100)}%;background:${rColor};opacity:0.35"></div></div>
+          </div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-top:2px;text-align:center">unscored</div>
+        </td>`;
+      }
+    } else if (!ren || !ren.total) {
+      renewalCell = `<td style="text-align:center;color:var(--muted)">—</td>`;
+    } else {
+      const pct = ren.pct || 0;
+      const rColor = barCol(pct, 70, 40);
+      renewalCell = `<td>
+        <div class="data-bar-cell">
+          <span style="font-size:12px;font-weight:600">${pct}%</span>
+          <div class="data-bar-track"><div class="data-bar-fill" style="width:${Math.min(pct,100)}%;background:${rColor}"></div></div>
+        </div>
+      </td>`;
+    }
+
+    return `<tr class="${rowClass}">
+      <td class="rank-cell ${rankCls}">${rankLabel}</td>
+      <td><strong>${d.csm}</strong><br><span style="font-size:11px;color:var(--muted)">${d.manager}</span></td>
+      <td>${d.displayVertical}</td>
+      <td>${segLabel}</td>
+      ${scoreCell(calcComposite(d), true)}
+      ${scoreCell(d.callScore !== null ? Math.round(d.callScore) : null, true)}
+      <td class="${arCls}" style="font-weight:600">
+        <div class="data-bar-cell">
+          <span>${(d.arsPerDay||0).toFixed(1)}</span>
+          <div class="data-bar-track"><div class="data-bar-fill" style="width:${Math.min((d.arsPerDay||0)/6*100,100)}%;background:${barCol(d.arsPerDay||0,2,1)}"></div></div>
+        </div>
+      </td>
+      <td>
+        <div class="data-bar-cell">
+          <span style="font-size:12px">${retSLA}%</span>
+          <div class="data-bar-track"><div class="data-bar-fill" style="width:${retSLA}%;background:${retBarColor}"></div></div>
+        </div>
+      </td>
+      ${renewalCell}
+      <td>${delta(d.compositeDelta7d)}</td>
+    </tr>`;
+  }).join('');
+
+  // Update fail count badge
+  const failCount = rows.filter(d => d.overallStatus === 'red').length;
+  const failCountEl = document.getElementById('failCount');
+  if (failCountEl) failCountEl.textContent = failCount;
+}
+
+function sortTable(field) {
+  if (currentSort.field === field) currentSort.asc = !currentSort.asc;
+  else { currentSort.field = field; currentSort.asc = false; }
+  document.querySelectorAll('#leaderboardTable thead th').forEach(th => th.classList.remove('sorted'));
+  renderLeaderboard();
+}
+
+// =============================================================================
+// RENDER: MANAGER VIEW TAB
+// =============================================================================
+let managerViewSort = { field: 'avgComposite', asc: false };
+
+function renderManagerView() {
+  const filtered = getFiltered();
+  const managers = [...new Set(filtered.map(d => d.manager))].filter(Boolean).sort();
+
+  const teamRows = managers.map(mgr => {
+    const team = filtered.filter(d => d.manager === mgr);
+    const csmCount = team.length;
+    const avgComposite = Math.round(team.reduce((s, d) => s + (d.composite || 0), 0) / csmCount);
+    const scoredCSMs = team.filter(d => d.callScore !== null && d.callCount > 0);
+    const avgCallScore = scoredCSMs.length
+      ? parseFloat((scoredCSMs.reduce((s, d) => s + d.callScore, 0) / scoredCSMs.length).toFixed(1))
+      : null;
+    const avgArsPerDay = parseFloat((team.reduce((s, d) => s + (d.arsPerDay || 0), 0) / csmCount).toFixed(2));
+    const totalCases = team.reduce((s, d) => s + (d.retCases || 0), 0);
+    const doneCases  = team.reduce((s, d) => s + (d.retSLADone || 0), 0);
+    const retSLA = totalCases > 0 ? Math.round(doneCases / totalCases * 100) : null;
+    const renewTeam = team.filter(d => { const r = getRenewal(d.csm); return r && r.total > 0; });
+    const renewTotal  = renewTeam.reduce((s, d) => s + (getRenewal(d.csm)?.total  || 0), 0);
+    const renewCalled = renewTeam.reduce((s, d) => s + (getRenewal(d.csm)?.called || 0), 0);
+    const renewalCoverage = renewTotal > 0 ? Math.round(renewCalled / renewTotal * 100) : null;
+    const greenCount  = team.filter(d => d.overallStatus === 'green').length;
+    const yellowCount = team.filter(d => d.overallStatus === 'yellow').length;
+    const redCount    = team.filter(d => d.overallStatus === 'red').length;
+    return { manager: mgr, csmCount, avgComposite, avgCallScore, avgArsPerDay, retSLA, renewalCoverage, greenCount, yellowCount, redCount };
+  });
+
+  teamRows.sort((a, b) => {
+    const av = a[managerViewSort.field], bv = b[managerViewSort.field];
+    if (av === null || av === undefined) return 1;
+    if (bv === null || bv === undefined) return -1;
+    return managerViewSort.asc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+  });
+
+  // KPIs
+  const allComposites = teamRows.map(r => r.avgComposite);
+  const bestTeam = teamRows.reduce((best, r) => r.avgComposite > best.avgComposite ? r : best, teamRows[0]);
+  const totalGreen = teamRows.reduce((s, r) => s + r.greenCount, 0);
+  const totalCSMs = filtered.length;
+  const greenPct = totalCSMs > 0 ? Math.round(totalGreen / totalCSMs * 100) : 0;
+  const avgTeamComp = teamRows.length ? Math.round(allComposites.reduce((s, v) => s + v, 0) / teamRows.length) : 0;
+
+  document.getElementById('managerKPIs').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Managers</div>
+      <div class="kpi-value">${teamRows.length}</div>
+      <div class="kpi-sub">${totalCSMs} CSMs total</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg Team Composite</div>
+      <div class="kpi-value" style="color:${avgTeamComp >= 67 ? '#00A86B' : avgTeamComp >= 45 ? '#E8860A' : '#E03131'}">${avgTeamComp}</div>
+      <div class="kpi-sub">Across all managers</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">CSMs Green</div>
+      <div class="kpi-value" style="color:${greenPct >= 70 ? '#00A86B' : greenPct >= 50 ? '#E8860A' : '#E03131'}">${greenPct}%</div>
+      <div class="kpi-sub">${totalGreen} of ${totalCSMs} CSMs passing all pillars</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Top Team</div>
+      <div class="kpi-value" style="color:var(--accent);font-size:18px;letter-spacing:-0.5px">${bestTeam ? bestTeam.manager.split(' ')[0] + ' ' + bestTeam.manager.split(' ').slice(-1)[0] : '—'}</div>
+      <div class="kpi-sub">${bestTeam ? bestTeam.avgComposite + ' avg composite' : ''}</div>
+    </div>`;
+
+  document.getElementById('managerViewBody').innerHTML = teamRows.map(r => {
+    const compCls = r.avgComposite >= 85 ? 'cs-elite' : r.avgComposite >= 70 ? 'cs-strong' : r.avgComposite >= 55 ? 'cs-warn' : 'cs-fail';
+    const callTd = r.avgCallScore !== null
+      ? `<td class="${r.avgCallScore >= 85 ? 'cs-elite' : r.avgCallScore >= 70 ? 'cs-strong' : r.avgCallScore >= 55 ? 'cs-warn' : 'cs-fail'}" style="text-align:center">${r.avgCallScore}</td>`
+      : `<td style="text-align:center;color:var(--muted)">—</td>`;
+    const arCls = r.avgArsPerDay >= 1.5 ? 'status-pass' : r.avgArsPerDay >= 0.75 ? 'status-warn' : 'status-fail';
+    const retTd = r.retSLA !== null
+      ? `<td><div class="data-bar-cell"><span style="font-size:12px;font-weight:600">${r.retSLA}%</span><div class="data-bar-track"><div class="data-bar-fill" style="width:${r.retSLA}%;background:${barCol(r.retSLA,70,40)}"></div></div></div></td>`
+      : `<td style="text-align:center;color:var(--muted)">—</td>`;
+    const renewTd = r.renewalCoverage !== null
+      ? `<td><div class="data-bar-cell"><span style="font-size:12px;font-weight:600">${r.renewalCoverage}%</span><div class="data-bar-track"><div class="data-bar-fill" style="width:${r.renewalCoverage}%;background:${barCol(r.renewalCoverage,70,40)}"></div></div></div></td>`
+      : `<td style="text-align:center;color:var(--muted)">—</td>`;
+    const statusDots = `<div style="display:flex;align-items:center;gap:6px">
+      ${r.greenCount > 0  ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--green-t);background:var(--green-bg);padding:2px 7px;border-radius:10px"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span>${r.greenCount}</span>` : ''}
+      ${r.yellowCount > 0 ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--amber-t);background:var(--amber-bg);padding:2px 7px;border-radius:10px"><span style="width:6px;height:6px;border-radius:50%;background:var(--amber);display:inline-block"></span>${r.yellowCount}</span>` : ''}
+      ${r.redCount > 0    ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--red-t);background:var(--red-bg);padding:2px 7px;border-radius:10px"><span style="width:6px;height:6px;border-radius:50%;background:var(--red);display:inline-block"></span>${r.redCount}</span>` : ''}
+    </div>`;
+    return `<tr>
+      <td><strong>${r.manager}</strong></td>
+      <td style="text-align:center;color:var(--muted)">${r.csmCount}</td>
+      <td class="${compCls}"><div class="data-bar-cell"><span style="letter-spacing:-0.3px">${r.avgComposite}</span><div class="data-bar-track"><div class="data-bar-fill" style="width:${r.avgComposite}%;background:${barCol(r.avgComposite,70,55)}"></div></div></div></td>
+      ${callTd}
+      <td class="${arCls}" style="font-weight:600;text-align:center">${r.avgArsPerDay.toFixed(2)}</td>
+      ${retTd}
+      ${renewTd}
+      <td>${statusDots}</td>
+    </tr>`;
+  }).join('');
+}
+
+function sortManagerView(field) {
+  if (managerViewSort.field === field) managerViewSort.asc = !managerViewSort.asc;
+  else { managerViewSort.field = field; managerViewSort.asc = false; }
+  document.querySelectorAll('#managerViewTable thead th').forEach(th => th.classList.remove('sorted'));
+  renderManagerView();
+}
+
+// =============================================================================
+// RENDER: CALL QUALITY
+// =============================================================================
+let callScoreChart = null, verticalChart = null;
+
+function renderCallQuality() {
+  const filtered = getFiltered();
+
+  // Only count CSMs with scored calls for averages
+  const scoredCSMs = filtered.filter(d => d.callScore !== null && d.callCount > 0);
+  const avgScore = scoredCSMs.length
+    ? (scoredCSMs.reduce((s, d) => s + d.callScore, 0) / scoredCSMs.length).toFixed(1)
+    : '—';
+  const totalCalls = filtered.reduce((s, d) => s + d.callCount, 0);
+  const trendingUp   = filtered.filter(d => d.callScoreDelta !== null && d.callScoreDelta > 2).length;
+  const trendingDown = filtered.filter(d => d.callScoreDelta !== null && d.callScoreDelta < -2).length;
+  const above80 = scoredCSMs.filter(d => d.callScore >= 80).length;
+
+  document.getElementById('callKPIs').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Avg Call Score</div>
+      <div class="kpi-value" style="color:${avgScore>='80'?'#00A86B':avgScore>='70'?'#E8860A':'#7A3300'}">${avgScore}</div>
+      <div class="kpi-sub">Across ${totalCalls} scored calls · ${scoredCSMs.length} CSMs</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Trending Up ▲</div>
+      <div class="kpi-value" style="color:#15803D">${trendingUp}</div>
+      <div class="kpi-sub">CSMs with call score delta &gt; +2 vs prior period</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Trending Down ▼</div>
+      <div class="kpi-value" style="color:#B91C1C">${trendingDown}</div>
+      <div class="kpi-sub">CSMs with call score delta &lt; −2 vs prior period</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">CSMs Scoring 80+</div>
+      <div class="kpi-value" style="color:#D4891A">${above80}</div>
+      <div class="kpi-sub">of ${scoredCSMs.length} CSMs with scored calls</div>
+    </div>`;
+
+  const sorted = [...scoredCSMs].sort((a, b) => b.callScore - a.callScore);
+  const labels = sorted.map(d => d.csm.split(' ')[0] + ' ' + d.csm.split(' ').slice(-1)[0]);
+  const scores = sorted.map(d => Math.round(d.callScore));
+  const cc = chartColors();
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const barColor = isDark ? 'rgba(242,241,238,0.85)' : 'rgba(26,26,24,0.82)';
+  const bgColors = sorted.map(() => barColor);
+
+  if (callScoreChart) callScoreChart.destroy();
+  const ctx = document.getElementById('callScoreChart').getContext('2d');
+  callScoreChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: scores, backgroundColor: bgColors, borderRadius: 4, borderWidth: 0 }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ` Score: ${ctx.raw}  (${sorted[ctx.dataIndex].callCount} calls)` }
+      }},
+      scales: {
+        x: { min: 40, max: 100, grid: { color: cc.grid }, ticks: { color: cc.tick, font: { size: 11 } } },
+        y: { grid: { display: false }, ticks: { color: cc.text, font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Vertical avg score — use vertical brand colors
+  const verticals = [...new Set(scoredCSMs.map(d => d.displayVertical))].sort();
+  const vertAvgs = verticals.map(v => {
+    const csms = scoredCSMs.filter(d => d.displayVertical === v);
+    return csms.length ? parseFloat((csms.reduce((s, d) => s + d.callScore, 0) / csms.length).toFixed(1)) : 0;
+  });
+  const vertSorted = verticals.map((v, i) => ({ v, score: vertAvgs[i] })).sort((a,b) => b.score - a.score);
+  const vertBrandColors = vertSorted.map(() => barColor);
+
+  if (verticalChart) verticalChart.destroy();
+  const ctx2 = document.getElementById('verticalScoreChart').getContext('2d');
+  const cc2 = chartColors();
+  verticalChart = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: vertSorted.map(x => x.v),
+      datasets: [{ data: vertSorted.map(x => x.score), backgroundColor: vertBrandColors, borderWidth: 0, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` Avg score: ${ctx.raw}` } }
+      },
+      scales: {
+        x: { min: 50, max: 100, grid: { color: cc2.grid }, ticks: { color: cc2.tick, font: { size: 11 } } },
+        y: { grid: { display: false }, ticks: { color: cc2.text, font: { size: 12, weight: '600' } } }
+      }
+    }
+  });
+
+  renderCallDetail();
+}
+
+let callDetailSort = { field: 'callScore', asc: false };
+function renderCallDetail() {
+  let rows = [...getFiltered()].sort((a, b) => {
+    const av = a[callDetailSort.field], bv = b[callDetailSort.field];
+    if (av === null || av === undefined) return 1;
+    if (bv === null || bv === undefined) return -1;
+    return callDetailSort.asc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+  });
+  const tbody = document.getElementById('callDetailBody');
+  if (!tbody) return;
+  tbody.innerHTML = rows.map((d, i) => {
+    const dCell = d.callScoreDelta !== null && d.callScoreDelta !== undefined
+      ? `<td style="text-align:center">${delta(d.callScoreDelta)}</td>`
+      : `<td style="text-align:center;color:var(--muted)">—</td>`;
+    if (d.callScore === null || d.callCount === 0) {
+      return `<tr>
+        <td style="color:var(--muted)">${i+1}</td>
+        <td><strong>${d.csm}</strong></td>
+        <td>${d.displayVertical}</td>
+        <td colspan="5" style="text-align:center;color:var(--muted);font-style:italic">No scored calls</td>
+        <td style="text-align:center;color:var(--muted)">${d.callCount}</td>
+        ${dCell}
+      </tr>`;
+    }
+    return `<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td><strong>${d.csm}</strong></td>
+      <td>${d.displayVertical}</td>
+      ${scoreCell(Math.round(d.callScore), false)}
+      ${scoreCell(d.valueCreation !== null ? Math.round(d.valueCreation) : null, false)}
+      ${scoreCell(d.relationship !== null ? Math.round(d.relationship) : null, false)}
+      ${scoreCell(d.adaptiveness !== null ? Math.round(d.adaptiveness) : null, false)}
+      ${scoreCell(d.ownership !== null ? Math.round(d.ownership) : null, false)}
+      <td style="text-align:center;color:var(--muted)">${d.callCount}</td>
+      ${dCell}
+    </tr>`;
+  }).join('');
+}
+
+function sortCallDetail(field) {
+  if (callDetailSort.field === field) callDetailSort.asc = !callDetailSort.asc;
+  else { callDetailSort.field = field; callDetailSort.asc = false; }
+  renderCallDetail();
+}
+
+// =============================================================================
+// TABS & FILTERS
+// =============================================================================
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+
+  if (name === 'leaderboard')  { renderVerticalCards(); renderLeaderboard(); }
+  else if (name === 'managerview')  { renderManagerView(); }
+  else if (name === 'callquality')  { setTimeout(renderCallQuality, 50); }
+  else if (name === 'definitions')  { /* static content */ }
+}
+
+function applyFilters() {
+  activeFilters.manager  = document.getElementById('filterManager').value;
+  activeFilters.vertical = document.getElementById('filterVertical').value;
+  activeFilters.segment  = document.getElementById('filterSegment').value;
+
+  const activeEl = document.querySelector('.tab-content.active');
+  const tabId = activeEl ? activeEl.id.replace('tab-', '') : 'leaderboard';
+
+  if (tabId === 'leaderboard')  { renderVerticalCards(); renderLeaderboard(); }
+  else if (tabId === 'managerview') renderManagerView();
+  else if (tabId === 'callquality') setTimeout(renderCallQuality, 50);
+}
+
+function renderAll() {
+  renderVerticalCards();
+  renderLeaderboard();
+}
+
+// =============================================================================
+// INIT — fetch data from cs_perf_data.json, then render
+// =============================================================================
+fetch('cs_perf_data.json')
+  .then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status} loading cs_perf_data.json`);
+    return r.json();
+  })
+  .then(json => {
+    data = json.csms.map(d => ({
+      ...d,
+      displayVertical: d.vertical || 'Unknown',
+      normAR: Math.min(100, Math.round((d.arsPerDay / 5.0) * 100)),
+    }));
+    if (json.meta) {
+      if (json.meta.lastRefreshed) {
+        const d = new Date(json.meta.lastRefreshed);
+        const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const el = document.getElementById('lastUpdatedLabel');
+        if (el) el.textContent = `L30D Rolling · Refreshed ${label}`;
+      }
+      // Load multi-month renewal data and build picker
+      if (json.renewalByMonth) {
+        renewalByMonth = json.renewalByMonth;
+        renewalMonthLabels = json.meta.renewalMonthLabels || Object.keys(renewalByMonth);
+        // Default to current cohort month (+2) if present, else first available
+        const defaultMonth = json.meta.renewalCohortMonthLabel && renewalByMonth[json.meta.renewalCohortMonthLabel]
+          ? json.meta.renewalCohortMonthLabel
+          : renewalMonthLabels[0];
+        // Build pill buttons
+        const pillContainer = document.getElementById('ufr-month-pills');
+        if (pillContainer) {
+          pillContainer.innerHTML = renewalMonthLabels.map(label => `
+            <button class="ufr-pill" data-month="${label}" onclick="setRenewalMonth('${label}')"
+              style="padding:4px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);
+                     color:var(--text);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s">
+              ${label}
+            </button>`).join('');
+          document.getElementById('ufr-month-bar').style.display = 'flex';
+        }
+        setRenewalMonth(defaultMonth);
+      } else if (json.meta.renewalCohortMonthLabel) {
+        // Legacy: single month in meta only
+        const cohortLabel = json.meta.renewalCohortMonthLabel;
+        const renewalTh = document.getElementById('renewalColHeader');
+        if (renewalTh) renewalTh.textContent = cohortLabel + ' Cov';
+      }
+    }
+    renderAll();
+  })
+  .catch(err => {
+    document.querySelector('.tab-content.active').innerHTML =
+      `<div style="padding:40px;font-family:monospace;color:#991B1B;background:#FEF2F2;margin:24px;border-radius:8px;border:1px solid #FCA5A5">
+        <strong>Failed to load cs_perf_data.json</strong><br><br>
+        ${err.message}<br><br>
+        To fix:<br>
+        1. Run <code>python ~/Documents/Development/sigma-mcp/export_cs_perf_data.py</code><br>
+        2. Serve this directory: <code>cd ~/Desktop &amp;&amp; python -m http.server 8080</code><br>
+        3. Open <a href="http://localhost:8080/index_v2.html">http://localhost:8080/index_v2.html</a>
+      </div>`;
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "cs-perf-hub",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "sync": "bash scripts/sync-snowflake.sh"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
