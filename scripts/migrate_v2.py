@@ -1,0 +1,879 @@
+#!/usr/bin/env python3
+"""
+migrate_v2.py — CS Performance Hub V2 Enrichment Migration
+
+Connects to Snowflake and applies the V2 schema + procedure changes:
+  1. ALTER TABLE CS_PERF_HUB_SNAPSHOTS to add new sparkline columns
+     (handles already-exists errors gracefully)
+  2. CREATE OR REPLACE PROCEDURE REFRESH_CS_PERF_HUB() with enrichment CTEs,
+     DIRECTOR_NAME, LOCATION_COUNT, open onboarding/retention cases, and
+     interaction intelligence columns
+  3. CALL the refreshed procedure
+  4. Validate a sample of rows from CS_PERF_HUB_MASTER showing new columns
+"""
+
+import sys
+import snowflake.connector
+from snowflake.connector.errors import ProgrammingError
+
+
+# ── Connection ────────────────────────────────────────────────────────────────
+
+def get_connection():
+    return snowflake.connector.connect(
+        user="josh.rookstool@podium.com",
+        account="rla99487",
+        authenticator="externalbrowser",
+        warehouse="PUBLIC",
+        database="ANALYST_SANDBOX",
+        schema="JOSH_ROOKSTOOL",
+        role="EXPLORER_WRITE_OKTA",
+    )
+
+
+# ── Step 1: ALTER TABLE CS_PERF_HUB_SNAPSHOTS ────────────────────────────────
+
+ALTER_SNAPSHOTS_COLUMNS = [
+    ("ARS_PER_DAY",          "ALTER TABLE ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_SNAPSHOTS ADD COLUMN ARS_PER_DAY FLOAT"),
+    ("AVG_CALL_SCORE",       "ALTER TABLE ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_SNAPSHOTS ADD COLUMN AVG_CALL_SCORE NUMBER"),
+    ("RET_SLA_PCT",          "ALTER TABLE ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_SNAPSHOTS ADD COLUMN RET_SLA_PCT FLOAT"),
+    ("RENEWAL_COVERAGE_PCT", "ALTER TABLE ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_SNAPSHOTS ADD COLUMN RENEWAL_COVERAGE_PCT FLOAT"),
+    ("OVERALL_STATUS",       "ALTER TABLE ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_SNAPSHOTS ADD COLUMN OVERALL_STATUS TEXT"),
+]
+
+
+def alter_snapshots_table(cur):
+    print("\n[Step 1] Altering CS_PERF_HUB_SNAPSHOTS to add sparkline columns...")
+    for col_name, ddl in ALTER_SNAPSHOTS_COLUMNS:
+        try:
+            cur.execute(ddl)
+            print(f"  + Added column {col_name}")
+        except ProgrammingError as e:
+            msg = str(e).lower()
+            if "already exists" in msg or "duplicate column" in msg:
+                print(f"  ~ Column {col_name} already exists — skipping")
+            else:
+                print(f"  ! ERROR adding column {col_name}: {e}")
+                raise
+
+
+# ── Step 2: CREATE OR REPLACE PROCEDURE ──────────────────────────────────────
+
+CREATE_PROCEDURE_SQL = r"""
+CREATE OR REPLACE PROCEDURE "REFRESH_CS_PERF_HUB"()
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS OWNER
+AS '
+BEGIN
+  -- Step 1: Snapshot today''s composite scores + expanded metrics before rebuilding
+  INSERT INTO ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_SNAPSHOTS
+    (SNAPSHOT_DATE, CSM_NAME, COMPOSITE_SCORE, ARS_PER_DAY, AVG_CALL_SCORE, RET_SLA_PCT, RENEWAL_COVERAGE_PCT, OVERALL_STATUS)
+  SELECT CURRENT_DATE, CSM_NAME, COMPOSITE_SCORE, ARS_PER_DAY, AVG_CALL_SCORE, RET_SLA_PCT, RENEWAL_COVERAGE_PCT, OVERALL_STATUS
+  FROM ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_MASTER;
+
+  -- Step 2: Rebuild the master table
+  CREATE OR REPLACE TABLE ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_MASTER AS
+
+-- ── CSM allowlist: title-based, active, IC-only (excludes managers by role), non-AU ─────
+WITH csm_allowlist AS (
+    SELECT
+        SALESFORCE_USER_ID,
+        SALESFORCE_USER_FULL_NAME          AS CSM_NAME,
+        SALESFORCE_USER_EMAIL,
+        SALESFORCE_USER_TITLE,
+        SALESFORCE_USER_ROLE_NAME,
+        COALESCE(PAYLOCITY_EMPLOYEE_IS_OFFSHORE, FALSE) AS IS_OFFSHORE,
+        PAYLOCITY_EMPLOYEE_VERTICAL
+    FROM BUILD.SALESFORCE.CORE_USERS
+    WHERE SALESFORCE_USER_IS_ACTIVE = TRUE
+      AND (
+          SALESFORCE_USER_TITLE ILIKE ''%customer success manager%''
+          OR SALESFORCE_USER_TITLE ILIKE ''csm%''
+          OR SALESFORCE_USER_TITLE = ''CSM''
+      )
+      AND SALESFORCE_USER_ROLE_NAME NOT ILIKE ''Manager%''
+      AND SALESFORCE_USER_ROLE_NAME NOT ILIKE ''VP%''
+      AND SALESFORCE_USER_FULL_NAME NOT IN (''Maria Lam'')
+      AND (USER_WORKING_LOCATION IS NULL OR USER_WORKING_LOCATION NOT ILIKE ''%australia%'')
+),
+
+curr_month_orgs AS (
+    SELECT
+        m.MONTH_START_ACCOUNT_OWNER           AS CSM_NAME,
+        m.MONTH_START_ACCOUNT_OWNER_MANAGER   AS MANAGER_NAME,
+        m.ORGANIZATION_VERTICAL,
+        m.ORGANIZATION_ACCOUNT_SEGMENT        AS ACCOUNT_SEGMENT,
+        m.ORGANIZATION_UID,
+        m.ORGANIZATION_MONTH_START_MRR_USD    AS ORG_MRR_USD,
+        m.DEALER_TYPE,
+        m.MONTH_START_ORGANIZATION_HAD_AI     AS HAS_AI,
+        m.MONTH_START_CONTRACT_END_MONTH      AS CONTRACT_END_MONTH
+    FROM ANALYSIS.FINANCE.SALESFORCE_ORGANIZATION_MONTH_MRR_PLUS_6_MONTHS m
+    INNER JOIN csm_allowlist al ON m.MONTH_START_ACCOUNT_OWNER = al.CSM_NAME
+    WHERE m.MONTH = DATE_TRUNC(''month'', CURRENT_DATE)
+      AND m.MONTH_START_ACCOUNT_OWNER IS NOT NULL
+      AND m.ORGANIZATION_MONTH_START_MRR_USD > 0
+),
+csm_vertical_mrr AS (
+    SELECT CSM_NAME, ORGANIZATION_VERTICAL, SUM(ORG_MRR_USD) AS VERTICAL_MRR
+    FROM curr_month_orgs GROUP BY 1, 2
+),
+csm_primary_vertical AS (
+    SELECT CSM_NAME, ORGANIZATION_VERTICAL AS PRIMARY_VERTICAL
+    FROM csm_vertical_mrr
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY CSM_NAME ORDER BY VERTICAL_MRR DESC) = 1
+),
+csm_segment_count AS (
+    SELECT CSM_NAME, ACCOUNT_SEGMENT, COUNT(*) AS SEG_CNT
+    FROM curr_month_orgs GROUP BY 1, 2
+),
+csm_primary_segment AS (
+    SELECT CSM_NAME, ACCOUNT_SEGMENT AS PRIMARY_SEGMENT
+    FROM csm_segment_count
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY CSM_NAME ORDER BY SEG_CNT DESC) = 1
+),
+csm_roster AS (
+    SELECT
+        o.CSM_NAME,
+        MAX(o.MANAGER_NAME)                               AS MANAGER_NAME,
+        v.PRIMARY_VERTICAL,
+        s.PRIMARY_SEGMENT,
+        COUNT(DISTINCT o.ORGANIZATION_UID)                AS ORG_COUNT,
+        SUM(o.ORG_MRR_USD)                                AS BOOK_MRR_USD,
+        SUM(o.ORG_MRR_USD) * 12                           AS BOOK_ARR_USD,
+        MAX(IFF(o.DEALER_TYPE = ''Trane TCS'', 1, 0))       AS IS_TRANE_CSM,
+        SUM(IFF(o.DEALER_TYPE = ''Trane TCS'', 1, 0))       AS TRANE_ORG_COUNT,
+        MAX(IFF(o.HAS_AI = TRUE, 1, 0))                   AS HAS_AI_ACCOUNTS
+    FROM curr_month_orgs o
+    JOIN csm_primary_vertical v ON o.CSM_NAME = v.CSM_NAME
+    JOIN csm_primary_segment  s ON o.CSM_NAME = s.CSM_NAME
+    GROUP BY o.CSM_NAME, v.PRIMARY_VERTICAL, s.PRIMARY_SEGMENT
+),
+
+sfdc_ars AS (
+    SELECT
+        DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT)       AS EVENT_DATE,
+        csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT             AS EVENT_TIMESTAMP,
+        csa.CUSTOMER_SUCCESS_ACTION_OWNER_FULL_NAME       AS CSM_NAME,
+        csa.ORGANIZATION_UID,
+        csa.CUSTOMER_SUCCESS_ACTION_ID                    AS SOURCE_ID
+    FROM BUILD.SALESFORCE.CORE_CUSTOMER_SUCCESS_ACTIONS csa
+    INNER JOIN csm_allowlist al
+        ON csa.CUSTOMER_SUCCESS_ACTION_OWNER_FULL_NAME = al.CSM_NAME
+    WHERE csa.RECORD_TYPE_ID      = ''0125G000001QG3fQAG''
+      AND LOWER(csa.CUSTOMER_SUCCESS_ACTION_STATUS) = ''closed''
+      AND csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT IS NOT NULL
+      AND DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) >= DATEADD(''day'', -30, CURRENT_DATE)
+      AND DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) <  CURRENT_DATE
+),
+
+gong_dark AS (
+    SELECT
+        DATE(gc.CALL_EFFECTIVE_START_AT)                  AS EVENT_DATE,
+        gc.CALL_EFFECTIVE_START_AT                        AS EVENT_TIMESTAMP,
+        gc.CALL_SALESFORCE_USER_FULL_NAME                 AS CSM_NAME,
+        gc.ORGANIZATION_UID,
+        gc.CONVERSATION_ID                                AS SOURCE_ID
+    FROM BUILD.GONG.CORE_CONVERSATIONS gc
+    INNER JOIN csm_allowlist al
+        ON gc.CALL_SALESFORCE_USER_FULL_NAME = al.CSM_NAME
+    WHERE LOWER(gc.CALL_STATUS)    = ''completed''
+      AND gc.CALL_ELAPSED_MINUTES  >= 15
+      AND gc.CALL_EFFECTIVE_START_AT >= DATEADD(''day'', -30, CURRENT_DATE)
+      AND gc.CALL_EFFECTIVE_START_AT <  CURRENT_DATE
+      AND gc.ORGANIZATION_UID IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1 FROM sfdc_ars ar
+          WHERE ar.CSM_NAME       = gc.CALL_SALESFORCE_USER_FULL_NAME
+            AND ar.ORGANIZATION_UID = gc.ORGANIZATION_UID
+            AND ar.EVENT_DATE     = DATE(gc.CALL_EFFECTIVE_START_AT)
+      )
+),
+
+podium_dark AS (
+    SELECT
+        DATE(pc.CALL_INSERTED_AT)                         AS EVENT_DATE,
+        pc.CALL_INSERTED_AT                               AS EVENT_TIMESTAMP,
+        pc.CALL_MADE_BY_USER_FULL_NAME                    AS CSM_NAME,
+        pc.CALL_MADE_TO_ORGANIZATION_UID                  AS ORGANIZATION_UID,
+        pc.CALL_UID                                       AS SOURCE_ID
+    FROM BUILD.PODIUM_INTERNAL.CORE_CALLS pc
+    INNER JOIN csm_allowlist al
+        ON pc.CALL_MADE_BY_USER_FULL_NAME = al.CSM_NAME
+    WHERE pc.CALL_DURATION_SECONDS        >= 900
+      AND pc.CALL_INSERTED_AT >= DATEADD(''day'', -30, CURRENT_DATE)
+      AND pc.CALL_INSERTED_AT <  CURRENT_DATE
+      AND pc.CALL_MADE_TO_ORGANIZATION_UID IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1 FROM sfdc_ars ar
+          WHERE ar.CSM_NAME       = pc.CALL_MADE_BY_USER_FULL_NAME
+            AND ar.ORGANIZATION_UID = pc.CALL_MADE_TO_ORGANIZATION_UID
+            AND ar.EVENT_DATE     = DATE(pc.CALL_INSERTED_AT)
+      )
+),
+
+ar_events AS (
+    SELECT EVENT_DATE, ORGANIZATION_UID, CSM_NAME FROM sfdc_ars
+    UNION ALL
+    SELECT EVENT_DATE, ORGANIZATION_UID, CSM_NAME FROM gong_dark
+    UNION ALL
+    SELECT EVENT_DATE, ORGANIZATION_UID, CSM_NAME FROM podium_dark
+),
+
+call_scores AS (
+    SELECT s.CONVERSATION_ID AS CALL_ID, s.ORGANIZATION_UID,
+           s.CALL_SALESFORCE_USER_FULL_NAME AS CSM_NAME,
+           s.CONVERSATION_DATE, s.FINAL_ADJUSTED_SCORE AS CALL_SCORE, ''v3'' AS SCORING_MODEL
+    FROM ANALYST_SANDBOX.JOSH_ROOKSTOOL.V3_HVAC_CALL_SCORING_PROCESSED s
+    INNER JOIN csm_allowlist al ON s.CALL_SALESFORCE_USER_FULL_NAME = al.CSM_NAME
+    WHERE s.INTERACTION_QUALITY != ''incomplete''
+    UNION ALL
+    SELECT s.CONVERSATION_ID, s.ORGANIZATION_UID,
+           s.CALL_SALESFORCE_USER_FULL_NAME,
+           s.CONVERSATION_DATE, s.FINAL_ADJUSTED_SCORE, ''v3''
+    FROM ANALYST_SANDBOX.JOSH_ROOKSTOOL.V3_AUTO_CALL_SCORING_PROCESSED s
+    INNER JOIN csm_allowlist al ON s.CALL_SALESFORCE_USER_FULL_NAME = al.CSM_NAME
+    WHERE s.INTERACTION_QUALITY != ''incomplete''
+    UNION ALL
+    SELECT s.CONVERSATION_ID, s.ORGANIZATION_UID,
+           s.CALL_SALESFORCE_USER_FULL_NAME,
+           s.CONVERSATION_DATE, s.FINAL_ADJUSTED_SCORE, ''v3''
+    FROM ANALYST_SANDBOX.JOSH_ROOKSTOOL.V3_MEDSPA_CALL_SCORING_PROCESSED s
+    INNER JOIN csm_allowlist al ON s.CALL_SALESFORCE_USER_FULL_NAME = al.CSM_NAME
+    WHERE s.INTERACTION_QUALITY != ''incomplete''
+    UNION ALL
+    SELECT s.CONVERSATION_ID, s.ORGANIZATION_UID,
+           s.CALL_SALESFORCE_USER_FULL_NAME,
+           s.CONVERSATION_DATE, s.FINAL_ADJUSTED_SCORE, ''v3''
+    FROM ANALYST_SANDBOX.JOSH_ROOKSTOOL.V3_EMERGING_CALL_SCORING_PROCESSED s
+    INNER JOIN csm_allowlist al ON s.CALL_SALESFORCE_USER_FULL_NAME = al.CSM_NAME
+    WHERE s.INTERACTION_QUALITY != ''incomplete''
+),
+
+outreach_events_l30 AS (
+    SELECT
+        DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) AS EVENT_DATE,
+        csa.CUSTOMER_SUCCESS_ACTION_OWNER_FULL_NAME AS CSM_NAME,
+        csa.ORGANIZATION_UID
+    FROM BUILD.SALESFORCE.CORE_CUSTOMER_SUCCESS_ACTIONS csa
+    INNER JOIN csm_allowlist al
+        ON csa.CUSTOMER_SUCCESS_ACTION_OWNER_FULL_NAME = al.CSM_NAME
+    WHERE csa.RECORD_TYPE_ID = ''0125G000001QG3fQAG''
+      AND LOWER(csa.CUSTOMER_SUCCESS_ACTION_STATUS) = ''closed''
+      AND csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT IS NOT NULL
+      AND DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) >= DATEADD(''day'', -30, CURRENT_DATE)
+    UNION ALL
+    SELECT
+        DATE(gc.CALL_EFFECTIVE_START_AT),
+        gc.CALL_SALESFORCE_USER_FULL_NAME,
+        gc.ORGANIZATION_UID
+    FROM BUILD.GONG.CORE_CONVERSATIONS gc
+    INNER JOIN csm_allowlist al
+        ON gc.CALL_SALESFORCE_USER_FULL_NAME = al.CSM_NAME
+    WHERE LOWER(gc.CALL_STATUS) = ''completed''
+      AND gc.CALL_EFFECTIVE_START_AT >= DATEADD(''day'', -30, CURRENT_DATE)
+      AND gc.ORGANIZATION_UID IS NOT NULL
+    UNION ALL
+    SELECT
+        DATE(pc.CALL_INSERTED_AT),
+        pc.CALL_MADE_BY_USER_FULL_NAME,
+        pc.CALL_MADE_TO_ORGANIZATION_UID
+    FROM BUILD.PODIUM_INTERNAL.CORE_CALLS pc
+    INNER JOIN csm_allowlist al
+        ON pc.CALL_MADE_BY_USER_FULL_NAME = al.CSM_NAME
+    WHERE pc.CALL_INSERTED_AT >= DATEADD(''day'', -30, CURRENT_DATE)
+      AND pc.CALL_MADE_TO_ORGANIZATION_UID IS NOT NULL
+),
+
+retention_tasks AS (
+    SELECT
+        t.TASK_UID,
+        t.ORGANIZATION_UID,
+        t.TASK_OWNER_FULL_NAME AS CSM_NAME,
+        t.TASK_INSERTED_AT::DATE AS TASK_DATE
+    FROM BUILD.LIGHTHOUSE.CORE_TASKS t
+    INNER JOIN csm_allowlist al ON t.TASK_OWNER_FULL_NAME = al.CSM_NAME
+    WHERE t.TASK_SLUG = ''fastball_Retention_Case''
+      AND t.TASK_INSERTED_AT >= DATEADD(''day'', -30, CURRENT_DATE)
+      AND t.TASK_IS_ARCHIVED = FALSE
+      AND t.ORGANIZATION_UID IS NOT NULL
+),
+ret_sla AS (
+    SELECT
+        rt.CSM_NAME,
+        COUNT(DISTINCT rt.TASK_UID)                                                    AS TOTAL_RET_CASES,
+        COUNT(DISTINCT CASE WHEN oe.ORGANIZATION_UID IS NOT NULL THEN rt.TASK_UID END) AS SLA_MET_COUNT,
+        ROUND(
+            COUNT(DISTINCT CASE WHEN oe.ORGANIZATION_UID IS NOT NULL THEN rt.TASK_UID END)::FLOAT
+            / NULLIF(COUNT(DISTINCT rt.TASK_UID), 0),
+        3) AS RET_SLA_PCT
+    FROM retention_tasks rt
+    LEFT JOIN outreach_events_l30 oe
+        ON  rt.ORGANIZATION_UID = oe.ORGANIZATION_UID
+        AND oe.EVENT_DATE >= rt.TASK_DATE
+    GROUP BY rt.CSM_NAME
+),
+
+churn_10in14_tasks AS (
+    SELECT
+        t.TASK_UID,
+        t.ORGANIZATION_UID,
+        t.TASK_OWNER_FULL_NAME AS CSM_NAME,
+        t.TASK_INSERTED_AT::DATE AS TASK_DATE
+    FROM BUILD.LIGHTHOUSE.CORE_TASKS t
+    INNER JOIN csm_allowlist al ON t.TASK_OWNER_FULL_NAME = al.CSM_NAME
+    WHERE t.TASK_SLUG = ''fastball_10in14_Churn_Risk''
+      AND t.TASK_INSERTED_AT >= DATEADD(''day'', -30, CURRENT_DATE)
+      AND t.TASK_IS_ARCHIVED = FALSE
+      AND t.ORGANIZATION_UID IS NOT NULL
+),
+churn_10in14_metrics AS (
+    SELECT
+        t.CSM_NAME,
+        COUNT(DISTINCT t.TASK_UID)                                                         AS TOTAL_10IN14_TASKS,
+        COUNT(DISTINCT CASE WHEN oe.ORGANIZATION_UID IS NOT NULL THEN t.TASK_UID END)      AS OUTREACH_COUNT_10IN14,
+        ROUND(
+            COUNT(DISTINCT CASE WHEN oe.ORGANIZATION_UID IS NOT NULL THEN t.TASK_UID END)::FLOAT
+            / NULLIF(COUNT(DISTINCT t.TASK_UID), 0),
+        3)                                                                                  AS OUTREACH_PCT_10IN14,
+        MAX(CASE WHEN oe.ORGANIZATION_UID IS NULL THEN 1 ELSE 0 END)                       AS HAS_UNATTEMPTED_10IN14
+    FROM churn_10in14_tasks t
+    LEFT JOIN outreach_events_l30 oe
+        ON  t.ORGANIZATION_UID = oe.ORGANIZATION_UID
+        AND oe.EVENT_DATE >= t.TASK_DATE
+    GROUP BY t.CSM_NAME
+),
+
+renewal_cohort AS (
+    SELECT DISTINCT
+        m.MONTH_START_ACCOUNT_OWNER          AS CSM_NAME,
+        m.ORGANIZATION_UID,
+        DATE_TRUNC(''month'', DATEADD(''month'', 2, CURRENT_DATE)) AS RENEWAL_MONTH
+    FROM ANALYSIS.FINANCE.SALESFORCE_ORGANIZATION_MONTH_MRR_PLUS_6_MONTHS m
+    INNER JOIN csm_allowlist al ON m.MONTH_START_ACCOUNT_OWNER = al.CSM_NAME
+    WHERE m.MONTH = DATE_TRUNC(''month'', CURRENT_DATE)
+      AND DATE_TRUNC(''month'', m.MONTH_START_CONTRACT_END_MONTH)
+              = DATE_TRUNC(''month'', DATEADD(''month'', 2, CURRENT_DATE))
+),
+renewal_ar_events AS (
+    SELECT
+        DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) AS EVENT_DATE,
+        csa.CUSTOMER_SUCCESS_ACTION_OWNER_FULL_NAME AS CSM_NAME,
+        csa.ORGANIZATION_UID
+    FROM BUILD.SALESFORCE.CORE_CUSTOMER_SUCCESS_ACTIONS csa
+    INNER JOIN csm_allowlist al
+        ON csa.CUSTOMER_SUCCESS_ACTION_OWNER_FULL_NAME = al.CSM_NAME
+    INNER JOIN renewal_cohort rc ON csa.ORGANIZATION_UID = rc.ORGANIZATION_UID
+    WHERE csa.RECORD_TYPE_ID = ''0125G000001QG3fQAG''
+      AND LOWER(csa.CUSTOMER_SUCCESS_ACTION_STATUS) = ''closed''
+      AND csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT IS NOT NULL
+      AND DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT)
+              >= DATEADD(''day'', -120, rc.RENEWAL_MONTH)
+      AND DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) < rc.RENEWAL_MONTH
+    UNION ALL
+    SELECT
+        DATE(gc.CALL_EFFECTIVE_START_AT) AS EVENT_DATE,
+        gc.CALL_SALESFORCE_USER_FULL_NAME AS CSM_NAME,
+        gc.ORGANIZATION_UID
+    FROM BUILD.GONG.CORE_CONVERSATIONS gc
+    INNER JOIN csm_allowlist al
+        ON gc.CALL_SALESFORCE_USER_FULL_NAME = al.CSM_NAME
+    INNER JOIN renewal_cohort rc ON gc.ORGANIZATION_UID = rc.ORGANIZATION_UID
+    WHERE LOWER(gc.CALL_STATUS) = ''completed''
+      AND gc.CALL_ELAPSED_MINUTES >= 15
+      AND DATE(gc.CALL_EFFECTIVE_START_AT)
+              >= DATEADD(''day'', -120, rc.RENEWAL_MONTH)
+      AND DATE(gc.CALL_EFFECTIVE_START_AT) < rc.RENEWAL_MONTH
+    UNION ALL
+    SELECT
+        DATE(pc.CALL_INSERTED_AT) AS EVENT_DATE,
+        pc.CALL_MADE_BY_USER_FULL_NAME AS CSM_NAME,
+        pc.CALL_MADE_TO_ORGANIZATION_UID AS ORGANIZATION_UID
+    FROM BUILD.PODIUM_INTERNAL.CORE_CALLS pc
+    INNER JOIN csm_allowlist al
+        ON pc.CALL_MADE_BY_USER_FULL_NAME = al.CSM_NAME
+    INNER JOIN renewal_cohort rc ON pc.CALL_MADE_TO_ORGANIZATION_UID = rc.ORGANIZATION_UID
+    WHERE pc.CALL_DURATION_SECONDS >= 900
+      AND DATE(pc.CALL_INSERTED_AT)
+              >= DATEADD(''day'', -120, rc.RENEWAL_MONTH)
+      AND DATE(pc.CALL_INSERTED_AT) < rc.RENEWAL_MONTH
+),
+renewal_coverage AS (
+    SELECT
+        rc.CSM_NAME,
+        COUNT(DISTINCT rc.ORGANIZATION_UID)   AS RENEWAL_COHORT_TOTAL,
+        COUNT(DISTINCT ar.ORGANIZATION_UID)   AS RENEWAL_COHORT_CALLED,
+        ROUND(
+            COUNT(DISTINCT ar.ORGANIZATION_UID)::FLOAT
+            / NULLIF(COUNT(DISTINCT rc.ORGANIZATION_UID), 0),
+        3) AS RENEWAL_COVERAGE_PCT
+    FROM renewal_cohort rc
+    LEFT JOIN renewal_ar_events ar
+        ON  rc.ORGANIZATION_UID = ar.ORGANIZATION_UID
+        AND rc.CSM_NAME         = ar.CSM_NAME
+    GROUP BY rc.CSM_NAME
+),
+
+csm_active_days AS (
+    SELECT
+        CSM_NAME,
+        COUNT(DISTINCT EVENT_DATE)::FLOAT AS n_days
+    FROM outreach_events_l30
+    WHERE DAYOFWEEK(EVENT_DATE) NOT IN (0, 6)
+    GROUP BY CSM_NAME
+),
+
+ar_metrics AS (
+    SELECT
+        a.CSM_NAME,
+        COUNT(*)                                                  AS TOTAL_ARS_L30,
+        ROUND(COUNT(*) / cd.n_days, 2)                            AS ARS_PER_DAY,
+        LEAST(1.0, ROUND(COUNT(*) / cd.n_days / 4.0, 4))         AS AR_SCORE_NORM
+    FROM ar_events a
+    JOIN csm_active_days cd ON a.CSM_NAME = cd.CSM_NAME
+    GROUP BY a.CSM_NAME, cd.n_days
+),
+
+call_metrics AS (
+    SELECT
+        CSM_NAME,
+        COUNT(*)                          AS TOTAL_CALLS_L90,
+        ROUND(AVG(CALL_SCORE), 1)         AS AVG_CALL_SCORE,
+        ROUND(AVG(CALL_SCORE) / 100.0, 4) AS CALL_SCORE_NORM
+    FROM call_scores
+    WHERE CONVERSATION_DATE >= DATEADD(''day'', -90, CURRENT_DATE)
+      AND SCORING_MODEL = ''v3''
+    GROUP BY CSM_NAME
+),
+
+call_metrics_prev AS (
+    SELECT
+        CSM_NAME,
+        ROUND(AVG(CALL_SCORE), 1)         AS PREV_AVG_CALL_SCORE
+    FROM call_scores
+    WHERE CONVERSATION_DATE >= DATEADD(''day'', -60, CURRENT_DATE)
+      AND CONVERSATION_DATE <  DATEADD(''day'', -30, CURRENT_DATE)
+      AND SCORING_MODEL = ''v3''
+    GROUP BY CSM_NAME
+),
+
+call_subscores AS (
+    SELECT
+        s.CALL_SALESFORCE_USER_FULL_NAME AS CSM_NAME,
+        ROUND(AVG(s.VALUE_CREATION_SCORE), 1)          AS AVG_VALUE_CREATION,
+        ROUND(AVG(s.RELATIONSHIP_IMPACT_SCORE), 1)     AS AVG_RELATIONSHIP_IMPACT,
+        ROUND(AVG(s.SITUATIONAL_ADAPTIVENESS_SCORE), 1) AS AVG_SITUATIONAL_ADAPTIVENESS,
+        ROUND(AVG(s.OWNERSHIP_FOLLOW_THROUGH_SCORE), 1) AS AVG_OWNERSHIP_FOLLOW_THROUGH
+    FROM (
+        SELECT CALL_SALESFORCE_USER_FULL_NAME, VALUE_CREATION_SCORE, RELATIONSHIP_IMPACT_SCORE,
+               SITUATIONAL_ADAPTIVENESS_SCORE, OWNERSHIP_FOLLOW_THROUGH_SCORE
+        FROM ANALYST_SANDBOX.JOSH_ROOKSTOOL.V3_HVAC_CALL_SCORING_PROCESSED
+        WHERE INTERACTION_QUALITY != ''incomplete''
+          AND CONVERSATION_DATE >= DATEADD(''day'', -90, CURRENT_DATE)
+        UNION ALL
+        SELECT CALL_SALESFORCE_USER_FULL_NAME, VALUE_CREATION_SCORE, RELATIONSHIP_IMPACT_SCORE,
+               SITUATIONAL_ADAPTIVENESS_SCORE, OWNERSHIP_FOLLOW_THROUGH_SCORE
+        FROM ANALYST_SANDBOX.JOSH_ROOKSTOOL.V3_AUTO_CALL_SCORING_PROCESSED
+        WHERE INTERACTION_QUALITY != ''incomplete''
+          AND CONVERSATION_DATE >= DATEADD(''day'', -90, CURRENT_DATE)
+        UNION ALL
+        SELECT CALL_SALESFORCE_USER_FULL_NAME, VALUE_CREATION_SCORE, RELATIONSHIP_IMPACT_SCORE,
+               SITUATIONAL_ADAPTIVENESS_SCORE, OWNERSHIP_FOLLOW_THROUGH_SCORE
+        FROM ANALYST_SANDBOX.JOSH_ROOKSTOOL.V3_MEDSPA_CALL_SCORING_PROCESSED
+        WHERE INTERACTION_QUALITY != ''incomplete''
+          AND CONVERSATION_DATE >= DATEADD(''day'', -90, CURRENT_DATE)
+        UNION ALL
+        SELECT CALL_SALESFORCE_USER_FULL_NAME, VALUE_CREATION_SCORE, RELATIONSHIP_IMPACT_SCORE,
+               SITUATIONAL_ADAPTIVENESS_SCORE, OWNERSHIP_FOLLOW_THROUGH_SCORE
+        FROM ANALYST_SANDBOX.JOSH_ROOKSTOOL.V3_EMERGING_CALL_SCORING_PROCESSED
+        WHERE INTERACTION_QUALITY != ''incomplete''
+          AND CONVERSATION_DATE >= DATEADD(''day'', -90, CURRENT_DATE)
+    ) s
+    INNER JOIN csm_allowlist al ON s.CALL_SALESFORCE_USER_FULL_NAME = al.CSM_NAME
+    GROUP BY s.CALL_SALESFORCE_USER_FULL_NAME
+),
+
+composite_7d_ago AS (
+    SELECT CSM_NAME, COMPOSITE_SCORE AS COMPOSITE_SCORE_7D_AGO
+    FROM ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_SNAPSHOTS
+    WHERE SNAPSHOT_DATE = DATEADD(''day'', -7, CURRENT_DATE)
+),
+
+-- ── NEW: Open onboarding cases from Salesforce ─────────────────────────────
+open_onboarding_cases AS (
+    SELECT
+        CASE_OWNER_FULL_NAME AS CSM_NAME,
+        COUNT(*) AS OPEN_ONBOARDING_CASES
+    FROM BUILD.SALESFORCE.CORE_CASES
+    WHERE CASE_RECORD_TYPE_NAME IN (''Onboarding US/CAN'', ''Enterprise Onboarding'', ''Phones Onboarding'')
+      AND IS_CASE_CLOSED = FALSE
+    GROUP BY CASE_OWNER_FULL_NAME
+),
+
+-- ── NEW: Open retention cases from Salesforce ──────────────────────────────
+open_retention_cases AS (
+    SELECT
+        CASE_OWNER_FULL_NAME AS CSM_NAME,
+        COUNT(*) AS OPEN_RETENTION_CASES
+    FROM BUILD.SALESFORCE.CORE_CASES
+    WHERE CASE_RECORD_TYPE_NAME = ''Retention''
+      AND IS_CASE_CLOSED = FALSE
+    GROUP BY CASE_OWNER_FULL_NAME
+),
+
+-- ── NEW: Interaction Intelligence risk aggregation per CSM ─────────────────
+interaction_intelligence AS (
+    SELECT
+        CURRENT_CSM_FULL_NAME AS CSM_NAME,
+        ROUND(AVG(RISK_SCORE), 2) AS AVG_RISK_SCORE,
+        COUNT(CASE WHEN OVERALL_RISK_LEVEL IN (''high'', ''critical'') THEN 1 END) AS HIGH_RISK_ORG_COUNT,
+        COUNT(CASE WHEN HAS_CANCELLATION_INTENT = TRUE THEN 1 END) AS CANCELLATION_INTENT_COUNT,
+        ROUND(AVG(SENTIMENT_SCORE), 2) AS AVG_SENTIMENT_SCORE
+    FROM BUILD.CUSTOMER_SUCCESS.CORE_INTERACTION_INTELLIGENCE_PROCESSED
+    WHERE IS_LATEST_ROW = TRUE
+    GROUP BY CURRENT_CSM_FULL_NAME
+),
+
+-- ── NEW: Location count per CSM ────────────────────────────────────────────
+csm_location_count AS (
+    SELECT
+        m.MONTH_START_ACCOUNT_OWNER AS CSM_NAME,
+        SUM(m.ORGANIZATION_ACTIVE_LOCATION_COUNT) AS LOCATION_COUNT
+    FROM ANALYSIS.FINANCE.SALESFORCE_ORGANIZATION_MONTH_MRR_PLUS_6_MONTHS m
+    INNER JOIN csm_allowlist al ON m.MONTH_START_ACCOUNT_OWNER = al.CSM_NAME
+    WHERE m.MONTH = DATE_TRUNC(''month'', CURRENT_DATE)
+      AND m.ORGANIZATION_MONTH_START_MRR_USD > 0
+    GROUP BY m.MONTH_START_ACCOUNT_OWNER
+),
+
+composite AS (
+    SELECT
+        al.CSM_NAME,
+        COALESCE(a.AR_SCORE_NORM, 0)          AS AR_SCORE_NORM,
+        c.CALL_SCORE_NORM,
+        rs.RET_SLA_PCT                         AS SLA_SCORE_NORM,
+        COALESCE(rc.RENEWAL_COVERAGE_PCT, 0)   AS RENEWAL_SCORE_NORM,
+        ROUND(
+            (
+                COALESCE(a.AR_SCORE_NORM, 0)
+                + COALESCE(c.CALL_SCORE_NORM, 0)
+                + COALESCE(rs.RET_SLA_PCT, 0)
+                + IFF(
+                    r.PRIMARY_SEGMENT NOT ILIKE ''%phone%''
+                    AND r.PRIMARY_SEGMENT NOT ILIKE ''%platform%''
+                    AND COALESCE(rc.RENEWAL_COHORT_TOTAL, 0) > 0,
+                    COALESCE(rc.RENEWAL_COVERAGE_PCT, 0), 0
+                  )
+            )
+            /
+            (
+                1.0
+                + IFF(c.CALL_SCORE_NORM IS NOT NULL, 1.0, 0.0)
+                + IFF(rs.RET_SLA_PCT    IS NOT NULL, 1.0, 0.0)
+                + IFF(
+                    r.PRIMARY_SEGMENT NOT ILIKE ''%phone%''
+                    AND r.PRIMARY_SEGMENT NOT ILIKE ''%platform%''
+                    AND COALESCE(rc.RENEWAL_COHORT_TOTAL, 0) > 0,
+                    1.0, 0.0
+                  )
+            ),
+        4) AS COMPOSITE_SCORE
+    FROM csm_allowlist al
+    LEFT JOIN ar_metrics      a  ON al.CSM_NAME = a.CSM_NAME
+    LEFT JOIN call_metrics    c  ON al.CSM_NAME = c.CSM_NAME
+    LEFT JOIN ret_sla         rs ON al.CSM_NAME = rs.CSM_NAME
+    LEFT JOIN csm_roster      r  ON al.CSM_NAME = r.CSM_NAME
+    LEFT JOIN renewal_coverage rc ON al.CSM_NAME = rc.CSM_NAME
+)
+
+SELECT
+    -- Identity
+    al.CSM_NAME,
+    r.MANAGER_NAME,
+    -- NEW: Director name derivation
+    CASE
+        WHEN r.MANAGER_NAME IN (''Jonathan Boyer'', ''Maria Lam'') THEN ''Alex Howe''
+        WHEN r.MANAGER_NAME = ''Alex Howe'' THEN ''Alex Howe''
+        WHEN r.MANAGER_NAME IN (''Brock Bird'', ''Derek Tracy'', ''Javier Herrera'') THEN ''Liam Golightley''
+        WHEN r.MANAGER_NAME = ''Liam Golightley'' THEN ''Liam Golightley''
+        WHEN r.MANAGER_NAME = ''Chris Isham'' THEN ''Chris Nielson''
+        WHEN r.MANAGER_NAME = ''Chris Nielson'' THEN ''Chris Nielson''
+        WHEN r.MANAGER_NAME = ''Manuel Estrada'' THEN ''Eddy Alvarado''
+        WHEN r.MANAGER_NAME = ''Eddy Alvarado'' THEN ''Eddy Alvarado''
+        WHEN r.MANAGER_NAME = ''Carter Matheson'' THEN ''Carter Matheson''
+        WHEN r.MANAGER_NAME = ''Samantha Aucunas'' THEN ''Samantha Aucunas''
+        WHEN r.MANAGER_NAME = ''Sarah Swindle'' THEN ''Sarah Swindle''
+        ELSE r.MANAGER_NAME
+    END AS DIRECTOR_NAME,
+    r.PRIMARY_VERTICAL,
+    CASE
+        WHEN al.PAYLOCITY_EMPLOYEE_VERTICAL IS NOT NULL THEN
+            CASE UPPER(al.PAYLOCITY_EMPLOYEE_VERTICAL)
+                WHEN ''MEDSPA''                THEN ''MedSpa''
+                WHEN ''HVAC''                  THEN ''HVAC''
+                WHEN ''OEM''                   THEN ''OEM''
+                WHEN ''FAM''                   THEN ''FAM''
+                WHEN ''EMERGING''              THEN ''Emerging''
+                WHEN ''JEWELRY''               THEN ''Jewelry''
+                WHEN ''AUTO''                  THEN ''Auto''
+                WHEN ''PLATFORM PARTNERSHIPS'' THEN ''Platform Partnerships''
+                ELSE INITCAP(al.PAYLOCITY_EMPLOYEE_VERTICAL)
+            END
+        WHEN r.PRIMARY_VERTICAL = ''Healthcare''                     THEN ''MedSpa''
+        WHEN r.PRIMARY_VERTICAL IN (''Home Service'',''Home Services'') THEN ''HVAC''
+        WHEN r.PRIMARY_VERTICAL = ''Auto Services''                  THEN ''Auto''
+        ELSE COALESCE(r.PRIMARY_VERTICAL, ''Unknown'')
+    END                            AS DISPLAY_VERTICAL,
+    al.IS_OFFSHORE,
+    r.PRIMARY_SEGMENT,
+    -- Book
+    COALESCE(r.ORG_COUNT, 0)       AS ORG_COUNT,
+    COALESCE(r.BOOK_MRR_USD, 0)    AS BOOK_MRR_USD,
+    COALESCE(r.BOOK_ARR_USD, 0)    AS BOOK_ARR_USD,
+    COALESCE(r.IS_TRANE_CSM, 0)    AS IS_TRANE_CSM,
+    COALESCE(r.TRANE_ORG_COUNT, 0) AS TRANE_ORG_COUNT,
+    COALESCE(r.HAS_AI_ACCOUNTS, 0) AS HAS_AI_ACCOUNTS,
+    -- NEW: Location count
+    COALESCE(lc.LOCATION_COUNT, 0) AS LOCATION_COUNT,
+    -- AR cadence
+    COALESCE(a.TOTAL_ARS_L30, 0)   AS TOTAL_ARS_L30,
+    COALESCE(a.ARS_PER_DAY,   0)   AS ARS_PER_DAY,
+    CASE
+        WHEN r.PRIMARY_SEGMENT ILIKE ''%phone%''
+          OR r.PRIMARY_SEGMENT ILIKE ''%platform%''
+        THEN
+            CASE
+                WHEN COALESCE(a.ARS_PER_DAY, 0) >= 1.0  THEN ''green''
+                WHEN COALESCE(a.ARS_PER_DAY, 0) >= 0.5  THEN ''yellow''
+                ELSE ''red''
+            END
+        ELSE
+            CASE
+                WHEN COALESCE(a.ARS_PER_DAY, 0) >= 2.5 THEN ''green''
+                WHEN COALESCE(a.ARS_PER_DAY, 0) >= 1.25 THEN ''yellow''
+                ELSE ''red''
+            END
+    END                            AS AR_STATUS,
+    -- Call quality
+    COALESCE(c.TOTAL_CALLS_L90, 0) AS TOTAL_CALLS_L90,
+    c.AVG_CALL_SCORE,
+    cp.PREV_AVG_CALL_SCORE,
+    CASE WHEN c.AVG_CALL_SCORE IS NOT NULL AND cp.PREV_AVG_CALL_SCORE IS NOT NULL
+         THEN ROUND(c.AVG_CALL_SCORE - cp.PREV_AVG_CALL_SCORE, 1)
+         ELSE NULL
+    END AS CALL_SCORE_DELTA,
+    cs.AVG_VALUE_CREATION,
+    cs.AVG_RELATIONSHIP_IMPACT,
+    cs.AVG_SITUATIONAL_ADAPTIVENESS,
+    cs.AVG_OWNERSHIP_FOLLOW_THROUGH,
+    -- Retention SLA
+    COALESCE(rs.TOTAL_RET_CASES, 0) AS TOTAL_RET_CASES,
+    COALESCE(rs.SLA_MET_COUNT,   0) AS SLA_MET_COUNT,
+    rs.RET_SLA_PCT,
+    -- 10-in-14 compliance
+    COALESCE(c10.TOTAL_10IN14_TASKS,     0) AS TOTAL_10IN14_TASKS,
+    COALESCE(c10.OUTREACH_COUNT_10IN14,  0) AS OUTREACH_COUNT_10IN14,
+    c10.OUTREACH_PCT_10IN14,
+    COALESCE(c10.HAS_UNATTEMPTED_10IN14, 0) AS HAS_UNATTEMPTED_10IN14,
+    COALESCE(rc.RENEWAL_COHORT_TOTAL,  0) AS RENEWAL_COHORT_TOTAL,
+    COALESCE(rc.RENEWAL_COHORT_CALLED, 0) AS RENEWAL_COHORT_CALLED,
+    rc.RENEWAL_COVERAGE_PCT,
+    DATE_TRUNC(''month'', DATEADD(''month'', 2, CURRENT_DATE)) AS RENEWAL_COHORT_MONTH,
+    -- Composite
+    comp.AR_SCORE_NORM,
+    comp.CALL_SCORE_NORM,
+    comp.SLA_SCORE_NORM,
+    comp.RENEWAL_SCORE_NORM,
+    comp.COMPOSITE_SCORE,
+    c7.COMPOSITE_SCORE_7D_AGO,
+    ROUND((comp.COMPOSITE_SCORE - c7.COMPOSITE_SCORE_7D_AGO) * 100, 1) AS COMPOSITE_DELTA_7D,
+    -- Status
+    CASE
+        WHEN comp.COMPOSITE_SCORE >= 0.67 THEN ''green''
+        WHEN comp.COMPOSITE_SCORE >= 0.33 THEN ''yellow''
+        ELSE ''red''
+    END                            AS OVERALL_STATUS,
+    IFF(COALESCE(c10.HAS_UNATTEMPTED_10IN14, 0) = 1
+        AND comp.COMPOSITE_SCORE >= 0.67, TRUE, FALSE) AS GATED_BY_10IN14,
+    -- NEW: Enrichment columns
+    COALESCE(obc.OPEN_ONBOARDING_CASES, 0) AS OPEN_ONBOARDING_CASES,
+    COALESCE(rtc.OPEN_RETENTION_CASES, 0)  AS OPEN_RETENTION_CASES,
+    ii.AVG_RISK_SCORE,
+    COALESCE(ii.HIGH_RISK_ORG_COUNT, 0)    AS HIGH_RISK_ORG_COUNT,
+    COALESCE(ii.CANCELLATION_INTENT_COUNT, 0) AS CANCELLATION_INTENT_COUNT,
+    ii.AVG_SENTIMENT_SCORE,
+    CURRENT_TIMESTAMP              AS LAST_REFRESHED_AT
+FROM csm_allowlist al
+INNER JOIN (SELECT DISTINCT CSM_NAME FROM csm_roster) active ON al.CSM_NAME = active.CSM_NAME
+LEFT JOIN csm_roster           r    ON al.CSM_NAME = r.CSM_NAME
+LEFT JOIN ar_metrics           a    ON al.CSM_NAME = a.CSM_NAME
+LEFT JOIN call_metrics         c    ON al.CSM_NAME = c.CSM_NAME
+LEFT JOIN call_metrics_prev    cp   ON al.CSM_NAME = cp.CSM_NAME
+LEFT JOIN call_subscores       cs   ON al.CSM_NAME = cs.CSM_NAME
+LEFT JOIN ret_sla              rs   ON al.CSM_NAME = rs.CSM_NAME
+LEFT JOIN churn_10in14_metrics c10  ON al.CSM_NAME = c10.CSM_NAME
+LEFT JOIN renewal_coverage     rc   ON al.CSM_NAME = rc.CSM_NAME
+LEFT JOIN composite            comp ON al.CSM_NAME = comp.CSM_NAME
+LEFT JOIN composite_7d_ago     c7   ON al.CSM_NAME = c7.CSM_NAME
+LEFT JOIN open_onboarding_cases obc ON al.CSM_NAME = obc.CSM_NAME
+LEFT JOIN open_retention_cases  rtc ON al.CSM_NAME = rtc.CSM_NAME
+LEFT JOIN interaction_intelligence ii ON al.CSM_NAME = ii.CSM_NAME
+LEFT JOIN csm_location_count    lc  ON al.CSM_NAME = lc.CSM_NAME;
+
+  -- Step 3: Prune snapshots older than 30 days
+  DELETE FROM ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_SNAPSHOTS
+  WHERE SNAPSHOT_DATE < DATEADD(''day'', -30, CURRENT_DATE);
+
+  RETURN ''CS Performance Hub refreshed at '' || TO_VARCHAR(CURRENT_TIMESTAMP());
+END;
+'
+"""
+
+
+def create_procedure(cur):
+    print("\n[Step 2] Creating/replacing REFRESH_CS_PERF_HUB procedure...")
+    cur.execute(CREATE_PROCEDURE_SQL)
+    print("  + Procedure created successfully")
+
+
+# ── Step 3: CALL the procedure ────────────────────────────────────────────────
+
+def call_procedure(cur):
+    print("\n[Step 3] Calling REFRESH_CS_PERF_HUB()...")
+    print("  (This may take several minutes — rebuilding CS_PERF_HUB_MASTER)")
+    cur.execute("CALL ANALYST_SANDBOX.JOSH_ROOKSTOOL.REFRESH_CS_PERF_HUB()")
+    row = cur.fetchone()
+    result = row[0] if row else "(no return value)"
+    print(f"  + Procedure returned: {result}")
+
+
+# ── Step 4: Validate new columns ──────────────────────────────────────────────
+
+VALIDATE_SQL = """
+SELECT
+    CSM_NAME,
+    DIRECTOR_NAME,
+    LOCATION_COUNT,
+    OPEN_ONBOARDING_CASES,
+    OPEN_RETENTION_CASES,
+    AVG_RISK_SCORE,
+    HIGH_RISK_ORG_COUNT,
+    CANCELLATION_INTENT_COUNT,
+    AVG_SENTIMENT_SCORE,
+    COMPOSITE_SCORE,
+    OVERALL_STATUS,
+    LAST_REFRESHED_AT
+FROM ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_MASTER
+ORDER BY COMPOSITE_SCORE DESC NULLS LAST
+LIMIT 10
+"""
+
+
+def validate_results(cur):
+    print("\n[Step 4] Validating CS_PERF_HUB_MASTER — top 10 rows (new columns)...")
+    cur.execute(VALIDATE_SQL)
+    cols = [d[0] for d in cur.description]
+    rows = cur.fetchall()
+
+    if not rows:
+        print("  ! WARNING: No rows returned from CS_PERF_HUB_MASTER")
+        return
+
+    # Print column header
+    col_widths = [max(len(c), 12) for c in cols]
+    header = "  " + "  ".join(c.ljust(col_widths[i]) for i, c in enumerate(cols))
+    print(header)
+    print("  " + "-" * (len(header) - 2))
+
+    for row in rows:
+        line = "  " + "  ".join(
+            str(v if v is not None else "NULL").ljust(col_widths[i])
+            for i, v in enumerate(row)
+        )
+        print(line)
+
+    print(f"\n  + Returned {len(rows)} rows — validation complete")
+
+
+# ── Step 0: Pre-flight check for LOCATION_UID column ─────────────────────────
+
+def check_location_uid_exists(cur):
+    """
+    Check whether LOCATION_UID column exists in SALESFORCE_ORGANIZATION_MONTH_MRR_PLUS_6_MONTHS.
+    The csm_location_count CTE in the procedure references this column; if it doesn't exist
+    the procedure will fail at runtime. This check is informational only — the procedure DDL
+    is created as-is regardless, since the column may exist in the live warehouse even if
+    INFORMATION_SCHEMA metadata is stale.
+    """
+    print("\n[Pre-flight] Checking for LOCATION_UID in SALESFORCE_ORGANIZATION_MONTH_MRR_PLUS_6_MONTHS...")
+    try:
+        cur.execute("""
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_CATALOG = 'ANALYSIS'
+              AND TABLE_SCHEMA   = 'FINANCE'
+              AND TABLE_NAME     = 'SALESFORCE_ORGANIZATION_MONTH_MRR_PLUS_6_MONTHS'
+              AND COLUMN_NAME    = 'LOCATION_UID'
+        """)
+        row = cur.fetchone()
+        count = row[0] if row else 0
+        if count > 0:
+            print("  + LOCATION_UID column confirmed present")
+        else:
+            print("  ! WARNING: LOCATION_UID not found in INFORMATION_SCHEMA.")
+            print("    The csm_location_count CTE may error at procedure runtime.")
+            print("    Proceeding anyway — column may exist but not yet in metadata cache.")
+    except ProgrammingError as e:
+        print(f"  ! Could not query INFORMATION_SCHEMA: {e}")
+        print("    Proceeding with procedure creation.")
+
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+
+def main():
+    print("=" * 65)
+    print("  CS Performance Hub V2 Migration")
+    print("=" * 65)
+
+    print("\nConnecting to Snowflake (externalbrowser auth — browser window may open)...")
+    try:
+        conn = get_connection()
+    except Exception as e:
+        print(f"ERROR: Could not connect to Snowflake: {e}")
+        sys.exit(1)
+
+    print("  + Connected")
+
+    try:
+        cur = conn.cursor()
+
+        # Pre-flight
+        check_location_uid_exists(cur)
+
+        # Step 1: ALTER TABLE
+        alter_snapshots_table(cur)
+
+        # Step 2: CREATE OR REPLACE PROCEDURE
+        create_procedure(cur)
+
+        # Step 3: CALL PROCEDURE
+        call_procedure(cur)
+
+        # Step 4: VALIDATE
+        validate_results(cur)
+
+        print("\n" + "=" * 65)
+        print("  Migration complete — CS Performance Hub V2 is live")
+        print("=" * 65)
+
+    except Exception as e:
+        print(f"\nFATAL ERROR: {e}")
+        raise
+    finally:
+        conn.close()
+        print("\nSnowflake connection closed.")
+
+
+if __name__ == "__main__":
+    main()

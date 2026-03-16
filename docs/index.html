@@ -3,565 +3,803 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CS Performance Hub — March 2026</title>
+<title>CS Performance Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  /* ── Design tokens ──────────────────────────────────────────────── */
-  :root {
-    /* Surfaces */
-    --bg:        #F7F7F6;
-    --surface:   #FFFFFF;
-    --surface2:  #F3F3F1;
-    --surface3:  #ECEAE6;
-    --border:    #E4E2DC;
-    --border2:   #CFCDC6;
+/* ── Design tokens ──────────────────────────────────────────────────── */
+:root {
+  --bg: #FAFAF9;
+  --surface: #FFFFFF;
+  --surface2: #F5F5F3;
+  --surface3: #EEEDE9;
+  --border: #E8E7E3;
+  --border2: #DDDCD6;
+  --text: #1A1A19;
+  --text2: #4A4A46;
+  --muted: #8A8A82;
+  --muted2: #B0AFA8;
+  --accent: #1A1A19;
+  --accent-subtle: #6B6B65;
+  --green: #16A34A;
+  --green-bg: #F0FDF4;
+  --green-t: #166534;
+  --amber: #E8860A;
+  --amber-bg: #FFF4E5;
+  --amber-t: #92400E;
+  --red: #DC2626;
+  --red-bg: #FEF2F2;
+  --red-t: #991B1B;
+  --v-oem: #2563EB;
+  --v-hvac: #0284C7;
+  --v-medspa: #7C3AED;
+  --v-emerging: #EA580C;
+  --v-auto: #059669;
+  --v-fam: #D97706;
+  --v-jewelry: #DB2777;
+  --v-retail: #475569;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.06);
+}
+[data-theme="dark"] {
+  --bg: #0A0A09;
+  --surface: #141413;
+  --surface2: #1C1C1A;
+  --surface3: #242422;
+  --border: #2A2A27;
+  --border2: #383835;
+  --text: #F0EFEC;
+  --text2: #C0BFB8;
+  --muted: #7A7A72;
+  --muted2: #5A5A54;
+  --accent: #F0EFEC;
+  --accent-subtle: #9A9A92;
+  --green: #22C55E;
+  --green-bg: rgba(34,197,94,0.12);
+  --green-t: #4ADE80;
+  --amber: #F59E0B;
+  --amber-bg: rgba(245,158,11,0.12);
+  --amber-t: #FCD34D;
+  --red: #EF4444;
+  --red-bg: rgba(239,68,68,0.12);
+  --red-t: #FCA5A5;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.2);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.3);
+}
 
-    /* Text */
-    --text:      #0D0D0C;
-    --text2:     #3D3C38;
-    --muted:     #7A7870;
-    --muted2:    #A8A69E;
+/* ── Reset & base ────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.2s, color 0.2s;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+a { color: inherit; text-decoration: none; }
 
-    /* Accent — teal-green (Robinhood-inspired) */
-    --accent:    #00C274;
-    --accent-bg: #E6FBF2;
+/* ── Topbar ──────────────────────────────────────────────────── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 48px;
+  padding: 0 24px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.topbar-left { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.topbar-logo { flex-shrink: 0; }
+.topbar-title { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); white-space: nowrap; }
+.topbar-nav { display: flex; gap: 2px; }
+.topbar-link {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.12s;
+  user-select: none;
+}
+.topbar-link:hover { color: var(--text); background: var(--surface2); }
+.topbar-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.topbar-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.12s;
+}
+.topbar-btn:hover { border-color: var(--text2); color: var(--text); background: var(--surface3); }
+.topbar-updated { font-size: 10px; color: var(--muted); margin-right: 8px; white-space: nowrap; }
 
-    /* Performance states */
-    --green:     #00A86B;
-    --green-bg:  #EDFBF4;
-    --green-t:   #006644;
-    --amber:     #E8860A;
-    --amber-bg:  #FFF4E5;
-    --amber-t:   #7A4400;
-    --red:       #E03131;
-    --red-bg:    #FFF0F0;
-    --red-t:     #8B1010;
+/* ── Context bar ─────────────────────────────────────────────── */
+.context-bar {
+  display: none;
+}
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.12s;
+}
+.back-btn:hover { background: var(--surface3); border-color: var(--border2); }
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+}
+.filter-chip button {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0 0 0 2px;
+  line-height: 1;
+}
 
-    /* Vertical brand */
-    --medspa:  #7C3AED;
-    --hvac:    #0284C7;
-    --auto:    #059669;
-    --emerging:#EA580C;
-    --oem:     #2563EB;
-    --fam:     #D97706;
-    --jewelry: #DB2777;
-    --retail:  #475569;
-    --trane:   #92400E;
+/* ── Filter drawer ───────────────────────────────────────────── */
+.filter-drawer {
+  position: fixed;
+  top: 48px;
+  right: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  padding: 20px;
+  display: none;
+  z-index: 200;
+  min-width: 260px;
+  flex-direction: column;
+  gap: 14px;
+}
+.filter-drawer.open { display: flex; }
+.filter-drawer-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); }
+.filter-row { display: flex; flex-direction: column; gap: 4px; }
+.filter-row label { font-size: 11px; font-weight: 600; color: var(--muted); }
+.filter-row select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  outline: none;
+}
 
-    /* Color-scale cells */
-    --cs-elite:  #EDFBF4; --cs-elite-t:  #006644;
-    --cs-strong: #FFF4E5; --cs-strong-t: #7A4400;
-    --cs-warn:   #FFF0E5; --cs-warn-t:   #7A3300;
-    --cs-fail:   #FFF0F0; --cs-fail-t:   #8B1010;
+/* ── UFR month bar ──────────────────────────────────────────────────── */
+.ufr-bar {
+  position: sticky;
+  top: 48px;
+  z-index: 98;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  margin: 0;
+  padding: 6px 24px;
+  display: flex; gap: 10px; align-items: center;
+  justify-content: flex-end;
+}
+.ufr-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+.ufr-pill {
+  padding: 4px 13px; border-radius: 20px;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text2);
+  font-size: 12px; font-weight: 500;
+  transition: all 0.15s;
+}
+.ufr-pill:hover { border-color: var(--text); color: var(--text); }
+.ufr-pill.active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
 
-    /* Shadows */
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.03);
-    --shadow-md: 0 4px 14px rgba(0,0,0,0.09), 0 2px 4px rgba(0,0,0,0.04);
-  }
 
-  /* ── Dark mode ──────────────────────────────────────────────────── */
-  [data-theme="dark"] {
-    --bg:        #0C0C0B;
-    --surface:   #161615;
-    --surface2:  #1E1E1C;
-    --surface3:  #252523;
-    --border:    #2A2A27;
-    --border2:   #3A3A36;
-    --text:      #F2F1EE;
-    --text2:     #C4C2BB;
-    --muted:     #7A7870;
-    --muted2:    #555450;
-    --accent:    #00D880;
-    --accent-bg: rgba(0,200,116,0.12);
-    --green:     #00C274;
-    --green-bg:  rgba(0,168,107,0.16);
-    --green-t:   #00E08A;
-    --amber:     #F59E0B;
-    --amber-bg:  rgba(232,134,10,0.16);
-    --amber-t:   #FBB63C;
-    --red:       #F04747;
-    --red-bg:    rgba(224,49,49,0.16);
-    --red-t:     #FF7070;
-    --cs-elite:  rgba(0,168,107,0.18);  --cs-elite-t:  #00C274;
-    --cs-strong: rgba(232,134,10,0.18); --cs-strong-t: #F59E0B;
-    --cs-warn:   rgba(234,88,12,0.18);  --cs-warn-t:   #FB923C;
-    --cs-fail:   rgba(224,49,49,0.18);  --cs-fail-t:   #F04747;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-    --shadow-md: 0 4px 14px rgba(0,0,0,0.5);
-  }
-  /* ── Global reset & base ────────────────────────────────────────── */
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 13px;
-    min-height: 100vh;
-    transition: background 0.2s, color 0.2s;
-    -webkit-font-smoothing: antialiased;
-  }
+/* ── Main content ───────────────────────────────────────────────────── */
+.main { padding: 28px 24px; max-width: 1400px; margin: 0 auto; }
 
-  /* ── Header ─────────────────────────────────────────────────────── */
-  .header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0 24px;
-    height: 52px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .header-left { display: flex; align-items: center; gap: 14px; }
-  .podium-mark { display: flex; align-items: center; gap: 8px; }
-  .podium-mark svg { flex-shrink: 0; }
-  .podium-wordmark { font-size: 15px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
-  .header-divider { width: 1px; height: 24px; background: var(--border); }
-  .header-title { font-size: 14px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); }
-  .header-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
-  .header-badge { background: var(--accent-bg); color: var(--accent); border: 1px solid rgba(0,194,116,0.3); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; letter-spacing: 0.8px; }
-  .theme-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 5px 11px; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px; transition: border-color 0.15s, color 0.15s; white-space: nowrap; }
-  .theme-btn:hover { border-color: var(--border2); color: var(--text); }
+/* ── Section ────────────────────────────────────────────────────────── */
+.section { margin-bottom: 32px; }
+.section-title { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+.section-sub { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
 
-  /* ── Filter bar ─────────────────────────────────────────────────── */
-  .filters { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 24px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .filter-group { display: flex; align-items: center; gap: 6px; }
-  .filter-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
-  select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 6px; font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; outline: none; transition: border-color 0.15s, background 0.2s; }
-  select:focus { border-color: var(--accent); }
-  .filter-sep { width: 1px; height: 20px; background: var(--border); }
-  .last-updated { font-size: 11px; color: var(--muted); margin-left: auto; }
+/* ── Cards ──────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  padding: 24px;
+}
+.card-sm { padding: 16px 20px; }
 
-  /* ── Tabs ────────────────────────────────────────────────────────── */
-  .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); padding: 0 24px; gap: 2px; }
-  .tab { padding: 12px 16px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; white-space: nowrap; letter-spacing: -0.1px; }
-  .tab:hover { color: var(--text); }
-  .tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
-  .tab-badge { background: var(--red-bg); color: var(--red); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px; }
+/* ── Pills ──────────────────────────────────────────────────────────── */
+.pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+.pill-green { background: var(--green-bg); color: var(--green-t); }
+.pill-amber { background: var(--amber-bg); color: var(--amber-t); }
+.pill-red   { background: var(--red-bg);   color: var(--red-t); }
+.pill-muted { background: var(--surface2); color: var(--muted); }
+.pill-outline { background: transparent; border: 1px solid var(--border2); color: var(--text2); }
 
-  /* ── Tab content ─────────────────────────────────────────────────── */
-  .tab-content { display: none; padding: 20px 24px; }
-  .tab-content.active { display: block; }
+/* ── Hero Health Bar ─────────────────────────────────────────────────── */
+.hero-card {
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 28px;
+  display: grid;
+  grid-template-columns: 180px 1fr 200px;
+  gap: 28px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.hero-score { font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -2px; }
+.hero-label { font-size: 13px; color: var(--muted); font-weight: 500; margin-top: 4px; }
+.hero-delta { font-size: 13px; font-weight: 600; margin-top: 6px; }
+.health-bar-track {
+  height: 12px; border-radius: 6px; overflow: hidden;
+  display: flex; background: var(--surface3);
+  margin-bottom: 10px;
+}
+.health-bar-seg { height: 100%; transition: width 0.4s; }
+.health-bar-legend { display: flex; gap: 16px; }
+.health-legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text2); }
+.health-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.hero-meta { font-size: 14px; color: var(--text2); font-weight: 500; text-align: right; }
+.hero-count { font-size: 28px; font-weight: 700; letter-spacing: -1px; color: var(--text); }
+.hero-count-label { font-size: 12px; color: var(--muted); }
 
-  /* ── Vertical KPI cards ──────────────────────────────────────────── */
-  .vertical-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
-  .vcard { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; cursor: pointer; box-shadow: var(--shadow-sm); transition: box-shadow 0.2s, border-color 0.2s, transform 0.1s; min-height: 220px; }
-  .vcard:hover { box-shadow: var(--shadow-md); border-color: var(--border2); transform: translateY(-1px); }
-  .vcard-rank-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted2); margin-bottom: 6px; }
-  .vcard-name { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; line-height: 1.1; }
-  .vcard-score { font-size: 38px; font-weight: 800; line-height: 1; letter-spacing: -2px; }
-  .vcard-divider { height: 1px; background: var(--border); margin: 14px 0; }
 
-  /* ── Section headers ────────────────────────────────────────────── */
-  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .section-title { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
-  .section-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+/* ── Vertical heatmap ────────────────────────────────────────────────── */
+.vert-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.vert-card {
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  box-shadow: var(--shadow-sm);
+  padding: 18px 18px 16px;
+  cursor: pointer;
+  transition: box-shadow 0.18s, transform 0.1s;
+}
+.vert-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.vert-name { font-size: 18px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 2px; }
+.vert-csm-count { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.vert-score { font-size: 36px; font-weight: 800; letter-spacing: -1.5px; line-height: 1; margin-bottom: 2px; }
+.vert-score-label { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+.dot-strip { display: flex; flex-wrap: wrap; gap: 4px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-  /* ── Tables ─────────────────────────────────────────────────────── */
-  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
-  .table-scroll { max-height: 540px; overflow-y: auto; border-radius: 10px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
-  .table-scroll::-webkit-scrollbar { width: 5px; }
-  .table-scroll::-webkit-scrollbar-track { background: var(--surface2); }
-  .table-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-  table { width: 100%; border-collapse: collapse; background: var(--surface); }
-  thead { position: sticky; top: 0; z-index: 1; }
-  thead th { background: var(--surface2); padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; cursor: pointer; user-select: none; border-bottom: 1px solid var(--border); transition: color 0.15s; }
-  thead th:hover { color: var(--text); }
-  thead th.sorted { color: var(--accent); }
-  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
-  tbody tr:last-child { border-bottom: none; }
-  tbody tr:hover { background: var(--surface2); }
-  tbody tr.fail-row { border-left: 3px solid var(--red); }
-  td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; font-size: 13px; color: var(--text); }
-  .rank-cell { font-size: 12px; font-weight: 700; text-align: center; width: 36px; color: var(--muted); }
-  .rank-gold-text   { color: #D97706; font-weight: 800; }
-  .rank-silver-text { color: #64748B; font-weight: 700; }
-  .rank-bronze-text { color: #92400E; font-weight: 700; }
+/* ── Overview sections ──────────────────────────────────────────────── */
+.overview-section { margin-bottom: 32px; }
 
-  /* ── Color-scale cells ──────────────────────────────────────────── */
-  .cs-elite  { background: var(--cs-elite);  color: var(--cs-elite-t);  font-weight: 700; }
-  .cs-strong { background: var(--cs-strong); color: var(--cs-strong-t); font-weight: 700; }
-  .cs-warn   { background: var(--cs-warn);   color: var(--cs-warn-t);   font-weight: 700; }
-  .cs-fail   { background: var(--cs-fail);   color: var(--cs-fail-t);   font-weight: 700; }
+/* ── Manager Leaderboard ────────────────────────────────────────────── */
+.mgr-list { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden; }
+.mgr-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto auto auto 140px;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.mgr-row:last-child { border-bottom: none; }
+.mgr-row:hover { background: var(--surface2); }
+.mgr-rank { font-size: 13px; font-weight: 700; color: var(--muted); text-align: center; }
+.mgr-name { font-size: 14px; font-weight: 600; }
+.mgr-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.mgr-composite { font-size: 15px; font-weight: 700; }
+.mgr-csm-count { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.mgr-arr { font-size: 12px; color: var(--muted); white-space: nowrap; text-align: right; }
+.mgr-table { width: 100%; border-collapse: collapse; background: var(--surface); font-size: 13px; }
 
-  /* ── Data bars ───────────────────────────────────────────────────── */
-  .data-bar-cell { display: flex; flex-direction: column; gap: 3px; }
-  .data-bar-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; width: 80px; }
-  .data-bar-fill { height: 100%; border-radius: 2px; }
-  .mini-bar-wrap { width: 80px; height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
-  .mini-bar { height: 100%; border-radius: 2px; }
+/* ── View toggle ─────────────────────────────────────────────────────── */
+.view-toggle {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 3px;
+}
+.toggle-btn {
+  padding: 5px 12px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  transition: all 0.15s;
+}
+.toggle-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 
-  /* ── Pills / chips ───────────────────────────────────────────────── */
-  .pass-pill { display:inline-block; background:var(--green-bg); color:var(--green-t); font-weight:700; font-size:10px; padding:2px 8px; border-radius:20px; border:1px solid rgba(0,168,107,0.2); white-space:nowrap; letter-spacing:0.3px; }
-  .fail-pill { display:inline-block; background:var(--red-bg); color:var(--red-t); font-weight:700; font-size:10px; padding:2px 8px; border-radius:20px; border:1px solid rgba(224,49,49,0.2); white-space:nowrap; letter-spacing:0.3px; }
-  .warn-pill { display:inline-block; background:var(--amber-bg); color:var(--amber-t); font-weight:700; font-size:10px; padding:2px 8px; border-radius:20px; border:1px solid rgba(232,134,10,0.2); white-space:nowrap; letter-spacing:0.3px; }
+/* ── Team header ─────────────────────────────────────────────────────── */
+.team-header {
+  background: var(--surface);
+  border-radius: 12px; border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 24px; margin-bottom: 20px;
+}
+.team-header-name { font-size: 24px; font-weight: 800; letter-spacing: -0.8px; margin-bottom: 10px; }
+.team-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.team-stat-pill {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px; font-weight: 600; color: var(--text2);
+}
 
-  /* ── Status text ─────────────────────────────────────────────────── */
-  .status-pass { color: var(--green); font-weight: 700; font-size: 13px; }
-  .status-warn { color: var(--amber); font-weight: 700; font-size: 13px; }
-  .status-fail { color: var(--red);   font-weight: 700; font-size: 13px; }
+/* ── CSM Card grid ───────────────────────────────────────────────────── */
+.csm-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.csm-card {
+  background: var(--surface);
+  border-radius: 12px; border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 18px;
+  cursor: pointer;
+  transition: box-shadow 0.18s, transform 0.1s;
+  position: relative;
+  overflow: hidden;
+}
+.csm-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.csm-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+.csm-card-name { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; }
+.csm-card-score { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 6px; }
+.csm-card-meta { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.csm-card-stats { font-size: 12px; color: var(--text2); margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.csm-stat-sep { color: var(--muted2); }
 
-  /* ── Vertical text colors ────────────────────────────────────────── */
-  .vert-text-medspa   { color: var(--medspa); font-weight: 600; }
-  .vert-text-hvac     { color: var(--hvac);   font-weight: 600; }
-  .vert-text-auto     { color: var(--auto);   font-weight: 600; }
-  .vert-text-emerging { color: var(--emerging); font-weight: 600; }
-  .vert-text-oem      { color: var(--oem);    font-weight: 600; }
-  .vert-text-fam      { color: var(--fam);    font-weight: 600; }
-  .vert-text-jewelry  { color: var(--jewelry); font-weight: 600; }
-  .vert-text-retail   { color: var(--retail); font-weight: 600; }
-  .seg-text-ai    { color: var(--medspa); font-weight: 600; font-size: 11px; }
-  .seg-text-pp    { color: var(--hvac);   font-weight: 600; font-size: 11px; }
-  .seg-text-trane { color: var(--trane);  font-weight: 600; font-size: 11px; }
-  .vert-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+/* Mini pillar bars */
+.pillar-rows { margin-bottom: 12px; }
+.pillar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.pillar-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; width: 30px; flex-shrink: 0; }
+.pillar-track { flex: 1; height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.pillar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+.pillar-val { font-size: 11px; font-weight: 600; color: var(--text2); width: 32px; text-align: right; flex-shrink: 0; }
 
-  /* ── Delta indicators ────────────────────────────────────────────── */
-  .delta-pos { color: var(--green); font-size: 11px; font-weight: 600; }
-  .delta-neg { color: var(--red);   font-size: 11px; font-weight: 600; }
-  .delta-neu { color: var(--muted); font-size: 11px; }
+/* Card footer */
+.csm-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+.csm-card-delta { font-size: 11px; font-weight: 600; }
+.csm-card-sparkline { display: flex; align-items: center; }
+.csm-card-cases { font-size: 11px; color: var(--muted); margin-top: 6px; }
 
-  /* ── Tooltip system ─────────────────────────────────────────────── */
-  .th-wrap { display:inline-flex; align-items:center; gap:4px; }
-  .tip-icon { font-size:10px; color:var(--muted2); cursor:help; position:relative; }
-  .tip-icon[data-tip]:hover::after {
-    content: attr(data-tip);
-    position: absolute; top: calc(100% + 6px); left: 50%;
-    transform: translateX(-50%);
-    background: var(--text); color: var(--surface);
-    font-size: 11px; font-weight: 400; padding: 6px 10px;
-    border-radius: 7px; white-space: normal; width: 200px;
-    text-align: center; z-index: 9999; line-height: 1.4;
-    pointer-events: none; box-shadow: var(--shadow-md);
-  }
-  .sort-arrow { font-size: 9px; color: var(--muted2); }
-  th.sorted .sort-arrow { color: var(--accent); }
+/* ── Table ───────────────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+.table-scroll { max-height: 560px; overflow-y: auto; border-radius: 10px; border: 1px solid var(--border); }
+.table-scroll::-webkit-scrollbar { width: 5px; }
+.table-scroll::-webkit-scrollbar-track { background: var(--surface2); }
+.table-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+table { width: 100%; border-collapse: collapse; background: var(--surface); font-size: 13px; }
+thead { position: sticky; top: 0; z-index: 1; }
+thead th {
+  background: var(--surface2); padding: 9px 14px;
+  text-align: left; font-size: 10px; font-weight: 600;
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+  cursor: pointer; user-select: none;
+}
+thead th:hover { color: var(--text); }
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); cursor: pointer; }
+tbody tr.status-red-row { border-left: 2px solid var(--red); }
+td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; color: var(--text); font-size: 13px; font-weight: 500; }
 
-  /* ── KPI cards ───────────────────────────────────────────────────── */
-  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
-  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; box-shadow: var(--shadow-sm); transition: box-shadow 0.15s, border-color 0.15s; }
-  .kpi-card:hover { box-shadow: var(--shadow-md); border-color: var(--border2); }
-  .kpi-label { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 8px; letter-spacing: -0.1px; }
-  .kpi-value { font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 5px; letter-spacing: -1px; color: var(--text); }
-  .kpi-sub { font-size: 11px; color: var(--muted); line-height: 1.4; }
-  .kpi-delta-pos { font-size: 11px; font-weight: 600; color: var(--green); }
-  .kpi-delta-neg { font-size: 11px; font-weight: 600; color: var(--red); }
+/* Table score cells */
+.sc-green { background: var(--green-bg); color: var(--green-t); font-weight: 700; text-align: center; }
+.sc-amber { background: var(--amber-bg); color: var(--amber-t); font-weight: 700; text-align: center; }
+.sc-red   { background: var(--red-bg);   color: var(--red-t);   font-weight: 700; text-align: center; }
+.sc-muted { color: var(--muted); text-align: center; }
 
-  /* ── Chart containers ────────────────────────────────────────────── */
-  .chart-container { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
-  .chart-title { font-size: 10px; font-weight: 700; margin-bottom: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.7px; }
+/* ── CSM clickable name ──────────────────────────────────────────────── */
+.csm-name-link {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.csm-name-link:hover {
+  color: #2563EB;
+  text-decoration: underline;
+}
 
-  /* ── Alert banners ───────────────────────────────────────────────── */
-  .alert-banner { background: var(--red-bg); border: 1px solid rgba(224,49,49,0.2); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; }
-  .alert-banner.info { background: var(--accent-bg); border-color: rgba(0,194,116,0.2); }
-  .alert-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
-  .alert-text strong { display: block; font-size: 12px; font-weight: 700; color: var(--red); margin-bottom: 2px; }
-  .alert-text span { font-size: 11px; color: var(--muted); line-height: 1.5; }
-  .alert-banner.info .alert-text strong { color: var(--accent); }
+/* ── Delta ───────────────────────────────────────────────────────────── */
+.delta-pos { color: var(--green); font-size: 11px; font-weight: 600; }
+.delta-neg { color: var(--red);   font-size: 11px; font-weight: 600; }
+.delta-neu { color: var(--muted); font-size: 11px; }
 
-  /* ── Layout helpers ──────────────────────────────────────────────── */
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
-  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
-  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
-  .info-note { font-size: 11px; color: var(--muted); background: var(--amber-bg); border: 1px solid rgba(232,134,10,0.2); border-radius: 6px; padding: 8px 12px; margin-bottom: 14px; line-height: 1.5; }
-  .info-note strong { color: var(--amber); }
+/* ── Mini data bar ───────────────────────────────────────────────────── */
+.data-bar-wrap { display: flex; flex-direction: column; gap: 3px; }
+.data-bar-track { height: 3px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.data-bar-fill  { height: 100%; border-radius: 2px; }
 
-  /* ── Definitions tab ─────────────────────────────────────────────── */
-  .def-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
-  .def-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -0.2px; }
-  .def-formula { font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; font-size: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; color: var(--accent); margin-bottom: 12px; white-space: pre-wrap; }
-  .def-body { font-size: 12.5px; color: var(--text2); line-height: 1.65; margin-bottom: 8px; }
-  .def-body code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: var(--text); }
-  .def-green  { color: var(--green); font-weight: 600; }
-  .def-yellow { color: var(--amber); font-weight: 600; }
-  .def-red    { color: var(--red);   font-weight: 600; }
-  .def-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
-  .def-table th { background: var(--surface2); text-align: left; padding: 7px 12px; font-weight: 600; color: var(--muted); border: 1px solid var(--border); text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
-  .def-table td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text2); vertical-align: top; }
-  .def-table td code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; }
+/* ── Slide-over panel ────────────────────────────────────────────────── */
+.panel-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.25);
+  z-index: 200;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+}
+.panel-backdrop.open { opacity: 1; pointer-events: auto; }
+.panel {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 440px; max-width: 100vw;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-xl);
+  z-index: 201;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  padding: 24px;
+}
+.panel.open { transform: translateX(0); }
+.panel::-webkit-scrollbar { width: 5px; }
+.panel::-webkit-scrollbar-track { background: var(--surface2); }
+.panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+.panel-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 30px; height: 30px; border-radius: 6px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.1s, color 0.1s;
+}
+.panel-close:hover { background: var(--surface3); color: var(--text); }
+.panel-section { margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+.panel-section:last-child { border-bottom: none; }
+.panel-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 12px; }
+.panel-name { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+.panel-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.panel-meta-row { font-size: 13px; color: var(--text2); margin-top: 4px; }
+.panel-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.panel-stat { text-align: center; }
+.panel-stat-val { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 2px; }
+.panel-stat-label { font-size: 11px; color: var(--muted); }
 
-  /* ── Responsive ───────────────────────────────────────────────────── */
-  @media (max-width: 900px) {
-    .vertical-cards { grid-template-columns: repeat(2, 1fr); }
-    .two-col { grid-template-columns: 1fr; }
-    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-    .three-col { grid-template-columns: 1fr; }
-  }
+/* Panel composite */
+.panel-composite { font-size: 40px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
+.panel-pillar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.panel-pillar-label { font-size: 12px; color: var(--muted); width: 90px; flex-shrink: 0; }
+.panel-pillar-track { flex: 1; height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+.panel-pillar-fill { height: 100%; border-radius: 3px; }
+.panel-pillar-val { font-size: 12px; font-weight: 600; width: 36px; text-align: right; flex-shrink: 0; }
+
+/* Panel sparklines */
+.sparkline-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sparkline-item { background: var(--surface2); border-radius: 8px; padding: 10px 12px; }
+.sparkline-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 6px; }
+
+/* Panel risk bar */
+.risk-bar-track { height: 8px; border-radius: 4px; overflow: hidden; display: flex; margin-bottom: 8px; background: var(--surface3); }
+.risk-seg { height: 100%; }
+
+/* ── Definitions modal ───────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 300;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 48px 24px;
+}
+.modal-backdrop.open { opacity: 1; pointer-events: auto; }
+.modal {
+  background: var(--surface);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xl);
+  width: 100%; max-width: 760px;
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  padding: 32px;
+  transform: translateY(-12px);
+  transition: transform 0.2s;
+}
+.modal-backdrop.open .modal { transform: translateY(0); }
+.modal::-webkit-scrollbar { width: 5px; }
+.modal::-webkit-scrollbar-track { background: var(--surface2); }
+.modal::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+.modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.modal-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+.modal-close {
+  width: 32px; height: 32px; border-radius: 7px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: background 0.1s, color 0.1s;
+}
+.modal-close:hover { background: var(--surface3); color: var(--text); }
+.def-card { background: var(--surface2); border-radius: 10px; padding: 18px 20px; margin-bottom: 12px; }
+.def-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.def-formula { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; background: var(--surface3); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--text2); margin-bottom: 10px; white-space: pre-wrap; }
+.def-body { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.def-body code { background: var(--surface3); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-family: monospace; font-size: 11px; }
+.def-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+.def-table th { background: var(--surface3); text-align: left; padding: 6px 10px; font-weight: 600; color: var(--muted); border: 1px solid var(--border); text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
+.def-table td { padding: 6px 10px; border: 1px solid var(--border); color: var(--text2); }
+.def-green { color: var(--green); font-weight: 600; }
+.def-amber { color: var(--amber); font-weight: 600; }
+.def-red   { color: var(--red);   font-weight: 600; }
+
+/* ── Hero KPIs strip ─────────────────────────────────────────────────── */
+.hero-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.hero-kpi {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+}
+.hero-kpi:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.hero-kpi-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.hero-kpi-value { font-size: 36px; font-weight: 800; letter-spacing: -1.5px; line-height: 1; margin-bottom: 6px; }
+.hero-kpi-sub { font-size: 11px; color: var(--muted); }
+.hero-kpi-bottom { margin-top: auto; padding-top: 10px; }
+.hero-kpi-click { font-size: 10px; color: var(--muted2); margin-top: 4px; }
+
+/* ── Vertical comparison ─────────────────────────────────────────────── */
+.vert-compare { margin-bottom: 32px; }
+.vert-compare-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+.vert-compare-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.vert-compare-section { background: var(--surface); border-radius: 12px; padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.vert-compare-section-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
+.vert-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.vert-bar-label { width: 80px; font-size: 12px; font-weight: 600; color: var(--text2); text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vert-bar-track { flex: 1; height: 8px; background: var(--surface3); border-radius: 4px; overflow: hidden; }
+.vert-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+.vert-bar-value { width: 50px; font-size: 12px; font-weight: 700; color: var(--text); }
+
+/* ── Global CSM leaderboard ──────────────────────────────────────────── */
+.leaderboard-toggle { font-size: 12px; color: var(--muted); cursor: pointer; font-weight: 600; padding: 5px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; transition: all 0.15s; }
+.leaderboard-toggle:hover { color: var(--text); border-color: var(--border2); }
+
+/* ── Section label ───────────────────────────────────────────────────── */
+.section-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text2);
+  margin-bottom: 16px;
+}
+
+/* ── Metric pills ────────────────────────────────────────────────────── */
+.metric-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 42px;
+  text-align: center;
+  line-height: 1.4;
+}
+.metric-pill.mp-green { background: var(--green-bg); color: var(--green-t); }
+.metric-pill.mp-amber { background: var(--amber-bg); color: var(--amber-t); }
+.metric-pill.mp-red { background: var(--red-bg); color: var(--red-t); }
+.metric-pill.mp-muted { background: var(--surface2); color: var(--muted); }
+
+.ufr-inline { display: inline-flex; align-items: center; gap: 6px; }
+.ufr-track { width: 40px; height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; display: inline-block; }
+.ufr-fill { height: 100%; border-radius: 3px; display: block; }
+
+/* ── Loading / error states ──────────────────────────────────────────── */
+.loading-state { padding: 60px; text-align: center; color: var(--muted); font-size: 14px; }
+.error-card { background: var(--red-bg); border: 1px solid rgba(220,38,38,0.2); border-radius: 10px; padding: 24px; margin: 24px; font-size: 13px; color: var(--red-t); }
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .vert-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 900px) {
+  .vert-grid { grid-template-columns: repeat(2, 1fr); }
+  .hero-card { grid-template-columns: 140px 1fr; }
+  .hero-card .hero-meta { display: none; }
+  .mgr-row { grid-template-columns: 36px 1fr auto auto; }
+  .mgr-csm-count, .mgr-arr { display: none; }
+  .hero-kpis { grid-template-columns: repeat(2, 1fr); }
+  .vert-compare-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .vert-grid { grid-template-columns: 1fr 1fr; }
+  .hero-card { grid-template-columns: 1fr; }
+  .main { padding: 16px; }
+  .panel { width: 100vw; }
+}
 </style>
 </head>
 <body>
 
-<!-- Header -->
-<div class="header">
-  <div class="header-left">
-    <div class="podium-mark">
-      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="26" height="26" rx="5" fill="#1A1A18"/>
-        <path d="M7 20V7h6.2c1.4 0 2.5.4 3.3 1.2.8.8 1.2 1.9 1.2 3.2 0 1.3-.4 2.4-1.2 3.2-.8.8-1.9 1.2-3.3 1.2H9.8V20H7zm2.8-7.4h3c.7 0 1.3-.2 1.7-.6.4-.4.6-1 .6-1.7s-.2-1.3-.6-1.7c-.4-.4-1-.6-1.7-.6h-3v4.6z" fill="white"/>
-        <path d="M15.5 20l-3.5-5.8h3l3.5 5.8h-3z" fill="white"/>
-      </svg>
-      <span class="podium-wordmark">Podium</span>
-    </div>
-    <div class="header-divider"></div>
-    <div>
-      <div class="header-title">CS Performance Hub</div>
-      <div class="header-sub" id="lastUpdatedLabel">L30D Rolling</div>
-    </div>
+<!-- ─── Topbar ─────────────────────────────────────────────────────────── -->
+<header class="topbar" id="topbar">
+  <div class="topbar-left">
+    <svg class="topbar-logo" width="24" height="24" viewBox="0 0 26 26" fill="none">
+      <rect width="26" height="26" rx="6" fill="var(--text)"/>
+      <path d="M7 20V7h6.2c1.4 0 2.5.4 3.3 1.2.8.8 1.2 1.9 1.2 3.2 0 1.3-.4 2.4-1.2 3.2-.8.8-1.9 1.2-3.3 1.2H9.8V20H7z" fill="var(--bg)"/>
+    </svg>
+    <span class="topbar-title">CS Performance Hub</span>
   </div>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <button class="theme-btn" id="themeToggle" onclick="toggleTheme()"><span id="themeIcon">☽</span><span id="themeLabel">Dark</span></button>
-    <span class="header-badge">LIVE</span>
+  <nav class="topbar-nav" id="sectionNav">
+    <a class="topbar-link" onclick="scrollToSection('heroKpis')">Metrics</a>
+    <a class="topbar-link" onclick="scrollToSection('verticalComparison')">Verticals</a>
+    <a class="topbar-link" onclick="scrollToSection('mgrLeaderboard')">Managers</a>
+    <a class="topbar-link" onclick="scrollToSection('globalLeaderboard')">Rankings</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="topbar-updated" id="topbarUpdated"></span>
+    <button class="topbar-btn" onclick="toggleFilterDrawer()" id="filterToggle" title="Filters">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M1 3h14M4 8h8M6 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </button>
+    <button class="topbar-btn" onclick="openDefs()" title="Definitions">?</button>
+    <button class="topbar-btn" onclick="toggleTheme()" title="Toggle theme"><span id="themeIcon">☽</span></button>
+  </div>
+</header>
+
+<!-- Context bar: back button + active filters (only visible when needed) -->
+<div class="context-bar" id="contextBar">
+  <div id="contextBack"></div>
+  <div id="contextFilters" style="display:flex;gap:6px;align-items:center;flex:1"></div>
+</div>
+
+<!-- UFR month bar -->
+<div class="ufr-bar" id="ufrBar" style="display:none;">
+  <span class="ufr-label">UFR Month</span>
+  <div id="ufrPills" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+</div>
+
+<!-- Filter drawer (absolute, toggled) -->
+<div class="filter-drawer" id="filterDrawer">
+  <div class="filter-drawer-title">Filters</div>
+  <div class="filter-row">
+    <label class="filter-label">Manager</label>
+    <select id="filterManager" onchange="applyFilters()"><option value="">All</option></select>
+  </div>
+  <div class="filter-row">
+    <label class="filter-label">Vertical</label>
+    <select id="filterVertical" onchange="applyFilters()"><option value="">All</option></select>
+  </div>
+  <div class="filter-row">
+    <label class="filter-label">Segment</label>
+    <select id="filterSegment" onchange="applyFilters()"><option value="">All</option></select>
   </div>
 </div>
 
-<!-- Filters -->
-<div class="filters">
-  <div class="filter-group">
-    <span class="filter-label">Manager</span>
-    <select id="filterManager" onchange="applyFilters()">
-      <option value="">All Managers</option>
-      <option>Alex Howe</option>
-      <option>Brock Bird</option>
-      <option>Carter Matheson</option>
-      <option>Chris Nielson</option>
-      <option>Javier Herrera</option>
-      <option>Jonathan Boyer</option>
-      <option>Liam Golightley</option>
-      <option>Manuel Estrada</option>
-      <option>Samantha Aucunas</option>
-      <option>Sarah Swindle</option>
-    </select>
-  </div>
-  <div class="filter-sep"></div>
-  <div class="filter-group">
-    <span class="filter-label">Vertical</span>
-    <select id="filterVertical" onchange="applyFilters()">
-      <option value="">All Verticals</option>
-      <option>Auto</option>
-      <option>Emerging</option>
-      <option>FAM</option>
-      <option>HVAC</option>
-      <option>Jewelry</option>
-      <option>MedSpa</option>
-      <option>OEM</option>
-      <option>Retail</option>
-    </select>
-  </div>
-  <div class="filter-sep"></div>
-  <div class="filter-group">
-    <span class="filter-label">Segment</span>
-    <select id="filterSegment" onchange="applyFilters()">
-      <option value="">All Segments</option>
-      <option>AI/SOA</option>
-      <option>Mid Market</option>
-      <option>Phones + Platform</option>
-      <option>Strategic</option>
-    </select>
-  </div>
+<!-- ─── Main content ─────────────────────────────────────────────────── -->
+<div class="main" id="mainContent">
+  <div class="loading-state">Loading dashboard data…</div>
 </div>
 
-<!-- UFR Month Picker -->
-<div id="ufr-month-bar" style="display:none;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-  <span style="font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.05em;text-transform:uppercase">UFR Month</span>
-  <div id="ufr-month-pills" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+<!-- ─── CSM Slide-Over Panel ──────────────────────────────────────────── -->
+<div class="panel-backdrop" id="panelBackdrop" onclick="closePanel()"></div>
+<div class="panel" id="csmPanel">
+  <button class="panel-close" onclick="closePanel()">✕</button>
+  <div id="panelContent"></div>
 </div>
 
-<!-- Tabs -->
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('leaderboard', this)">Leaderboard</div>
-  <div class="tab" onclick="switchTab('managerview', this)">Manager View</div>
-  <div class="tab" onclick="switchTab('callquality', this)">Call Quality</div>
-  <div class="tab" onclick="switchTab('definitions', this)">Definitions</div>
+<!-- ─── Metric Ranking Modal ──────────────────────────────────────────── -->
+<div class="modal-backdrop" id="metricModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-content" id="metricModalContent" style="max-width:1000px;max-height:90vh;width:95vw;overflow-y:auto;background:var(--surface);border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow-xl);padding:28px;position:relative"></div>
 </div>
 
-<!-- TAB 1: LEADERBOARD -->
-<div id="tab-leaderboard" class="tab-content active">
-  <div id="verticalCards" class="vertical-cards"></div>
-
-  <div class="section-header">
-    <div>
-      <div class="section-title">CSM Leaderboard — All Verticals</div>
-      <div class="section-sub">Click column headers to sort · Composite score weights vary by segment</div>
+<!-- ─── Definitions Modal ─────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="defsBackdrop" onclick="closeDefs(event)">
+  <div class="modal" id="defsModal">
+    <div class="modal-header">
+      <div class="modal-title">Metric Definitions</div>
+      <button class="modal-close" onclick="closeDefs()">✕</button>
     </div>
-    <div class="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:var(--cs-elite);border:1px solid var(--cs-elite-t);opacity:0.8"></div>85+ Elite</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--cs-strong);border:1px solid var(--cs-strong-t);opacity:0.8"></div>70–84 Strong</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--cs-warn);border:1px solid var(--cs-warn-t);opacity:0.8"></div>55–69 Watch</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--cs-fail);border:1px solid var(--cs-fail-t);opacity:0.8"></div>&lt;55 Critical</div>
-    </div>
-  </div>
-
-  <div class="table-scroll">
-    <table id="leaderboardTable">
-      <thead>
-        <tr>
-          <th onclick="sortTable('rank')">#</th>
-          <th onclick="sortTable('csm')"><span class="th-wrap">CSM <span class="sort-arrow">↕</span></span></th>
-          <th onclick="sortTable('vertical')">Vertical</th>
-          <th onclick="sortTable('segment')">Segment</th>
-          <th onclick="sortTable('composite')" class="sorted"><span class="th-wrap">Composite <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Equal-weight avg of AR Velocity, Call Quality, and Ret SLA — expressed 0–100">ⓘ</span></span></th>
-          <th onclick="sortTable('callScore')"><span class="th-wrap">Call Score <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Avg V3 AI call score across last 90 days (0–100)">ⓘ</span></span></th>
-          <th onclick="sortTable('arsPerDay')"><span class="th-wrap">AR/Day <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Account reviews per active business day in L30D">ⓘ</span></span></th>
-          <th onclick="sortTable('retSLA')"><span class="th-wrap">Ret. SLA <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="% of retention case tasks with outreach in L30D">ⓘ</span></span></th>
-          <th id="renewalColHeader" onclick="sortTable('renewalCoveragePct')"><span class="th-wrap">Renewal Cov <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="% of renewal cohort accounts with any outreach in 120-day pre-renewal window">ⓘ</span></span></th>
-          <th onclick="sortTable('compositeDelta7d')"><span class="th-wrap">±7d <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Composite score change vs 7 days ago">ⓘ</span></span></th>
-        </tr>
-      </thead>
-      <tbody id="leaderboardBody"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- TAB: MANAGER VIEW -->
-<div id="tab-managerview" class="tab-content">
-  <div class="kpi-grid" id="managerKPIs"></div>
-
-  <div class="section-header">
-    <div>
-      <div class="section-title">Manager Team Scorecard</div>
-      <div class="section-sub">Team-level rollup · Click column headers to sort</div>
-    </div>
-  </div>
-
-  <div class="table-scroll">
-    <table id="managerViewTable">
-      <thead>
-        <tr>
-          <th onclick="sortManagerView('manager')"><span class="th-wrap">Manager <span class="sort-arrow">↕</span></span></th>
-          <th onclick="sortManagerView('csmCount')"><span class="th-wrap">CSMs <span class="sort-arrow">↕</span></span></th>
-          <th onclick="sortManagerView('avgComposite')" class="sorted"><span class="th-wrap">Composite <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Average composite score across all team members">ⓘ</span></span></th>
-          <th onclick="sortManagerView('avgCallScore')"><span class="th-wrap">Call Score <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Average V3 call score for CSMs with scored calls">ⓘ</span></span></th>
-          <th onclick="sortManagerView('avgArsPerDay')"><span class="th-wrap">AR/Day <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Average account reviews per active business day">ⓘ</span></span></th>
-          <th onclick="sortManagerView('retSLA')"><span class="th-wrap">Ret. SLA <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Weighted Ret SLA across all team cases">ⓘ</span></span></th>
-          <th onclick="sortManagerView('renewalCoverage')"><span class="th-wrap">Renewal Cov <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="Weighted renewal coverage across team cohort">ⓘ</span></span></th>
-          <th onclick="sortManagerView('greenCount')">Team Status</th>
-        </tr>
-      </thead>
-      <tbody id="managerViewBody"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- TAB 3: CALL QUALITY -->
-<div id="tab-callquality" class="tab-content">
-  <div class="kpi-grid" id="callKPIs"></div>
-
-  <div class="chart-container">
-    <div class="chart-title">Average Call Score by CSM — Ranked (Final Adjusted Score, L30D)</div>
-    <div style="position:relative;height:420px">
-      <canvas id="callScoreChart"></canvas>
-    </div>
-  </div>
-
-  <div class="chart-container" style="margin-bottom:16px">
-    <div class="chart-title">Avg Call Score by Vertical</div>
-    <div style="position:relative;height:200px">
-      <canvas id="verticalScoreChart"></canvas>
-    </div>
-  </div>
-
-  <div class="section-header" style="margin-top:8px">
-    <div>
-      <div class="section-title">Call Score Detail — All CSMs</div>
-      <div class="section-sub">Sub-scores: Value Creation · Relationship · Adaptiveness · Ownership · Click headers to sort</div>
-    </div>
-  </div>
-  <div class="table-scroll" style="margin-bottom:20px">
-    <table id="callDetailTable">
-      <thead><tr>
-        <th onclick="sortCallDetail('csm')">#</th>
-        <th onclick="sortCallDetail('csm')">CSM</th>
-        <th onclick="sortCallDetail('vertical')">Vertical</th>
-        <th onclick="sortCallDetail('callScore')" class="sorted">Score</th>
-        <th onclick="sortCallDetail('valueCreation')">Value</th>
-        <th onclick="sortCallDetail('relationship')">Relationship</th>
-        <th onclick="sortCallDetail('adaptiveness')">Adaptiveness</th>
-        <th onclick="sortCallDetail('ownership')">Ownership</th>
-        <th onclick="sortCallDetail('callCount')">Calls</th>
-        <th onclick="sortCallDetail('callScoreDelta')">Δ Score</th>
-      </tr></thead>
-      <tbody id="callDetailBody"></tbody>
-    </table>
-  </div>
-</div>
-
-
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     TAB: DEFINITIONS
-     ════════════════════════════════════════════════════════════════════════ -->
-<div id="tab-definitions" class="tab-content">
-  <div style="max-width:900px;margin:0 auto;padding:8px 0 32px">
-
-    <h2 style="font-size:17px;font-weight:700;margin-bottom:20px;color:var(--text)">Metric Definitions &amp; Calculation Logic</h2>
-
-    <!-- ── Composite Score ─────────────────────────────────────────── -->
     <div class="def-card">
       <div class="def-title">Composite Score</div>
-      <div class="def-formula">( AR Velocity Score + Call Quality Score + Retention SLA Score ) ÷ 3 × 100</div>
-      <p class="def-body">Equal-weight avg of three pillar scores (0–100). <span class="def-green">≥ 67 green</span> · <span class="def-yellow">≥ 33 yellow</span> · <span class="def-red">&lt; 33 red</span>. 10-in-14 gate overrides green → yellow if unattempted outreach exists.</p>
+      <div class="def-formula">( Normalized AR Score + Call Quality Score + Ret SLA Score + UFR Pacing Score ) ÷ active pillars × 100</div>
+      <p class="def-body">Equal-weight average of active pillar scores (0–1 each, scaled to 0–100). AR is segment-normalized against a segment-specific ceiling. UFR uses a pacing model (not flat coverage). P+P segment is excluded from UFR pillar. Pillars are excluded when no data exists (e.g., no ret cases → SLA excluded). <span class="def-green">≥ 65 green</span> · <span class="def-amber">≥ 45 yellow</span> · <span class="def-red">&lt; 45 red</span>.</p>
     </div>
-
-    <!-- ── AR Velocity ─────────────────────────────────────────────── -->
     <div class="def-card">
-      <div class="def-title">AR Velocity — ARs / Day</div>
-      <div class="def-formula">Total AR Events (L30) ÷ Active Business Days (L30)</div>
-      <p class="def-body">Closed SFDC Account Review, Gong call ≥ 15 min, or Podium call ≥ 15 min — deduplicated per org per day. Active days = weekdays where ≥ 3 CSMs logged any event (handles lag and holidays).</p>
+      <div class="def-title">AR Velocity — ARs / Day (Segment-Normalized)</div>
+      <div class="def-formula">AR Score = min( arsPerDay ÷ segment_ceiling, 1.0 )</div>
+      <p class="def-body">Closed SFDC Account Review, Gong call ≥ 15 min, or Podium call ≥ 15 min — deduplicated per org per day. Score is normalized against a segment-specific ceiling so high-volume segments don't inflate composite.</p>
       <table class="def-table">
-        <tr><th>Segment</th><th>Green</th><th>Yellow</th><th>Red</th></tr>
-        <tr><td>AI / Mid Market / Strategic</td><td>≥ 1.5/day</td><td>≥ 0.75/day</td><td>&lt; 0.75/day</td></tr>
-        <tr><td>P+P / Offshore</td><td>≥ 1.0/day</td><td>≥ 0.5/day</td><td>&lt; 0.5/day</td></tr>
+        <tr><th>Segment</th><th>Ceiling (AR/Day)</th><th>Green (raw)</th><th>Yellow (raw)</th></tr>
+        <tr><td>AI / SOA</td><td>4.2</td><td>≥ 3.5</td><td>≥ 2.0</td></tr>
+        <tr><td>Phones + Platform</td><td>2.8</td><td>≥ 2.0</td><td>≥ 1.0</td></tr>
+        <tr><td>Mid Market</td><td>3.3</td><td>≥ 2.5</td><td>≥ 1.2</td></tr>
+        <tr><td>Strategic</td><td>1.5</td><td>≥ 1.2</td><td>≥ 0.7</td></tr>
       </table>
     </div>
-
-    <!-- ── Call Quality ────────────────────────────────────────────── -->
     <div class="def-card">
       <div class="def-title">Call Quality Score</div>
       <div class="def-formula">Avg V3 AI score across scored calls in L90, expressed 0–100</div>
-      <p class="def-body">V3 Cortex AI pipeline across HVAC, Auto, MedSpa, Emerging. Trane uses V3 HVAC model. Sub-scores: Value Creation · Relationship · Adaptiveness · Ownership. Source: <code>V3_*_CALL_SCORING_PROCESSED</code> — manual refresh ~weekly.</p>
+      <p class="def-body">V3 Cortex AI pipeline. Sub-scores: Value Creation · Relationship · Adaptiveness · Ownership. Source: <code>V3_*_CALL_SCORING_PROCESSED</code> — manual refresh ~weekly. CSMs without scored calls have this pillar excluded from composite. <span class="def-green">≥ 80 green</span> · <span class="def-amber">≥ 70 yellow</span> · <span class="def-red">&lt; 70 red</span>.</p>
     </div>
-
-    <!-- ── Retention SLA ───────────────────────────────────────────── -->
     <div class="def-card">
       <div class="def-title">Retention SLA</div>
       <div class="def-formula">Retention tasks with outreach ÷ Total retention tasks (L30) × 100</div>
-      <p class="def-body"><code>fastball_Retention_Case</code> tasks from <code>BUILD.LIGHTHOUSE.CORE_TASKS</code>. Any closed SFDC AR, Gong call, or Podium call on/after task creation date counts as outreach.</p>
+      <p class="def-body"><code>fastball_Retention_Case</code> tasks. Any closed SFDC AR, Gong call, or Podium call on/after task creation date counts. CSMs without ret cases have this pillar excluded. <span class="def-green">≥ 80% green</span> · <span class="def-amber">50–80% amber</span> · <span class="def-red">&lt; 50% red</span>.</p>
     </div>
-
-    <!-- ── 10-in-14 ────────────────────────────────────────────────── -->
     <div class="def-card">
       <div class="def-title">10-in-14 Compliance</div>
       <div class="def-formula">10in14 tasks with outreach ÷ Total 10in14 tasks (L30) × 100</div>
-      <p class="def-body"><code>fastball_10in14_Churn_Risk</code> tasks. Any unattempted task caps overall status at yellow regardless of composite score.</p>
+      <p class="def-body"><code>fastball_10in14_Churn_Risk</code> tasks. Tracked as a separate indicator — no longer gates the composite score. Unattempted tasks are flagged with a warning icon in the CSM profile.</p>
     </div>
-
-    <!-- ── Renewal Coverage ────────────────────────────────────────── -->
     <div class="def-card">
-      <div class="def-title">Renewal Coverage</div>
-      <div class="def-formula">Renewal orgs with outreach in 120d window ÷ Total cohort orgs × 100</div>
-      <p class="def-body">Non-Trane orgs renewing next calendar month. Any closed SFDC AR, Gong call ≥ 15 min, or Podium call ≥ 15 min within 120 days pre-renewal counts.</p>
+      <div class="def-title">Renewal (UFR) Coverage — Pacing Model</div>
+      <div class="def-formula">Pacing Score = min( orgs_contacted ÷ expected_contacts_by_today, 1.0 )
+Expected contacts = cohort_size × (biz_days_elapsed ÷ active_window_biz_days)</div>
+      <p class="def-body">Non-Trane orgs renewing in the selected calendar month. P+P segment excluded from composite. The <strong>active outreach window</strong> runs from 120 days to 60 days before renewal (target: complete all contacts by 60 days out). Contacts made after the 60-day mark still count toward UFR coverage, but pacing is measured against the active window. Any closed SFDC AR, Gong call ≥ 15 min, or Podium call ≥ 15 min counts. <strong>Color coding:</strong> <span class="def-green">on/ahead of pace = green</span> · <span class="def-amber">70–100% of pace = amber</span> · <span class="def-red">&lt; 70% of pace = red</span>.</p>
     </div>
-
-    <!-- ── Overall Status ─────────────────────────────────────────── -->
     <div class="def-card">
-      <div class="def-title">Overall Status</div>
-      <div class="def-formula">Composite Score + 10-in-14 gate → green / yellow / red</div>
+      <div class="def-title">Interaction Intelligence — Risk Scores</div>
+      <p class="def-body">Org-level churn risk scores powered by Podium's interaction intelligence model. Scores are bucketed into <span class="def-green">low</span> · <span class="def-amber">elevated</span> · <span class="def-red">high</span> · critical risk. The CSM profile panel shows a risk bar breakdown and flags cancellation intent signals detected in recent conversations. Risk data is sourced from the master export and may lag the live model by 24–48 hours.</p>
+    </div>
+    <div class="def-card">
+      <div class="def-title">Trend Data (Sparklines)</div>
+      <p class="def-body">Daily snapshots of each CSM's composite score, AR velocity, call score, and retention SLA are captured in <code>CS_PERF_HUB_SNAPSHOTS</code>. The procedure snapshots metrics before each daily rebuild at 6 AM MST. Sparklines show the trailing 30-day trend.</p>
+    </div>
+    <div class="def-card">
+      <div class="def-title">Risk Intelligence</div>
+      <p class="def-body">Risk data comes from <code>BUILD.CUSTOMER_SUCCESS.CORE_INTERACTION_INTELLIGENCE_PROCESSED</code>, a Cortex AI model (Claude Sonnet 4.6) that analyzes all CSM-customer interactions daily. It outputs: overall risk level (low/elevated/high/critical), sentiment trajectory, cancellation intent signals, and open ask tracking. Risk is attributed to CSMs based on org ownership.</p>
+    </div>
+    <div class="def-card">
+      <div class="def-title">Overall Status Logic</div>
       <table class="def-table">
         <tr><th>Condition</th><th>Status</th></tr>
-        <tr><td>10-in-14 unattempted AND composite ≥ 33</td><td><span class="def-yellow">yellow</span> (gated)</td></tr>
-        <tr><td>10-in-14 unattempted AND composite &lt; 33</td><td><span class="def-red">red</span></td></tr>
-        <tr><td>Composite ≥ 67</td><td><span class="def-green">green</span></td></tr>
-        <tr><td>Composite ≥ 33</td><td><span class="def-yellow">yellow</span></td></tr>
-        <tr><td>Composite &lt; 33</td><td><span class="def-red">red</span></td></tr>
+        <tr><td>Composite ≥ 65</td><td><span class="def-green">green</span></td></tr>
+        <tr><td>Composite ≥ 45</td><td><span class="def-amber">yellow</span></td></tr>
+        <tr><td>Composite &lt; 45</td><td><span class="def-red">red</span></td></tr>
       </table>
     </div>
-
-    <!-- ── Data Sources ───────────────────────────────────────────── -->
     <div class="def-card">
       <div class="def-title">Data Sources</div>
       <table class="def-table">
@@ -574,30 +812,209 @@
         <tr><td>Master table</td><td><code>ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_MASTER</code></td><td>Daily 6 AM MST</td></tr>
       </table>
     </div>
-
   </div>
 </div>
 
 <script>
-// =============================================================================
-// DATA — loaded async from cs_perf_data.json (run export_cs_perf_data.py to refresh)
-// =============================================================================
-let data = [];  // populated by fetch at bottom of script
-
-
-
-// =============================================================================
+// ═══════════════════════════════════════════════════════════════════════════
 // STATE
-// =============================================================================
-let currentSort = { field: 'composite', asc: false };
-let callSort = { field: 'callScore', asc: false };
-let activeFilters = { manager: '', vertical: '', segment: '' };
-
-// UFR month selection
+// ═══════════════════════════════════════════════════════════════════════════
+let allData = [];
 let renewalByMonth = {};
 let renewalMonthLabels = [];
 let selectedRenewalMonth = null;
+let sparklines = {};
+let riskDetail = {};
 
+let filters = { manager: '', vertical: '', segment: '' };
+
+let nav = {
+  level: 'overview',   // 'overview' | 'team'
+  teamType: null,      // 'manager' | 'vertical' | 'director'
+  teamValue: null,
+  profileCsm: null,
+};
+
+let teamViewMode = 'table'; // 'cards' | 'table'
+let teamTableSort = { field: 'composite', asc: false };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════
+const VERT_COLORS = {
+  OEM: '#2563EB', HVAC: '#0284C7', MedSpa: '#7C3AED', Emerging: '#EA580C',
+  Auto: '#059669', FAM: '#D97706', Jewelry: '#DB2777', Retail: '#475569'
+};
+
+function vertColor(v) { return VERT_COLORS[v] || '#8A8A82'; }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SEGMENT AR CEILINGS
+// ═══════════════════════════════════════════════════════════════════════════
+const AR_CEILING = {
+  'AI/SOA': 4.2,
+  'Phones + Platform': 2.8,
+  'Mid Market': 3.3,
+  'Strategic': 1.5,
+};
+
+function normalizedArScore(arsPerDay, segment) {
+  const ceiling = AR_CEILING[segment] || 3.5;
+  return Math.min((arsPerDay || 0) / ceiling, 1.0);
+}
+
+function arColor(arsPerDay, segment) {
+  if (arsPerDay == null) return 'var(--muted)';
+  const norm = normalizedArScore(arsPerDay, segment);
+  if (norm >= 0.75) return 'var(--green)';
+  if (norm >= 0.4)  return 'var(--amber)';
+  return 'var(--red)';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FIXED COLOR THRESHOLDS
+// ═══════════════════════════════════════════════════════════════════════════
+const THRESHOLDS = {
+  composite: { green: 65, yellow: 45 },
+  callScore: { green: 80, yellow: 70 },
+  retSLA: { green: 80, yellow: 50 },
+  renewalCoveragePct: { green: 40, yellow: 20 },
+};
+
+const AR_THRESHOLDS = {
+  'AI/SOA': { green: 3.5, yellow: 2.0 },
+  'Phones + Platform': { green: 2.0, yellow: 1.0 },
+  'Mid Market': { green: 2.5, yellow: 1.2 },
+  'Strategic': { green: 1.2, yellow: 0.7 },
+};
+
+function metricColor(value, metric, segment) {
+  if (value == null || isNaN(value)) return 'var(--muted)';
+  if (metric === 'arsPerDay' && segment) {
+    const t = AR_THRESHOLDS[segment] || AR_THRESHOLDS['AI/SOA'];
+    return value >= t.green ? 'var(--green)' : value >= t.yellow ? 'var(--amber)' : 'var(--red)';
+  }
+  const t = THRESHOLDS[metric];
+  if (!t) return 'var(--muted)';
+  return value >= t.green ? 'var(--green)' : value >= t.yellow ? 'var(--amber)' : 'var(--red)';
+}
+
+function metricStatus(value, metric, segment) {
+  if (value == null || isNaN(value)) return 'muted';
+  if (metric === 'arsPerDay' && segment) {
+    const t = AR_THRESHOLDS[segment] || AR_THRESHOLDS['AI/SOA'];
+    return value >= t.green ? 'green' : value >= t.yellow ? 'yellow' : 'red';
+  }
+  const t = THRESHOLDS[metric];
+  if (!t) return 'muted';
+  return value >= t.green ? 'green' : value >= t.yellow ? 'yellow' : 'red';
+}
+
+function statusFromComposite(comp) {
+  if (comp == null) return 'muted';
+  return comp >= 65 ? 'green' : comp >= 45 ? 'yellow' : 'red';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+function fmtArr(v) {
+  if (!v) return '$0';
+  if (v >= 1000000) return '$' + (v / 1000000).toFixed(1) + 'M';
+  if (v >= 1000) return '$' + (v / 1000).toFixed(0) + 'K';
+  return '$' + v.toFixed(0);
+}
+
+function fmtMrrToArr(mrr) { return fmtArr(mrr * 12); }
+
+function scoreColor(v) {
+  if (v == null) return 'var(--muted)';
+  return v >= 67 ? 'var(--green)' : v >= 33 ? 'var(--amber)' : 'var(--red)';
+}
+
+function pillarBarColor(v, gThresh, aThresh) {
+  if (v == null) return 'var(--border2)';
+  return v >= gThresh ? 'var(--green)' : v >= aThresh ? 'var(--amber)' : 'var(--red)';
+}
+
+function statusPill(status) {
+  if (status === 'green') return '<span class="pill pill-green">On Track</span>';
+  if (status === 'yellow') return '<span class="pill pill-amber">Watch</span>';
+  return '<span class="pill pill-red">Critical</span>';
+}
+
+function statusDot(status) {
+  const c = status === 'green' ? 'var(--green)' : status === 'yellow' ? 'var(--amber)' : 'var(--red)';
+  return `<span class="status-dot" style="background:${c}"></span>`;
+}
+
+function metricPill(value, metric, segment) {
+  if (value == null) return '<span class="metric-pill mp-muted">—</span>';
+  const status = metricStatus(value, metric, segment);
+  const cls = status === 'green' ? 'mp-green' : status === 'yellow' ? 'mp-amber' : status === 'red' ? 'mp-red' : 'mp-muted';
+  const display = metric === 'retSLA' || metric === 'renewalCoveragePct' ? Math.round(value) + '%' :
+                  metric === 'arsPerDay' ? value.toFixed(1) :
+                  Math.round(value);
+  return `<span class="metric-pill ${cls}">${display}</span>`;
+}
+
+function ufrProgressCell(pct, pacingStatus) {
+  if (pct == null) return '<span class="metric-pill mp-muted">—</span>';
+  const color = pacingStatus === 'green' ? 'var(--green)' : pacingStatus === 'yellow' ? 'var(--amber)' : pacingStatus === 'red' ? 'var(--red)' : 'var(--muted)';
+  return `<span class="ufr-inline">
+    <span class="ufr-track"><span class="ufr-fill" style="width:${Math.min(pct,100)}%;background:${color}"></span></span>
+    <span style="font-size:12px;font-weight:600;color:${color}">${Math.round(pct)}%</span>
+  </span>`;
+}
+
+function ordinal(n) {
+  return n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : n + 'th';
+}
+
+function statusCounts(csms) {
+  const g = csms.filter(d => statusFromComposite(calcComposite(d)) === 'green').length;
+  const y = csms.filter(d => statusFromComposite(calcComposite(d)) === 'yellow').length;
+  const r = csms.filter(d => { const s = statusFromComposite(calcComposite(d)); return s === 'red' || s === 'muted'; }).length;
+  return `<span style="display:inline-flex;gap:8px;font-size:11px;font-weight:600">
+    <span style="color:var(--green)">● ${g}</span>
+    <span style="color:var(--amber)">● ${y}</span>
+    <span style="color:var(--red)">● ${r}</span>
+  </span>`;
+}
+
+function delta(d) {
+  if (d == null) return '<span class="delta-neu">—</span>';
+  const sign = d > 0 ? '▲ +' : d < 0 ? '▼ ' : '';
+  const cls = d > 1.5 ? 'delta-pos' : d < -1.5 ? 'delta-neg' : 'delta-neu';
+  return `<span class="${cls}">${sign}${d.toFixed(1)}</span>`;
+}
+
+function scoreScCell(v) {
+  if (v == null) return '<td class="sc-muted">—</td>';
+  const cls = v >= 80 ? 'sc-green' : v >= 65 ? 'sc-amber' : 'sc-red';
+  return `<td class="${cls}">${typeof v === 'number' ? v.toFixed(v % 1 ? 1 : 0) : v}</td>`;
+}
+
+function sparklineSVG(values, opts = {}) {
+  const { width = 100, height = 24, color = 'var(--green)' } = opts;
+  const valid = (values || []).filter(v => v != null);
+  if (valid.length < 2) return '<span style="color:var(--muted);font-size:11px">—</span>';
+  const min = Math.min(...valid);
+  const max = Math.max(...valid);
+  const range = max - min || 1;
+  const points = valid.map((v, i) => {
+    const x = (i / (valid.length - 1)) * width;
+    const y = height - ((v - min) / range) * (height - 4) - 2;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENEWAL HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
 function getRenewal(csmName) {
   if (!selectedRenewalMonth || !renewalByMonth[selectedRenewalMonth]) return null;
   return renewalByMonth[selectedRenewalMonth][csmName] || null;
@@ -606,698 +1023,1282 @@ function getRenewal(csmName) {
 function setRenewalMonth(label) {
   selectedRenewalMonth = label;
   document.querySelectorAll('.ufr-pill').forEach(b => {
-    b.style.background = b.dataset.month === label ? 'var(--accent)' : 'var(--surface2)';
-    b.style.color      = b.dataset.month === label ? '#fff' : 'var(--text)';
-    b.style.borderColor= b.dataset.month === label ? 'var(--accent)' : 'var(--border2)';
+    b.classList.toggle('active', b.dataset.month === label);
   });
-  // Update column header
-  const th = document.getElementById('renewalColHeader');
-  if (th) th.innerHTML = `<span class="th-wrap">${label} Cov <span class="sort-arrow">↕</span><span class="tip-icon" data-tip="% of ${label} renewal cohort accounts with any outreach in 120-day pre-renewal window">ⓘ</span></span>`;
+  if (allData.length) populateFilters(allData);
+  renderContextBar();
   renderAll();
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// UFR PACING — computed dynamically per selected renewal month
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Count business days between two dates (excludes weekends)
+function countBizDays(startDate, endDate) {
+  let count = 0;
+  const d = new Date(startDate);
+  const end = new Date(endDate);
+  while (d < end) {
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+    d.setDate(d.getDate() + 1);
+  }
+  return count;
+}
+
+// Get pacing window dates for a given renewal month label (e.g., "Jul 2026")
+function getPacingWindow(monthLabel) {
+  if (!monthLabel) return null;
+  const months = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
+  const parts = monthLabel.split(' ');
+  const mon = months[parts[0]];
+  const yr = parseInt(parts[1]);
+  if (mon == null || isNaN(yr)) return null;
+
+  const renewalDate = new Date(yr, mon, 1); // 1st of renewal month
+  const windowStart = new Date(renewalDate);
+  windowStart.setDate(windowStart.getDate() - 120); // 120 days before renewal
+  const activeEnd = new Date(renewalDate);
+  activeEnd.setDate(activeEnd.getDate() - 60); // 60 days before renewal (target completion)
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const totalActiveBizDays = countBizDays(windowStart, activeEnd);
+  const elapsedBizDays = Math.max(0, countBizDays(windowStart, today > activeEnd ? activeEnd : today));
+  const progressRatio = totalActiveBizDays > 0 ? elapsedBizDays / totalActiveBizDays : 0;
+
+  return { totalActiveBizDays, elapsedBizDays, progressRatio, windowStart, activeEnd, renewalDate };
+}
+
+function calcPacing(d) {
+  const ren = getRenewal(d.csm);
+  const total = ren ? (ren.total || 0) : (d.renewalCohortTotal || 0);
+  const called = ren ? (ren.called || 0) : (d.renewalCohortCalled || 0);
+  if (total === 0) return null;
+
+  // Compute pacing window dynamically based on selected renewal month
+  const monthLabel = selectedRenewalMonth || d.renewalCohortMonthLabel;
+  const window = getPacingWindow(monthLabel);
+  if (!window || window.totalActiveBizDays === 0) return null;
+
+  const expected = Math.floor(total * window.progressRatio);
+  if (expected === 0) return { ratio: called > 0 ? 2.0 : 1.0, expected: 0, called, total, status: 'green', window };
+  const ratio = called / expected;
+  const status = ratio >= 1.0 ? 'green' : ratio >= 0.7 ? 'yellow' : 'red';
+  return { ratio, expected, called, total, status, window };
+}
+
+function aggregatePacingStatus(csms) {
+  const nonPP = csms.filter(d => d.segment !== 'Phones + Platform');
+  const totalCohort = nonPP.reduce((s, d) => {
+    const ren = getRenewal(d.csm);
+    return s + (ren ? ren.total : (d.renewalCohortTotal || 0));
+  }, 0);
+  const totalCalled = nonPP.reduce((s, d) => {
+    const ren = getRenewal(d.csm);
+    return s + (ren ? ren.called : (d.renewalCohortCalled || 0));
+  }, 0);
+  if (totalCohort === 0) return { pct: null, status: 'muted', color: 'var(--muted)' };
+
+  const pct = Math.round(totalCalled / totalCohort * 100);
+
+  const monthLabel = selectedRenewalMonth;
+  const win = getPacingWindow(monthLabel);
+  if (!win || win.totalActiveBizDays === 0) return { pct, status: 'muted', color: 'var(--muted)' };
+
+  const expected = Math.floor(totalCohort * win.progressRatio);
+  if (expected === 0) return { pct, status: 'green', color: 'var(--green)', totalCalled, totalCohort };
+  const ratio = totalCalled / expected;
+  const status = ratio >= 1.0 ? 'green' : ratio >= 0.7 ? 'yellow' : 'red';
+  const color = status === 'green' ? 'var(--green)' : status === 'yellow' ? 'var(--amber)' : 'var(--red)';
+  return { pct, status, color, ratio, expected, totalCalled, totalCohort };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COMPOSITE SCORE
+// ═══════════════════════════════════════════════════════════════════════════
+function calcComposite(d) {
+  if (d.arsPerDay == null && d.callScoreNorm == null && d.slaScoreNorm == null) {
+    return d.composite != null ? Math.round(d.composite) : null;
+  }
+  const isPP = d.segment === 'Phones + Platform';
+  const arScore = normalizedArScore(d.arsPerDay, d.segment);
+  const callScore = d.callScoreNorm;
+  const slaScore = d.slaScoreNorm;
+
+  // Use pacing ratio for renewal instead of flat coverage
+  const pacing = isPP ? null : calcPacing(d);
+  const renewalScore = pacing ? Math.min(pacing.ratio, 1.0) : null;
+
+  const numerator = arScore
+    + (callScore != null ? callScore : 0)
+    + (slaScore != null ? slaScore : 0)
+    + (renewalScore != null ? renewalScore : 0);
+  const denominator = 1.0
+    + (callScore != null ? 1.0 : 0.0)
+    + (slaScore != null ? 1.0 : 0.0)
+    + (renewalScore != null ? 1.0 : 0.0);
+  return Math.round((numerator / denominator) * 100);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILTERING
+// ═══════════════════════════════════════════════════════════════════════════
 function getFiltered() {
-  return data.filter(d => {
-    if (activeFilters.manager && d.manager !== activeFilters.manager) return false;
-    if (activeFilters.vertical && d.displayVertical !== activeFilters.vertical) return false;
-    if (activeFilters.segment && d.segment !== activeFilters.segment) return false;
+  return allData.filter(d => {
+    if (filters.manager  && d.manager  !== filters.manager)  return false;
+    if (filters.vertical && d.vertical !== filters.vertical) return false;
+    if (filters.segment  && d.segment  !== filters.segment)  return false;
     return true;
   });
 }
 
-// =============================================================================
-// HELPERS
-// =============================================================================
-const VERT_COLORS = {
-  OEM:'#2563EB', HVAC:'#0284C7', MedSpa:'#7C3AED', Emerging:'#EA580C',
-  Auto:'#059669', FAM:'#D97706', Jewelry:'#DB2777', Retail:'#475569',
-  'Platform Partnerships':'#7A7870'
-};
-
-function scoreBarColor(v) {
-  return v >= 85 ? '#00C274' : v >= 70 ? '#F59E0B' : v >= 55 ? '#EA580C' : '#E03131';
+function applyFilters() {
+  filters.manager  = document.getElementById('filterManager').value;
+  filters.vertical = document.getElementById('filterVertical').value;
+  filters.segment  = document.getElementById('filterSegment').value;
+  renderContextBar();
+  renderAll();
 }
 
-// Minimal threshold bar color — green / amber / red using design-system CSS vars
-function barCol(v, g, a) {
-  if (v === null || v === undefined) return 'var(--border2)';
-  return v >= g ? 'var(--green)' : v >= a ? 'var(--amber)' : 'var(--red)';
+// ═══════════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════════════════
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function chartColors() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  return {
-    grid:    isDark ? '#2A2A27' : '#E4E2DC',
-    tick:    isDark ? '#7A7870' : '#7A7870',
-    text:    isDark ? '#F2F1EE' : '#0D0D0C',
-    surface: isDark ? '#161615' : '#FFFFFF',
+function navTo(level, teamType, teamValue) {
+  const scrollTarget = level === 'overview'
+    ? (nav.teamType === 'manager' ? 'mgrLeaderboard' : nav.teamType === 'vertical' ? 'verticalComparison' : null)
+    : null;
+  nav.level     = level;
+  nav.teamType  = teamType  || null;
+  nav.teamValue = teamValue || null;
+  nav.profileCsm = null;
+  history.pushState({ level, teamType: nav.teamType, teamValue: nav.teamValue }, '');
+  renderContextBar();
+  renderAll();
+  if (level === 'overview' && scrollTarget) {
+    setTimeout(() => scrollToSection(scrollTarget), 50);
+  }
+}
+
+window.addEventListener('popstate', (e) => {
+  if (e.state) {
+    nav.level     = e.state.level     || 'overview';
+    nav.teamType  = e.state.teamType  || null;
+    nav.teamValue = e.state.teamValue || null;
+    nav.profileCsm = null;
+    renderContextBar();
+    renderAll();
+  } else {
+    nav.level     = 'overview';
+    nav.teamType  = null;
+    nav.teamValue = null;
+    nav.profileCsm = null;
+    renderContextBar();
+    renderAll();
+  }
+});
+
+function toggleFilterDrawer() {
+  document.getElementById('filterDrawer').classList.toggle('open');
+}
+
+// Close filter drawer when clicking outside
+document.addEventListener('click', (e) => {
+  const drawer = document.getElementById('filterDrawer');
+  const toggle = document.getElementById('filterToggle');
+  if (drawer && drawer.classList.contains('open') && !drawer.contains(e.target) && !toggle.contains(e.target)) {
+    drawer.classList.remove('open');
+  }
+});
+
+function renderContextBar() {
+  // Only manage section nav visibility — back button is rendered inside team view
+  const navEl = document.getElementById('sectionNav');
+  if (navEl) navEl.style.display = nav.level === 'overview' ? 'flex' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN RENDER DISPATCHER
+// ═══════════════════════════════════════════════════════════════════════════
+function renderAll() {
+  const main = document.getElementById('mainContent');
+  if (nav.level === 'overview') {
+    renderOverview(main);
+  } else if (nav.level === 'team') {
+    renderTeamView(main);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VIEW 1: EXECUTIVE OVERVIEW
+// ═══════════════════════════════════════════════════════════════════════════
+function renderOverview(container) {
+  const filtered = getFiltered();
+  container.innerHTML = `
+    <div class="overview-section" id="heroKpis">
+      <div class="section-label">Key Performance Metrics</div>
+      <div id="heroKpisSection"></div>
+      <div id="heroSection"></div>
+    </div>
+    <div class="overview-section">
+      <div class="section-label">Vertical Overview</div>
+      <div id="vertGrid" class="vert-grid"></div>
+    </div>
+    <div class="overview-section" id="verticalComparison">
+      <div class="section-label">Vertical Performance</div>
+      <div id="vertCompareSection"></div>
+    </div>
+    <div class="overview-section" id="mgrLeaderboard">
+      <div class="section-label">Manager Leaderboard</div>
+      <div id="mgrList" class="mgr-list"></div>
+    </div>
+    <div class="overview-section" id="globalLeaderboard">
+      <div class="section-label">CSM Rankings</div>
+      <div id="globalLeaderboardTable"></div>
+    </div>`;
+
+  renderHeroKpis(filtered);
+  renderHeroBar(filtered);
+  renderVertGrid(filtered);
+  renderVerticalComparison(filtered);
+  renderMgrLeaderboard(filtered);
+  renderGlobalLeaderboard(filtered);
+}
+
+// ── Hero KPI Strip ──────────────────────────────────────────────────────
+function renderHeroKpis(filtered) {
+  const arVals = filtered.map(d => d.arsPerDay).filter(v => v != null);
+  const callVals = filtered.map(d => d.callScore).filter(v => v != null);
+
+  const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+  const avgAr = avg(arVals);
+  const avgCall = avg(callVals);
+
+  // Aggregate Ret SLA: total done / total cases
+  const totalRetCases = filtered.reduce((s, d) => s + (d.retCases || 0), 0);
+  const totalRetDone = filtered.reduce((s, d) => s + (d.retSLADone || 0), 0);
+  const teamSla = totalRetCases > 0 ? Math.round(totalRetDone / totalRetCases * 100) : null;
+
+  // Aggregate UFR Coverage: total called / total cohort (non-P+P), using selected month data when available
+  const nonPP = filtered.filter(d => d.segment !== 'Phones + Platform');
+  const totalCohort = nonPP.reduce((s, d) => {
+    const ren = getRenewal(d.csm);
+    return s + (ren ? (ren.total || 0) : (d.renewalCohortTotal || 0));
+  }, 0);
+  const totalCalled = nonPP.reduce((s, d) => {
+    const ren = getRenewal(d.csm);
+    return s + (ren ? (ren.called || 0) : (d.renewalCohortCalled || 0));
+  }, 0);
+  const teamUfr = totalCohort > 0 ? Math.round(totalCalled / totalCohort * 100) : null;
+  const aggPacing = aggregatePacingStatus(filtered);
+
+  // Group by vertical and compute per-vertical metrics
+  const verticals = [...new Set(filtered.map(d => d.vertical))];
+  const vertMetrics = verticals.map(v => {
+    const vd = filtered.filter(d => d.vertical === v);
+    const avgArV = vd.reduce((s,d) => s + (d.arsPerDay||0), 0) / vd.length;
+    const callValsV = vd.filter(d => d.callScore != null);
+    const avgCallV = callValsV.length ? callValsV.reduce((s,d) => s + d.callScore, 0) / callValsV.length : null;
+    const retTotal = vd.reduce((s,d) => s + (d.retCases||0), 0);
+    const retDone = vd.reduce((s,d) => s + (d.retSLADone||0), 0);
+    const sla = retTotal > 0 ? Math.round(retDone/retTotal*100) : null;
+    const cohort = vd.reduce((s,d) => s + (d.renewalCohortTotal||0), 0);
+    const called = vd.reduce((s,d) => s + (d.renewalCohortCalled||0), 0);
+    const ufr = cohort > 0 ? Math.round(called/cohort*100) : null;
+    return { v, avgAr: avgArV, avgCall: avgCallV, sla, ufr };
+  });
+
+  const topArVert = [...vertMetrics].sort((a,b) => (b.avgAr||0) - (a.avgAr||0))[0];
+  const topCallVert = [...vertMetrics].filter(v => v.avgCall != null).sort((a,b) => b.avgCall - a.avgCall)[0];
+  const topSlaVert = [...vertMetrics].filter(v => v.sla != null).sort((a,b) => b.sla - a.sla)[0];
+  const topUfrVert = [...vertMetrics].filter(v => v.ufr != null).sort((a,b) => b.ufr - a.ufr)[0];
+
+  // Top CSM per metric
+  const topArCsm = [...filtered].filter(d => d.arsPerDay != null).sort((a,b) => b.arsPerDay - a.arsPerDay)[0];
+  const topCallCsm = [...filtered].filter(d => d.callScore != null).sort((a,b) => b.callScore - a.callScore)[0];
+  const topSlaCsm = [...filtered].filter(d => d.retSLA != null).sort((a,b) => b.retSLA - a.retSLA)[0];
+  const topUfrCsm = [...filtered].filter(d => d.segment !== 'Phones + Platform' && d.renewalCohortTotal > 0)
+    .sort((a,b) => (b.renewalCoveragePct||0) - (a.renewalCoveragePct||0))[0];
+
+  // Helper to build bottom section of a hero card
+  function heroBottom(topVert, topVertVal, topCsm, topCsmVal) {
+    const vertLine = topVert ? `<div style="font-size:12px;margin-bottom:2px">
+      <span style="color:var(--muted)">Top Vertical:</span>
+      <strong style="color:var(--text);font-size:13px"> ${topVert}</strong>
+      <span style="font-weight:700;color:var(--text2)"> ${topVertVal}</span>
+    </div>` : '';
+    const csmLine = topCsm ? `<div style="font-size:12px">
+      <span style="color:var(--muted)">Top CSM:</span>
+      <strong style="color:var(--text)"> ${topCsm}</strong>
+      <span style="font-weight:700;color:var(--text2)"> ${topCsmVal}</span>
+    </div>` : '';
+    return `<div class="hero-kpi-bottom">
+      ${vertLine}
+      ${csmLine}
+      <div class="hero-kpi-click">Click to view rankings →</div>
+    </div>`;
+  }
+
+  // UFR pacing note — built from aggregatePacingStatus
+  let ufrPacingNote = '';
+  if (aggPacing && aggPacing.status !== 'muted' && aggPacing.ratio != null) {
+    const pctDiff = Math.round((aggPacing.ratio - 1) * 100);
+    const paceStr = pctDiff >= 0 ? `+${pctDiff}% ahead of pace` : `${Math.abs(pctDiff)}% behind pace`;
+    ufrPacingNote = `<div style="font-size:10px;font-weight:600;color:${aggPacing.color};margin-top:2px">${paceStr}</div>`;
+  }
+
+  const el = document.getElementById('heroKpisSection');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="hero-kpis">
+      <div class="hero-kpi" onclick="openMetricRanking('arsPerDay')">
+        <div class="hero-kpi-label">AR/Day</div>
+        <div class="hero-kpi-value" style="color:${arColor(avgAr, null)}">${avgAr != null ? avgAr.toFixed(1) : '—'}</div>
+        <div class="hero-kpi-sub">across ${filtered.length} CSMs</div>
+        ${heroBottom(topArVert?.v, topArVert ? topArVert.avgAr.toFixed(1) : null, topArCsm?.csm, topArCsm ? topArCsm.arsPerDay.toFixed(1) : null)}
+      </div>
+      <div class="hero-kpi" onclick="openMetricRanking('callScore')">
+        <div class="hero-kpi-label">Call Score</div>
+        <div class="hero-kpi-value" style="color:${metricColor(avgCall, 'callScore')}">${avgCall != null ? Math.round(avgCall) : '—'}</div>
+        <div class="hero-kpi-sub">${callVals.length} CSMs scored</div>
+        ${heroBottom(topCallVert?.v, topCallVert ? Math.round(topCallVert.avgCall) : null, topCallCsm?.csm, topCallCsm ? Math.round(topCallCsm.callScore) : null)}
+      </div>
+      <div class="hero-kpi" onclick="openMetricRanking('retSLA')">
+        <div class="hero-kpi-label">Retention SLA</div>
+        <div class="hero-kpi-value" style="color:${metricColor(teamSla, 'retSLA')}">${teamSla != null ? teamSla + '%' : '—'}</div>
+        <div class="hero-kpi-sub">${totalRetDone}/${totalRetCases} cases</div>
+        ${heroBottom(topSlaVert?.v, topSlaVert ? topSlaVert.sla + '%' : null, topSlaCsm?.csm, topSlaCsm ? Math.round(topSlaCsm.retSLA) + '%' : null)}
+      </div>
+      <div class="hero-kpi" onclick="openMetricRanking('renewalCoveragePct')">
+        <div class="hero-kpi-label">UFR Coverage</div>
+        <div class="hero-kpi-value" style="color:${aggPacing.color}">${teamUfr != null ? teamUfr + '%' : '—'}</div>
+        <div class="hero-kpi-sub">${totalCalled}/${totalCohort} orgs contacted</div>
+        ${ufrPacingNote}
+        ${heroBottom(topUfrVert?.v, topUfrVert ? topUfrVert.ufr + '%' : null, topUfrCsm?.csm, topUfrCsm ? Math.round(topUfrCsm.renewalCoveragePct) + '%' : null)}
+      </div>
+    </div>`;
+}
+
+// ── Hero Bar ────────────────────────────────────────────────────────────
+function renderHeroBar(filtered) {
+  const composites = filtered.map(d => calcComposite(d)).filter(v => v != null);
+  const avgComp = composites.length ? Math.round(composites.reduce((a, b) => a + b, 0) / composites.length) : null;
+  const greens  = filtered.filter(d => d.overallStatus === 'green').length;
+  const yellows = filtered.filter(d => d.overallStatus === 'yellow').length;
+  const reds    = filtered.filter(d => d.overallStatus === 'red').length;
+  const total   = filtered.length;
+  const greenPct  = total ? (greens  / total * 100).toFixed(0) : 0;
+  const yellowPct = total ? (yellows / total * 100).toFixed(0) : 0;
+  const redPct    = total ? (reds    / total * 100).toFixed(0) : 0;
+
+  const deltas = filtered.map(d => d.compositeDelta7d).filter(v => v != null);
+  const avgDelta = deltas.length ? (deltas.reduce((a, b) => a + b, 0) / deltas.length) : null;
+
+  const vertCount = new Set(filtered.map(d => d.vertical)).size;
+
+  document.getElementById('heroSection').innerHTML = `
+    <div style="background:var(--surface);border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-sm);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        <div style="font-size:28px;font-weight:800;letter-spacing:-1px;color:${scoreColor(avgComp)}">${avgComp ?? '—'}</div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Composite</div>
+          ${avgDelta != null ? `<div style="font-size:11px;font-weight:600;margin-top:2px">${delta(avgDelta)} vs 7d</div>` : ''}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;flex:1;min-width:300px">
+        <div style="width:100%">
+          <div style="height:16px;border-radius:8px;overflow:hidden;display:flex;background:var(--surface3);margin-bottom:6px">
+            <div style="width:${greenPct}%;background:var(--green);height:100%;"></div>
+            <div style="width:${yellowPct}%;background:var(--amber);height:100%;margin-left:1px;"></div>
+            <div style="width:${redPct}%;background:var(--red);height:100%;margin-left:1px;"></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);text-align:center">${greens} on track · ${yellows} watch · ${reds} critical</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--muted);flex-shrink:0">${total} CSMs · ${vertCount} verticals</div>
+    </div>`;
+}
+
+
+// ── Vertical Heatmap ────────────────────────────────────────────────────
+function renderVertGrid(filtered) {
+  const vertMap = {};
+  filtered.forEach(d => {
+    if (!vertMap[d.vertical]) vertMap[d.vertical] = [];
+    vertMap[d.vertical].push(d);
+  });
+
+  const vertSummaries = Object.entries(vertMap).map(([v, csms]) => {
+    const composites = csms.map(d => calcComposite(d)).filter(x => x != null);
+    const avgComp = composites.length ? Math.round(composites.reduce((a, b) => a + b, 0) / composites.length) : 0;
+    return { v, csms, avgComp };
+  }).sort((a, b) => b.avgComp - a.avgComp);
+
+  document.getElementById('vertGrid').innerHTML = vertSummaries.map(({ v, csms, avgComp }, i) => {
+    const totalRenew = csms.reduce((s, d) => { const ren = getRenewal(d.csm); return s + (ren ? (ren.total || 0) : (d.renewalCohortTotal || 0)); }, 0);
+    const calledRenew = csms.reduce((s, d) => { const ren = getRenewal(d.csm); return s + (ren ? (ren.called || 0) : (d.renewalCohortCalled || 0)); }, 0);
+    const ufrPct = totalRenew > 0 ? Math.round(calledRenew / totalRenew * 100) : null;
+    const vertPacing = aggregatePacingStatus(csms);
+    const ufrColor = vertPacing.color;
+    const ufrBlock = ufrPct != null ? `
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11px;color:var(--muted);font-weight:600">UFR Coverage</span>
+          <span style="font-size:16px;font-weight:700;color:${ufrColor}">${ufrPct}%</span>
+        </div>
+        <div style="font-size:10px;color:var(--muted)">${calledRenew}/${totalRenew} orgs contacted</div>
+      </div>` : '';
+    return `
+      <div class="vert-card" style="border-left-color:${vertColor(v)}" onclick="navTo('team','vertical','${v}')">
+        <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">${ordinal(i+1)}</div>
+        <div class="vert-name">${v}</div>
+        <div class="vert-csm-count">${csms.length} CSM${csms.length !== 1 ? 's' : ''}</div>
+        <div class="vert-score" style="color:${scoreColor(avgComp)}">${avgComp}</div>
+        <div class="vert-score-label">avg composite</div>
+        ${ufrBlock}
+        <div style="margin-top:10px">${statusCounts(csms)}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── Vertical Comparison ──────────────────────────────────────────────────
+function renderVerticalComparison(filtered) {
+  const el = document.getElementById('vertCompareSection');
+  if (!el) return;
+
+  const vertMap = {};
+  filtered.forEach(d => {
+    if (!vertMap[d.vertical]) vertMap[d.vertical] = [];
+    vertMap[d.vertical].push(d);
+  });
+
+  const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+
+  const vertStats = Object.entries(vertMap).map(([v, vcsms]) => {
+    // AR/Day: average (Fix 6)
+    const arVals = vcsms.map(d => d.arsPerDay).filter(x => x != null);
+    const avgAr = arVals.length ? arVals.reduce((s, val) => s + val, 0) / arVals.length : null;
+    // Call Score: average
+    const callVals = vcsms.map(d => d.callScore).filter(x => x != null);
+    // Ret SLA: aggregate total done / total cases (Fix 5)
+    const totalRetCases = vcsms.reduce((s, d) => s + (d.retCases || 0), 0);
+    const totalRetDone = vcsms.reduce((s, d) => s + (d.retSLADone || 0), 0);
+    const slaPct = totalRetCases > 0 ? Math.round(totalRetDone / totalRetCases * 100) : null;
+    // UFR: use getRenewal(), exclude P+P, aggregate (Fix 4)
+    const nonPP = vcsms.filter(d => d.segment !== 'Phones + Platform');
+    const totalCohort = nonPP.reduce((s, d) => {
+      const ren = getRenewal(d.csm);
+      return s + (ren ? ren.total : (d.renewalCohortTotal || 0));
+    }, 0);
+    const totalCalled = nonPP.reduce((s, d) => {
+      const ren = getRenewal(d.csm);
+      return s + (ren ? ren.called : (d.renewalCohortCalled || 0));
+    }, 0);
+    const ufrPct = totalCohort > 0 ? Math.round(totalCalled / totalCohort * 100) : null;
+    return {
+      v,
+      ar: avgAr,
+      call: avg(callVals),
+      sla: slaPct,
+      renewal: ufrPct,
+    };
+  }).sort((a, b) => (b.ar || 0) - (a.ar || 0));
+
+  const buildBars = (stats, key, label, fmt, metricKey, maxOverride, colorFn) => {
+    const sorted = [...stats].sort((a, b) => (b[key] || 0) - (a[key] || 0));
+    const vals = sorted.map(s => s[key]).filter(x => x != null);
+    const maxVal = maxOverride || (vals.length ? Math.max(...vals) : 1) || 1;
+    return `
+      <div class="vert-compare-section">
+        <div class="vert-compare-section-title">${label}</div>
+        ${sorted.map(s => {
+          const val = s[key];
+          if (val == null) return `<div class="vert-bar-row"><div class="vert-bar-label" title="${s.v}">${s.v}</div><div class="vert-bar-track"><div class="vert-bar-fill" style="width:0%;background:var(--border2)"></div></div><div class="vert-bar-value" style="color:var(--muted)">—</div></div>`;
+          const pct = Math.min((val / maxVal) * 100, 100);
+          const color = colorFn ? colorFn(s, val) : (metricKey === 'arsPerDay' ? arColor(val, null) : metricColor(val, metricKey));
+          return `<div class="vert-bar-row">
+            <div class="vert-bar-label" title="${s.v}">${s.v}</div>
+            <div class="vert-bar-track"><div class="vert-bar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div>
+            <div class="vert-bar-value">${fmt(val)}</div>
+          </div>`;
+        }).join('')}
+      </div>`;
   };
+
+  el.innerHTML = `
+    <div class="vert-compare-grid">
+      ${buildBars(vertStats, 'ar', 'AR/Day', v => v.toFixed(1), 'arsPerDay', null)}
+      ${buildBars(vertStats, 'call', 'Call Score', v => Math.round(v), 'callScore', 100)}
+      ${buildBars(vertStats, 'sla', 'Ret SLA', v => Math.round(v) + '%', 'retSLA', 100)}
+      ${buildBars(vertStats, 'renewal', 'UFR Coverage', v => Math.round(v) + '%', 'renewalCoveragePct', 100, (s) => aggregatePacingStatus(vertMap[s.v] || []).color)}
+    </div>`;
 }
 
+// ── Manager Leaderboard ─────────────────────────────────────────────────
+function renderMgrLeaderboard(filtered) {
+  const mgrMap = {};
+  filtered.forEach(d => {
+    if (!mgrMap[d.manager]) mgrMap[d.manager] = [];
+    mgrMap[d.manager].push(d);
+  });
+
+  const avgArr = arr => arr.filter(x => x != null).length ? arr.filter(x => x != null).reduce((a, b) => a + b, 0) / arr.filter(x => x != null).length : null;
+
+  const managers = Object.entries(mgrMap).map(([name, team]) => {
+    const composites = team.map(d => calcComposite(d)).filter(x => x != null);
+    const avgComp = composites.length ? Math.round(composites.reduce((a, b) => a + b, 0) / composites.length) : 0;
+    const totalArr = team.reduce((s, d) => s + (d.bookMrr || 0) * 12, 0);
+    const director = team[0]?.director || '';
+    const avgAr = avgArr(team.map(d => d.arsPerDay));
+    const avgCall = avgArr(team.map(d => d.callScore));
+    // Aggregate SLA: total done / total cases
+    const totalRetCases = team.reduce((s, d) => s + (d.retCases || 0), 0);
+    const totalRetDone = team.reduce((s, d) => s + (d.retSLADone || 0), 0);
+    const aggSla = totalRetCases > 0 ? Math.round(totalRetDone / totalRetCases * 100) : null;
+    // Aggregate UFR: total called / total cohort (using selected month data when available)
+    const totalCohort = team.reduce((s, d) => {
+      const ren = getRenewal(d.csm);
+      return s + (ren ? (ren.total || 0) : (d.renewalCohortTotal || 0));
+    }, 0);
+    const totalCalled = team.reduce((s, d) => {
+      const ren = getRenewal(d.csm);
+      return s + (ren ? (ren.called || 0) : (d.renewalCohortCalled || 0));
+    }, 0);
+    const aggUfr = totalCohort > 0 ? Math.round(totalCalled / totalCohort * 100) : null;
+    const csmCount = team.length;
+    return { name, team, avgComp, totalArr, director, avgAr, avgCall, aggSla, aggUfr, csmCount };
+  }).sort((a, b) => b.avgComp - a.avgComp);
+
+  document.getElementById('mgrList').innerHTML = `
+    <div class="table-scroll">
+      <table class="mgr-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Manager</th>
+            <th>Composite</th>
+            <th>AR/Day</th>
+            <th>Call</th>
+            <th>Ret SLA</th>
+            <th>UFR</th>
+            <th>Team</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${managers.map((m, i) => `<tr onclick="navTo('team','manager','${m.name.replace(/'/g, "\\'")}')">
+            <td style="color:${i === 0 ? '#D97706' : i === 1 ? '#64748B' : i === 2 ? '#92400E' : 'var(--muted)'};font-weight:700;text-align:center">${i+1}</td>
+            <td><div style="font-weight:600">${m.name}</div><div style="font-size:11px;color:var(--muted)">${m.csmCount} CSMs · ${fmtArr(m.totalArr)}</div></td>
+            <td>${metricPill(m.avgComp, 'composite')}</td>
+            <td>${metricPill(m.avgAr, 'arsPerDay')}</td>
+            <td>${metricPill(m.avgCall, 'callScore')}</td>
+            <td>${metricPill(m.aggSla, 'retSLA')}</td>
+            <td>${ufrProgressCell(m.aggUfr, aggregatePacingStatus(m.team).status)}</td>
+            <td>${statusCounts(m.team)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ── Global CSM Leaderboard ───────────────────────────────────────────────
+function renderGlobalLeaderboard(filtered) {
+  const el = document.getElementById('globalLeaderboardTable');
+  if (!el) return;
+
+  const sorted = [...filtered].sort((a, b) => (calcComposite(b) || 0) - (calcComposite(a) || 0));
+
+  el.innerHTML = `
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>CSM</th>
+            <th>Segment</th>
+            <th style="width:70px">Trend</th>
+            <th>Composite</th>
+            <th>AR/Day</th>
+            <th>Call Score</th>
+            <th>Ret SLA</th>
+            <th>UFR</th>
+            <th>Pace</th>
+            <th>Risk</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sorted.map((d, i) => {
+            const comp = calcComposite(d);
+            const isPP = d.segment === 'Phones + Platform';
+            const pacing = isPP ? null : calcPacing(d);
+            const ren = getRenewal(d.csm);
+            const ufrPct = isPP ? null : (ren && ren.total > 0 ? Math.round(ren.called / ren.total * 100) : (d.renewalCohortTotal > 0 ? Math.round((d.renewalCohortCalled || 0) / d.renewalCohortTotal * 100) : null));
+            const sparkData = sparklines[d.csm] ? sparklines[d.csm].map(p => p.composite) : null;
+            const sparkHtml = sparklineSVG(sparkData, { width: 60, height: 20, color: metricColor(comp, 'composite') });
+            let paceCell = '<td class="sc-muted" style="font-size:11px">—</td>';
+            if (pacing) {
+              const pctDiff = Math.round((pacing.ratio - 1) * 100);
+              const paceStr = pctDiff >= 0 ? `+${pctDiff}%` : `${pctDiff}%`;
+              const paceColor = pacing.status === 'green' ? 'var(--green)' : pacing.status === 'yellow' ? 'var(--amber)' : 'var(--red)';
+              paceCell = `<td style="text-align:center">
+                <div style="font-size:12px;font-weight:700;color:${paceColor}">${paceStr}</div>
+                <div style="font-size:10px;color:var(--muted)">${pacing.called}/${pacing.expected} exp</div>
+              </td>`;
+            }
+            const highRisk = d.highRiskOrgCount || 0;
+            const riskCell = highRisk > 0
+              ? `<td><span class="pill pill-red">${highRisk}</span></td>`
+              : `<td class="sc-muted">—</td>`;
+            const compStatus = statusFromComposite(comp);
+            const borderColor = compStatus === 'green' ? 'var(--green)' : compStatus === 'yellow' ? 'var(--amber)' : compStatus === 'red' ? 'var(--red)' : 'transparent';
+            return `<tr style="border-left:3px solid ${borderColor}" onclick="openPanel('${d.csm.replace(/'/g, "\\'")}')">
+              <td style="color:var(--muted);font-size:12px">${i + 1}</td>
+              <td>
+                <span class="csm-name-link" style="font-weight:600">${d.csm}</span>
+                <div style="font-size:11px;color:var(--muted)">${d.manager || ''} · ${d.vertical}</div>
+              </td>
+              <td style="font-size:12px;color:var(--muted)">${d.segment || '—'}</td>
+              <td style="padding:6px 8px">${sparkHtml}</td>
+              <td>${metricPill(comp, 'composite')}</td>
+              <td>${metricPill(d.arsPerDay, 'arsPerDay', d.segment)}</td>
+              <td>${metricPill(d.callScore, 'callScore')}</td>
+              <td>${metricPill(d.retSLA, 'retSLA')}</td>
+              <td>${isPP ? '<span style="font-size:10px;color:var(--muted)">P+P</span>' : ufrProgressCell(ufrPct, pacing ? pacing.status : 'muted')}</td>
+              ${paceCell}
+              ${riskCell}
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VIEW 2: TEAM DRILLDOWN
+// ═══════════════════════════════════════════════════════════════════════════
+function renderTeamView(container) {
+  let teamCSMs;
+  if (nav.teamType === 'manager') {
+    teamCSMs = getFiltered().filter(d => d.manager === nav.teamValue);
+  } else if (nav.teamType === 'vertical') {
+    teamCSMs = getFiltered().filter(d => d.vertical === nav.teamValue);
+  } else if (nav.teamType === 'director') {
+    teamCSMs = getFiltered().filter(d => (d.director || '') === nav.teamValue);
+  } else {
+    teamCSMs = getFiltered();
+  }
+
+  teamCSMs = [...teamCSMs].sort((a, b) => (calcComposite(b) || 0) - (calcComposite(a) || 0));
+
+  const totalARR = teamCSMs.reduce((s, d) => s + (d.bookMrr || 0) * 12, 0);
+  const totalOrgs = teamCSMs.reduce((s, d) => s + (d.orgCount || 0), 0);
+  const totalOnboarding = teamCSMs.reduce((s, d) => s + (d.openOnboardingCases || 0), 0);
+  const totalRetention = teamCSMs.reduce((s, d) => s + (d.openRetentionCases || d.retCases || 0), 0);
+  const composites = teamCSMs.map(d => calcComposite(d)).filter(x => x != null);
+  const teamComp = composites.length ? Math.round(composites.reduce((a, b) => a + b, 0) / composites.length) : null;
+  const greens  = teamCSMs.filter(d => d.overallStatus === 'green').length;
+  const yellows = teamCSMs.filter(d => d.overallStatus === 'yellow').length;
+  const reds    = teamCSMs.filter(d => d.overallStatus === 'red').length;
+  const total   = teamCSMs.length;
+  const greenPct  = total ? (greens  / total * 100).toFixed(0) : 0;
+  const yellowPct = total ? (yellows / total * 100).toFixed(0) : 0;
+  const redPct    = total ? (reds    / total * 100).toFixed(0) : 0;
+
+  container.innerHTML = `
+    <div style="margin-bottom:16px">
+      <button onclick="navTo('overview')" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 14px;cursor:pointer;transition:all 0.15s" onmouseenter="this.style.color='var(--text)';this.style.borderColor='var(--border2)'" onmouseleave="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">← Back to Overview</button>
+    </div>
+    <div class="team-header">
+      <div class="team-header-name">${nav.teamValue}</div>
+      <div class="team-pills">
+        <span class="team-stat-pill">${total} CSMs</span>
+        <span class="team-stat-pill">${fmtArr(totalARR)} ARR</span>
+        <span class="team-stat-pill">${totalOrgs.toLocaleString()} orgs</span>
+        ${totalOnboarding > 0 ? `<span class="team-stat-pill" style="color:var(--amber-t);background:var(--amber-bg)">${totalOnboarding} onboarding</span>` : ''}
+        ${totalRetention > 0 ? `<span class="team-stat-pill" style="color:var(--red-t);background:var(--red-bg)">${totalRetention} retention</span>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <div>
+          <div style="font-size:28px;font-weight:800;letter-spacing:-1px;color:${scoreColor(teamComp)}">${teamComp ?? '—'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">team composite</div>
+        </div>
+        <div style="flex:1;max-width:240px">
+          <div class="health-bar-track" style="margin-bottom:6px">
+            <div class="health-bar-seg" style="width:${greenPct}%;background:var(--green);"></div>
+            <div class="health-bar-seg" style="width:${yellowPct}%;background:var(--amber);margin-left:1px;"></div>
+            <div class="health-bar-seg" style="width:${redPct}%;background:var(--red);margin-left:1px;"></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">${greens} on track · ${yellows} watch · ${reds} critical</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:14px;font-weight:600">${total} CSMs</div>
+      <div class="view-toggle">
+        <button class="toggle-btn ${teamViewMode === 'cards' ? 'active' : ''}" onclick="setTeamViewMode('cards')">Cards</button>
+        <button class="toggle-btn ${teamViewMode === 'table' ? 'active' : ''}" onclick="setTeamViewMode('table')">Table</button>
+      </div>
+    </div>
+    <div id="teamCards"></div>`;
+
+  if (teamViewMode === 'cards') {
+    renderCsmCards(teamCSMs);
+  } else {
+    renderCsmTable(teamCSMs);
+  }
+}
+
+function setTeamViewMode(mode) {
+  teamViewMode = mode;
+  renderAll();
+}
+
+// ── CSM Cards ────────────────────────────────────────────────────────────
+function renderCsmCards(csms) {
+  document.getElementById('teamCards').innerHTML = `
+    <div class="csm-card-grid">
+      ${csms.map(d => csmCardHtml(d)).join('')}
+    </div>`;
+}
+
+function csmCardHtml(d) {
+  const comp = calcComposite(d);
+  const compColor = scoreColor(comp);
+  const statusColor = d.overallStatus === 'green' ? 'var(--green)' : d.overallStatus === 'yellow' ? 'var(--amber)' : 'var(--red)';
+  const arr = fmtMrrToArr(d.bookMrr);
+  const segment = d.segment || '';
+  const vertical = d.vertical || '';
+
+  // AR pillar bar
+  const arMax = 6;
+  const arPct = Math.min((d.arsPerDay || 0) / arMax * 100, 100);
+  const arColor = pillarBarColor(d.arsPerDay, 1.5, 0.75);
+
+  // Call score bar
+  const callPct = d.callScore ? Math.min(d.callScore, 100) : 0;
+  const callColor = pillarBarColor(d.callScore, 80, 65);
+
+  // Ret SLA bar
+  const slaPct = d.retSLA != null ? d.retSLA : null;
+  const slaColor = pillarBarColor(slaPct, 70, 40);
+
+  // Sparkline
+  const sparkData = sparklines[d.csm] ? sparklines[d.csm].map(p => p.composite) : null;
+  const sparkColor = compColor;
+  const sparkHtml = sparklineSVG(sparkData, { color: sparkColor });
+
+  // Renewal
+  const ren = getRenewal(d.csm);
+  const renewStr = ren && ren.total > 0 ? `${Math.round(ren.pct)}% renew` : null;
+
+  return `
+    <div class="csm-card" onclick="openPanel('${d.csm.replace(/'/g, "\\'")}')">
+      <div class="csm-card-header">
+        <div class="csm-card-name">${d.csm}</div>
+        <div class="csm-card-score" style="color:${compColor}">
+          ${comp ?? '—'}
+          <span class="status-dot" style="background:${statusColor}"></span>
+        </div>
+      </div>
+      <div class="csm-card-meta">${vertical}${segment ? ' · ' + segment : ''}</div>
+      <div class="csm-card-stats">
+        <span>${arr} ARR</span>
+        <span class="csm-stat-sep">·</span>
+        <span>${d.orgCount} orgs</span>
+        ${d.locationCount ? `<span class="csm-stat-sep">·</span><span>${d.locationCount} locs</span>` : ''}
+      </div>
+      <div class="pillar-rows">
+        <div class="pillar-row">
+          <div class="pillar-label">AR</div>
+          <div class="pillar-track"><div class="pillar-fill" style="width:${arPct}%;background:${arColor}"></div></div>
+          <div class="pillar-val">${(d.arsPerDay || 0).toFixed(1)}</div>
+        </div>
+        <div class="pillar-row">
+          <div class="pillar-label">Call</div>
+          <div class="pillar-track"><div class="pillar-fill" style="width:${callPct}%;background:${callColor}"></div></div>
+          <div class="pillar-val">${d.callScore != null ? Math.round(d.callScore) : '—'}</div>
+        </div>
+        <div class="pillar-row">
+          <div class="pillar-label">Ret</div>
+          <div class="pillar-track"><div class="pillar-fill" style="width:${slaPct ?? 0}%;background:${slaPct != null ? slaColor : 'var(--border2)'}"></div></div>
+          <div class="pillar-val">${slaPct != null ? Math.round(slaPct) + '%' : '—'}</div>
+        </div>
+      </div>
+      <div class="csm-card-footer">
+        <div>
+          ${delta(d.compositeDelta7d)}
+          <span style="font-size:10px;color:var(--muted);margin-left:2px">vs 7d</span>
+        </div>
+        <div class="csm-card-sparkline">${sparkHtml}</div>
+      </div>
+      ${(d.openOnboardingCases || d.openRetentionCases || d.retCases) ? `
+        <div class="csm-card-cases">
+          ${d.openOnboardingCases > 0 ? `<span style="color:var(--amber-t)">${d.openOnboardingCases} onboarding</span>` : ''}
+          ${(d.openRetentionCases || 0) > 0 || d.retCases > 0 ? `<span style="color:var(--red-t)"${d.openOnboardingCases > 0 ? ' style="margin-left:8px"' : ''}> ${d.openRetentionCases || d.retCases} retention</span>` : ''}
+        </div>` : ''}
+    </div>`;
+}
+
+// ── CSM Table ────────────────────────────────────────────────────────────
+function renderCsmTable(csms) {
+  let sorted = [...csms].sort((a, b) => {
+    const f = teamTableSort.field;
+    let av = f === 'composite' ? calcComposite(a) : a[f];
+    let bv = f === 'composite' ? calcComposite(b) : b[f];
+    if (av == null) return 1; if (bv == null) return -1;
+    return teamTableSort.asc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+  });
+
+  const th = (label, field, tip) =>
+    `<th onclick="sortTeamTable('${field}')" style="${teamTableSort.field===field?'color:var(--text)':''}">${label} <span style="color:var(--muted2);font-size:9px">↕</span></th>`;
+
+  document.getElementById('teamCards').innerHTML = `
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            ${th('CSM', 'csm')}
+            ${th('Composite', 'composite')}
+            ${th('AR/Day', 'arsPerDay')}
+            ${th('Call Score', 'callScore')}
+            ${th('Ret SLA', 'retSLA')}
+            ${th('Renewal', 'renewalCoveragePct')}
+            ${th('±7d', 'compositeDelta7d')}
+            <th>Risk</th>
+            <th>ARR</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sorted.map((d, i) => {
+            const comp = calcComposite(d);
+            const ren = getRenewal(d.csm);
+            const isPP = d.segment === 'Phones + Platform';
+            const renewPct = ren && ren.total ? ren.pct : null;
+            const renewCell = isPP ? '<td class="sc-muted">—<br><span style="font-size:9px;color:var(--muted2)">P+P</span></td>'
+              : renewPct != null ? `<td class="${metricStatus(renewPct, 'renewalCoveragePct') === 'green' ? 'sc-green' : metricStatus(renewPct, 'renewalCoveragePct') === 'yellow' ? 'sc-amber' : 'sc-red'}">${Math.round(renewPct)}%</td>`
+              : '<td class="sc-muted">—</td>';
+            const highRisk = d.highRiskOrgCount || 0;
+            const riskCell = highRisk > 0
+              ? `<td><span class="pill pill-red">${highRisk}</span></td>`
+              : `<td class="sc-muted">—</td>`;
+            const tenWarn = d.hasUnattempted10in14 ? ' <span title="10-in-14 unattempted tasks" style="color:var(--amber)">⚠</span>' : '';
+            const csmCompStatus = statusFromComposite(comp);
+            const csmBorderColor = csmCompStatus === 'green' ? 'var(--green)' : csmCompStatus === 'yellow' ? 'var(--amber)' : csmCompStatus === 'red' ? 'var(--red)' : 'transparent';
+            return `<tr style="border-left:3px solid ${csmBorderColor}" onclick="openPanel('${d.csm.replace(/'/g, "\\'")}')">
+              <td style="color:var(--muted);font-size:12px">${i + 1}</td>
+              <td>
+                <div><span class="csm-name-link" style="font-weight:600">${d.csm}</span>${tenWarn}</div>
+                <div style="font-size:11px;color:var(--muted)">${d.vertical} · ${d.segment}</div>
+              </td>
+              <td>${metricPill(comp, 'composite')}</td>
+              <td>${metricPill(d.arsPerDay, 'arsPerDay', d.segment)}</td>
+              <td>${metricPill(d.callScore, 'callScore')}</td>
+              <td>${metricPill(d.retSLA, 'retSLA')}</td>
+              <td>${isPP ? '<span style="font-size:10px;color:var(--muted)">P+P</span>' : ufrProgressCell(renewPct, (() => { const p = calcPacing(d); return p ? p.status : 'muted'; })())}</td>
+              <td>${delta(d.compositeDelta7d)}</td>
+              ${riskCell}
+              <td style="color:var(--muted);font-size:12px">${fmtMrrToArr(d.bookMrr)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function sortTeamTable(field) {
+  if (teamTableSort.field === field) teamTableSort.asc = !teamTableSort.asc;
+  else { teamTableSort.field = field; teamTableSort.asc = false; }
+  let teamCSMs;
+  if (nav.teamType === 'manager') teamCSMs = getFiltered().filter(d => d.manager === nav.teamValue);
+  else if (nav.teamType === 'vertical') teamCSMs = getFiltered().filter(d => d.vertical === nav.teamValue);
+  else teamCSMs = getFiltered();
+  renderCsmTable(teamCSMs);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CSM PROFILE PANEL
+// ═══════════════════════════════════════════════════════════════════════════
+function openPanel(csmName) {
+  const d = allData.find(x => x.csm === csmName);
+  if (!d) return;
+  nav.profileCsm = csmName;
+
+  const comp = calcComposite(d);
+  const arr = fmtMrrToArr(d.bookMrr);
+  const ren = getRenewal(d.csm);
+  const isPP = d.segment === 'Phones + Platform';
+
+  // Sparkline data
+  const sp = sparklines[csmName] || [];
+  const compSpark  = sp.length > 1 ? sp.map(p => p.composite) : null;
+  const arSpark    = sp.length > 1 ? sp.map(p => p.ar) : null;
+  const callSpark  = sp.length > 1 ? sp.map(p => p.call) : null;
+  const slaSpark   = sp.length > 1 ? sp.map(p => p.sla) : null;
+
+  // Risk detail
+  const risk = riskDetail[csmName] || null;
+
+  // 10-in-14
+  const ten = d.total10in14Tasks > 0
+    ? `${d.outreachCount10in14}/${d.total10in14Tasks} complete`
+    : 'No tasks';
+  const tenStatus = d.hasUnattempted10in14 ? 'amber' : 'green';
+
+  document.getElementById('panelContent').innerHTML = `
+    <!-- Identity -->
+    <div class="panel-section" style="padding-top:8px">
+      <div class="panel-name">${d.csm}</div>
+      <div class="panel-pills">
+        <span class="pill pill-outline">${d.vertical}</span>
+        ${d.segment ? `<span class="pill pill-outline">${d.segment}</span>` : ''}
+        ${d.isOffshore ? '<span class="pill pill-muted">Offshore</span>' : ''}
+        ${d.isTrane ? '<span class="pill pill-muted">Trane</span>' : ''}
+      </div>
+      <div class="panel-meta-row" style="color:var(--muted)">Manager: <strong style="color:var(--text2)">${d.manager || '—'}</strong></div>
+    </div>
+
+    <!-- Book Stats -->
+    <div class="panel-section">
+      <div class="panel-section-title">Book of Business</div>
+      <div class="panel-stat-grid">
+        <div class="panel-stat">
+          <div class="panel-stat-val">${arr}</div>
+          <div class="panel-stat-label">ARR</div>
+        </div>
+        <div class="panel-stat">
+          <div class="panel-stat-val">${d.orgCount}</div>
+          <div class="panel-stat-label">Orgs</div>
+        </div>
+        <div class="panel-stat">
+          <div class="panel-stat-val">${d.locationCount || '—'}</div>
+          <div class="panel-stat-label">Locations</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Composite -->
+    <div class="panel-section">
+      <div class="panel-section-title">Composite Score</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div class="panel-composite" style="color:${scoreColor(comp)}">${comp ?? '—'}</div>
+        ${statusPill(d.overallStatus)}
+        ${d.gatedBy10in14 ? '<span class="pill pill-amber">10-in-14 Gate</span>' : ''}
+      </div>
+      <div class="panel-pillar-row">
+        <div class="panel-pillar-label">AR Velocity</div>
+        <div class="panel-pillar-track"><div class="panel-pillar-fill" style="width:${Math.min((d.arScoreNorm||0)*100,100)}%;background:${pillarBarColor(d.arScoreNorm*100, 67, 33)}"></div></div>
+        <div class="panel-pillar-val">${(d.arsPerDay||0).toFixed(1)}/d</div>
+      </div>
+      <div class="panel-pillar-row">
+        <div class="panel-pillar-label">Call Quality</div>
+        <div class="panel-pillar-track"><div class="panel-pillar-fill" style="width:${d.callScore ? Math.min(d.callScore,100) : 0}%;background:${pillarBarColor(d.callScore, 80, 65)}"></div></div>
+        <div class="panel-pillar-val">${d.callScore != null ? Math.round(d.callScore) : '—'}</div>
+      </div>
+      <div class="panel-pillar-row">
+        <div class="panel-pillar-label">Ret SLA</div>
+        <div class="panel-pillar-track"><div class="panel-pillar-fill" style="width:${d.retSLA ?? 0}%;background:${pillarBarColor(d.retSLA, 70, 40)}"></div></div>
+        <div class="panel-pillar-val">${d.retSLA != null ? Math.round(d.retSLA) + '%' : '—'}</div>
+      </div>
+      ${!isPP ? `<div class="panel-pillar-row">
+        <div class="panel-pillar-label">Renewal</div>
+        <div class="panel-pillar-track"><div class="panel-pillar-fill" style="width:${ren ? ren.pct : (d.renewalCoveragePct || 0)}%;background:${pillarBarColor(ren ? ren.pct : d.renewalCoveragePct, 70, 40)}"></div></div>
+        <div class="panel-pillar-val">${ren ? Math.round(ren.pct) + '%' : (d.renewalCoveragePct != null ? Math.round(d.renewalCoveragePct) + '%' : '—')}</div>
+      </div>` : `<div style="font-size:11px;color:var(--muted);margin-top:4px">Renewal excluded from composite (P+P segment)</div>`}
+    </div>
+
+    <!-- Trend Sparklines -->
+    <div class="panel-section">
+      <div class="panel-section-title">Trend (7-day history)</div>
+      ${sp.length >= 2 ? `
+      <div class="sparkline-grid">
+        <div class="sparkline-item">
+          <div class="sparkline-label">Composite</div>
+          ${sparklineSVG(compSpark, { width: 140, height: 28, color: 'var(--green)' })}
+        </div>
+        <div class="sparkline-item">
+          <div class="sparkline-label">AR / Day</div>
+          ${sparklineSVG(arSpark, { width: 140, height: 28, color: 'var(--amber)' })}
+        </div>
+        <div class="sparkline-item">
+          <div class="sparkline-label">Call Score</div>
+          ${sparklineSVG(callSpark, { width: 140, height: 28, color: 'var(--v-oem)' })}
+        </div>
+        <div class="sparkline-item">
+          <div class="sparkline-label">Ret SLA</div>
+          ${sparklineSVG(slaSpark, { width: 140, height: 28, color: 'var(--v-medspa)' })}
+        </div>
+      </div>` : `<div style="font-size:12px;color:var(--muted);font-style:italic">Accumulating data…</div>`}
+    </div>
+
+    <!-- Open Cases -->
+    <div class="panel-section">
+      <div class="panel-section-title">Open Cases</div>
+      <div style="display:flex;gap:8px">
+        <span class="pill ${(d.openOnboardingCases || 0) > 0 ? 'pill-amber' : 'pill-muted'}">${d.openOnboardingCases || 0} onboarding</span>
+        <span class="pill ${(d.openRetentionCases || d.retCases || 0) > 0 ? 'pill-red' : 'pill-muted'}">${d.openRetentionCases || d.retCases || 0} retention</span>
+      </div>
+    </div>
+
+    <!-- Risk Intelligence -->
+    <div class="panel-section">
+      <div class="panel-section-title">Risk Intelligence</div>
+      ${risk ? `
+        <div style="margin-bottom:8px">
+          <div class="risk-bar-track">
+            ${risk.lowRisk > 0 ? `<div class="risk-seg" style="flex:${risk.lowRisk};background:var(--green);opacity:0.6"></div>` : ''}
+            ${risk.elevatedRisk > 0 ? `<div class="risk-seg" style="flex:${risk.elevatedRisk};background:var(--amber);margin-left:1px"></div>` : ''}
+            ${risk.highRisk > 0 ? `<div class="risk-seg" style="flex:${risk.highRisk};background:var(--red);margin-left:1px"></div>` : ''}
+            ${risk.criticalRisk > 0 ? `<div class="risk-seg" style="flex:${risk.criticalRisk};background:#7F1D1D;margin-left:1px"></div>` : ''}
+          </div>
+          <div style="font-size:11px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap">
+            <span>${risk.lowRisk} low</span>
+            <span>${risk.elevatedRisk} elevated</span>
+            <span>${risk.highRisk} high</span>
+            <span>${risk.criticalRisk} critical</span>
+          </div>
+        </div>
+        ${d.cancellationIntentCount > 0 ? `<div style="font-size:12px;color:var(--red-t);font-weight:600;margin-top:6px">${d.cancellationIntentCount} cancellation intent signals</div>` : ''}
+        ${risk.avgDaysOpen != null ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">Avg ${risk.avgDaysOpen.toFixed(1)} days open · ${risk.avgOpenAsks?.toFixed(1) || '—'} avg open asks</div>` : ''}
+      ` : `
+        ${d.highRiskOrgCount != null ? `
+          <div style="font-size:13px;margin-bottom:6px">
+            ${d.highRiskOrgCount > 0 ? `<span style="color:var(--red-t);font-weight:600">${d.highRiskOrgCount} high-risk orgs</span>` : '<span style="color:var(--green-t);font-weight:600">0 high-risk orgs</span>'}
+            ${d.cancellationIntentCount > 0 ? ` · <span style="color:var(--red-t);font-weight:600">${d.cancellationIntentCount} cancellation intent</span>` : ''}
+          </div>
+          ${d.avgRiskScore != null ? `<div style="font-size:12px;color:var(--muted)">Avg risk score: ${d.avgRiskScore.toFixed(1)}</div>` : ''}
+        ` : `<div style="font-size:12px;color:var(--muted);font-style:italic">No interaction intelligence data yet</div>`}
+      `}
+    </div>
+
+    <!-- 10-in-14 Action Items -->
+    <div class="panel-section">
+      <div class="panel-section-title">Action Items</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        ${d.hasUnattempted10in14
+          ? `<span class="pill pill-amber">⚠ Unattempted 10-in-14 Tasks</span>`
+          : `<span class="pill pill-green">10-in-14 Complete</span>`}
+        <span style="font-size:13px;color:var(--text2)">${ten}</span>
+      </div>
+      ${d.hasUnattempted10in14 ? `<div style="font-size:12px;color:var(--muted);margin-top:8px">Review and attempt any outstanding 10-in-14 outreach tasks to stay current.</div>` : ''}
+    </div>
+
+    <!-- Renewal Coverage -->
+    <div class="panel-section">
+      <div class="panel-section-title">Renewal Coverage${selectedRenewalMonth ? ' — ' + selectedRenewalMonth : ''}</div>
+      ${isPP ? `<div style="font-size:12px;color:var(--muted);font-style:italic">P+P segment — renewal excluded from composite</div>` : `
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px;font-weight:700;color:${metricColor(ren ? ren.pct : d.renewalCoveragePct, 'renewalCoveragePct')}">${ren ? Math.round(ren.pct) + '%' : (d.renewalCoveragePct != null ? Math.round(d.renewalCoveragePct) + '%' : '—')}</span>
+        <span style="font-size:12px;color:var(--muted)">${ren ? `${ren.called}/${ren.total} orgs contacted` : (d.renewalCohortCalled != null ? `${d.renewalCohortCalled}/${d.renewalCohortTotal} orgs contacted` : '')}</span>
+      </div>`}
+    </div>`;
+
+  document.getElementById('panelBackdrop').classList.add('open');
+  document.getElementById('csmPanel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('panelBackdrop').classList.remove('open');
+  document.getElementById('csmPanel').classList.remove('open');
+  nav.profileCsm = null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// METRIC RANKING MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+function openMetricRanking(metric) {
+  const titles = { arsPerDay: 'AR/Day', callScore: 'Call Score', retSLA: 'Retention SLA', renewalCoveragePct: 'UFR Coverage' };
+  const el = document.getElementById('metricModal');
+  const contentEl = document.getElementById('metricModalContent');
+
+  function render(groupBy) {
+    const filtered = getFiltered();
+    let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:16px;font-weight:700">${titles[metric]} Rankings</div>
+      <div style="display:flex;gap:4px">
+        ${['all','vertical','manager'].map(g => `<button class="toggle-btn ${groupBy === g ? 'active' : ''}" onclick="renderMetricGroup('${metric}','${g}')">${g === 'all' ? 'All CSMs' : g === 'vertical' ? 'By Vertical' : 'By Manager'}</button>`).join('')}
+        <button class="toggle-btn" onclick="document.getElementById('metricModal').classList.remove('open')" style="margin-left:8px;color:var(--muted)">✕</button>
+      </div>
+    </div>`;
+
+    if (groupBy === 'all') {
+      const filteredForMetric = [...filtered].filter(d => {
+        if (metric === 'callScore') return d.callScore != null;
+        if (metric === 'retSLA') return d.retSLA != null;
+        if (metric === 'renewalCoveragePct') return d.segment !== 'Phones + Platform' && d.renewalCohortTotal > 0;
+        return true;
+      }).sort((a, b) => {
+        const av = metric === 'arsPerDay' ? (a.arsPerDay||0) : metric === 'callScore' ? (a.callScore||0) : metric === 'retSLA' ? (a.retSLA||0) : (a.renewalCoveragePct||0);
+        const bv = metric === 'arsPerDay' ? (b.arsPerDay||0) : metric === 'callScore' ? (b.callScore||0) : metric === 'retSLA' ? (b.retSLA||0) : (b.renewalCoveragePct||0);
+        return bv - av;
+      });
+
+      html += `<div class="table-scroll" style="max-height:400px"><table><thead><tr><th>#</th><th>CSM</th><th>${titles[metric]}</th><th>Vertical</th><th>Segment</th></tr></thead><tbody>`;
+      html += filteredForMetric.map((d, i) => {
+        const val = d[metric];
+        return `<tr><td>${i+1}</td><td style="font-weight:600">${d.csm}<br><span style="font-size:11px;color:var(--muted)">${d.manager}</span></td><td>${metricPill(val, metric, d.segment)}</td><td>${d.vertical}</td><td style="font-size:11px;color:var(--muted)">${d.segment}</td></tr>`;
+      }).join('');
+      html += '</tbody></table></div>';
+    } else if (groupBy === 'vertical') {
+      const filteredForMetric = filtered;
+      const verticals = [...new Set(filteredForMetric.map(d => d.vertical))].filter(Boolean).sort();
+      const vertStats = verticals.map(v => {
+        const vd = filteredForMetric.filter(d => d.vertical === v);
+        let val;
+        if (metric === 'arsPerDay') val = vd.reduce((s,d) => s + (d.arsPerDay||0), 0) / vd.length;
+        else if (metric === 'callScore') { const cv = vd.filter(d => d.callScore != null); val = cv.length ? cv.reduce((s,d) => s + d.callScore, 0) / cv.length : null; }
+        else if (metric === 'retSLA') { const tc = vd.reduce((s,d) => s + (d.retCases||0), 0); const td = vd.reduce((s,d) => s + (d.retSLADone||0), 0); val = tc > 0 ? Math.round(td/tc*100) : null; }
+        else if (metric === 'renewalCoveragePct') { const nonPP = vd.filter(d => d.segment !== 'Phones + Platform'); const tc = nonPP.reduce((s,d) => s + (d.renewalCohortTotal||0), 0); const called = nonPP.reduce((s,d) => s + (d.renewalCohortCalled||0), 0); val = tc > 0 ? Math.round(called/tc*100) : null; }
+        return { v, val, count: vd.length };
+      }).sort((a,b) => (b.val||0) - (a.val||0));
+
+      html += `<table style="width:100%"><thead><tr><th>#</th><th>Vertical</th><th>CSMs</th><th>${titles[metric]}</th></tr></thead><tbody>`;
+      html += vertStats.map((s, i) => `<tr><td>${i+1}</td><td style="font-weight:600">${s.v}</td><td style="color:var(--muted)">${s.count}</td><td>${metricPill(s.val, metric)}</td></tr>`).join('');
+      html += '</tbody></table>';
+    } else if (groupBy === 'manager') {
+      const filteredForMetric = filtered;
+      const managers = [...new Set(filteredForMetric.map(d => d.manager))].filter(Boolean).sort();
+      const mgrStats = managers.map(m => {
+        const md = filteredForMetric.filter(d => d.manager === m);
+        let val;
+        if (metric === 'arsPerDay') val = md.reduce((s,d) => s + (d.arsPerDay||0), 0) / md.length;
+        else if (metric === 'callScore') { const cv = md.filter(d => d.callScore != null); val = cv.length ? cv.reduce((s,d) => s + d.callScore, 0) / cv.length : null; }
+        else if (metric === 'retSLA') { const tc = md.reduce((s,d) => s + (d.retCases||0), 0); const td = md.reduce((s,d) => s + (d.retSLADone||0), 0); val = tc > 0 ? Math.round(td/tc*100) : null; }
+        else if (metric === 'renewalCoveragePct') { const nonPP = md.filter(d => d.segment !== 'Phones + Platform'); const tc = nonPP.reduce((s,d) => s + (d.renewalCohortTotal||0), 0); const called = nonPP.reduce((s,d) => s + (d.renewalCohortCalled||0), 0); val = tc > 0 ? Math.round(called/tc*100) : null; }
+        return { m, val, count: md.length };
+      }).sort((a,b) => (b.val||0) - (a.val||0));
+
+      html += `<table style="width:100%"><thead><tr><th>#</th><th>Manager</th><th>CSMs</th><th>${titles[metric]}</th></tr></thead><tbody>`;
+      html += mgrStats.map((s, i) => `<tr><td>${i+1}</td><td style="font-weight:600">${s.m}</td><td style="color:var(--muted)">${s.count}</td><td>${metricPill(s.val, metric)}</td></tr>`).join('');
+      html += '</tbody></table>';
+    }
+
+    contentEl.innerHTML = html;
+  }
+
+  window.renderMetricGroup = (m, g) => { metric = m; render(g); };
+  render('all');
+  el.classList.add('open');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEFINITIONS MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+function openDefs() {
+  document.getElementById('defsBackdrop').classList.add('open');
+}
+
+function closeDefs(e) {
+  if (!e || e.target === document.getElementById('defsBackdrop')) {
+    document.getElementById('defsBackdrop').classList.remove('open');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// THEME TOGGLE
+// ═══════════════════════════════════════════════════════════════════════════
 function toggleTheme() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
-  document.getElementById('themeIcon').textContent  = isDark ? '☽' : '☀';
-  document.getElementById('themeLabel').textContent = isDark ? 'Dark' : 'Light';
-  setTimeout(() => {
-    const activeEl = document.querySelector('.tab-content.active');
-    const tabId = activeEl ? activeEl.id.replace('tab-', '') : '';
-    if (tabId === 'callquality') renderCallQuality();
-  }, 50);
+  document.getElementById('themeIcon').textContent = isDark ? '☽' : '☀';
 }
 
-function scoreCell(v, showBar) {
-  if (v === null || v === undefined) {
-    return `<td style="text-align:center;color:var(--muted)">—</td>`;
-  }
-  const cls = v >= 85 ? 'cs-elite' : v >= 70 ? 'cs-strong' : v >= 55 ? 'cs-warn' : 'cs-fail';
-  if (showBar) {
-    return `<td class="${cls}"><div class="data-bar-cell"><span style="letter-spacing:-0.3px">${v}</span><div class="data-bar-track"><div class="data-bar-fill" style="width:${v}%;background:${barCol(v,75,55)}"></div></div></div></td>`;
-  }
-  return `<td class="${cls}" style="text-align:center;letter-spacing:-0.3px">${v}</td>`;
+// ═══════════════════════════════════════════════════════════════════════════
+// POPULATE FILTER DROPDOWNS
+// ═══════════════════════════════════════════════════════════════════════════
+function populateFilters(data) {
+  const unique = (arr) => [...new Set(arr.filter(Boolean))].sort();
+
+  const managers  = unique(data.map(d => d.manager));
+  const verticals = unique(data.map(d => d.vertical));
+  const segments  = unique(data.map(d => d.segment));
+
+  const fill = (id, vals) => {
+    const sel = document.getElementById(id);
+    const first = sel.querySelector('option');
+    sel.innerHTML = '';
+    sel.appendChild(first);
+    vals.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
+    });
+  };
+
+  fill('filterManager',  managers);
+  fill('filterVertical', verticals);
+  fill('filterSegment',  segments);
 }
 
-// Sigma: data bar — maps to Sigma conditional formatting → data bars
-function dataBar(pct, color) {
-  return `<div class="data-bar-cell"><div class="data-bar-track" style="width:70px"><div class="data-bar-fill" style="width:${Math.min(pct,100)}%;background:${color}"></div></div></div>`;
-}
-
-function delta(d) {
-  if (d === null || d === undefined) return '<span class="delta-neu">—</span>';
-  const sign = d > 0 ? '+' : '';
-  if (d > 2) return `<span class="delta-pos">▲ ${sign}${d.toFixed(1)}</span>`;
-  if (d < -2) return `<span class="delta-neg">▼ ${d.toFixed(1)}</span>`;
-  return `<span class="delta-neu">${sign}${d.toFixed(1)}</span>`;
-}
-
-// Non-neg status (used in leaderboard)
-function nonNegStatus(d) {
-  if (d.overallStatus === 'green') return '<span class="pass-pill">PASS</span>';
-  if (d.overallStatus === 'yellow') return '<span class="warn-pill">WARN</span>';
-  return '<span class="fail-pill">FAIL</span>';
-}
-
-// Sigma: conditional text color for status
-function statusText(cls, label) {
-  return `<span class="${cls}">${label}</span>`;
-}
-
-// =============================================================================
-// COMPOSITE SCORE CALCULATION (dynamic — uses selected UFR month)
-// =============================================================================
-function calcComposite(d) {
-  // Fall back to pre-computed value if norm fields aren't in the data yet
-  if (d.arScoreNorm == null && d.callScoreNorm == null && d.slaScoreNorm == null) {
-    return d.composite != null ? Math.round(d.composite) : null;
-  }
-  const isPP = d.segment === 'Phones + Platform';
-  const ren = isPP ? null : getRenewal(d.csm);
-  const hasRenewal = ren && ren.total > 0;
-  const arScore      = (d.arScoreNorm  != null) ? d.arScoreNorm  : 0;
-  const callScore    = d.callScoreNorm;   // null = no scored calls → excluded
-  const slaScore     = d.slaScoreNorm;    // null = no ret cases   → excluded
-  const renewalScore = hasRenewal ? (ren.pct / 100) : null;
-  const numerator   = arScore
-                    + (callScore    != null ? callScore    : 0)
-                    + (slaScore     != null ? slaScore     : 0)
-                    + (renewalScore != null ? renewalScore : 0);
-  const denominator = 1.0
-                    + (callScore    != null ? 1.0 : 0.0)
-                    + (slaScore     != null ? 1.0 : 0.0)
-                    + (renewalScore != null ? 1.0 : 0.0);
-  return Math.round((numerator / denominator) * 100);
-}
-
-// =============================================================================
-// RENDER: VERTICAL CARDS
-// =============================================================================
-function renderVerticalCards() {
-  const filtered = getFiltered();
-  const vertSet = [...new Set(filtered.map(d => d.displayVertical))].filter(Boolean).sort();
-
-  const summaries = vertSet.map(v => {
-    const csms = filtered.filter(d => d.displayVertical === v);
-    if (!csms.length) return null;
-    const avgComp = Math.round(csms.reduce((s, d) => s + calcComposite(d), 0) / csms.length);
-    const callCSMs = csms.filter(d => d.callScore !== null && d.callCount > 0);
-    const avgCall = callCSMs.length ? Math.round(callCSMs.reduce((s, d) => s + d.callScore, 0) / callCSMs.length) : null;
-    const avgAR = (csms.reduce((s, d) => s + (d.arsPerDay||0), 0) / csms.length).toFixed(1);
-    const retCasesSum = csms.reduce((s, d) => s + (d.retCases||0), 0);
-    const retDoneSum  = csms.reduce((s, d) => s + (d.retSLADone||0), 0);
-    const retSLA = retCasesSum > 0 ? Math.round(retDoneSum / retCasesSum * 100) : null;
-    // Exclude P+P from UFR aggregation in vertical cards
-    const renewCSMs = csms.filter(d => d.segment !== 'Phones + Platform' && (function(){ const r = getRenewal(d.csm); return r && r.total > 0; })());
-    const renewTotal = renewCSMs.reduce((s,d) => s + (getRenewal(d.csm)?.total  || 0), 0);
-    const renewCalled = renewCSMs.reduce((s,d) => s + (getRenewal(d.csm)?.called || 0), 0);
-    const renewPct = renewTotal > 0 ? Math.round(renewCalled / renewTotal * 100) : null;
-    return { v, csms, avgComp, avgCall, avgAR, retSLA, renewPct, total: csms.length };
-  }).filter(Boolean);
-
-  summaries.sort((a, b) => b.avgComp - a.avgComp);
-
-  const container = document.getElementById('verticalCards');
-  container.innerHTML = summaries.map((s, i) => {
-    const rank = i + 1;
-    const rankLabel = ['1st','2nd','3rd','4th','5th','6th','7th','8th'][rank-1] || `${rank}th`;
-    const color = VERT_COLORS[s.v] || '#717171';
-    const scoreColor = s.avgComp >= 67 ? '#00A86B' : s.avgComp >= 45 ? '#E8860A' : '#E03131';
-
-    const retBarColor  = barCol(s.retSLA, 70, 40);
-    const renBarColor  = barCol(s.renewPct, 70, 40);
-    const callBarColor = barCol(s.avgCall, 80, 70);
-    const arNum = parseFloat(s.avgAR);
-    const arBarColor   = barCol(arNum, 2.0, 1.0);
-
-    function miniStat(label, displayVal, barColor, fillPct) {
-      return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 11px;background:var(--surface2)">
-        <div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px">${label}</div>
-        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;letter-spacing:-0.3px">${displayVal}</div>
-        <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden">
-          <div style="height:100%;width:${Math.min(fillPct,100)}%;background:${barColor};border-radius:2px;transition:width 0.3s"></div>
-        </div>
-      </div>`;
-    }
-
-    const retFill  = s.retSLA !== null ? s.retSLA : 0;
-    const renFill  = s.renewPct !== null ? s.renewPct : 0;
-    const callFill = s.avgCall !== null ? s.avgCall : 0;
-    const arFill   = Math.min(arNum / 4 * 100, 100);
-
-    return `
-      <div class="vcard" onclick="filterToVertical('${s.v}')">
-        <div class="vcard-rank-label">${rankLabel} · ${s.total} CSMs</div>
-        <div class="vcard-name">${s.v}</div>
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px">
-          <div class="vcard-score" style="color:${scoreColor}">${s.avgComp}</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">avg composite</div>
-        </div>
-        <div class="vcard-divider"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-          ${miniStat('Ret SLA', s.retSLA !== null ? s.retSLA + '%' : '—', retBarColor, retFill)}
-          ${miniStat('UFR Cov', s.renewPct !== null ? s.renewPct + '%' : '—', renBarColor, renFill)}
-          ${miniStat('Call Score', s.avgCall !== null ? s.avgCall : '—', callBarColor, callFill)}
-          ${miniStat('AR/Day', s.avgAR, arBarColor, arFill)}
-        </div>
-      </div>`;
-  }).join('');
-}
-
-function filterToVertical(v) {
-  document.getElementById('filterVertical').value = v;
-  applyFilters();
-}
-
-// =============================================================================
-// RENDER: LEADERBOARD TABLE
-// =============================================================================
-function renderLeaderKPIs() {
-  const filtered = getFiltered();
-  // Ret SLA: weighted across all CSMs with cases
-  const retCasesTotal = filtered.reduce((s,d) => s + (d.retCases||0), 0);
-  const retDoneTotal  = filtered.reduce((s,d) => s + (d.retSLADone||0), 0);
-  const retSLATeam = retCasesTotal > 0 ? Math.round(retDoneTotal / retCasesTotal * 100) : null;
-  const retColor = retSLATeam === null ? 'var(--muted)' : retSLATeam >= 70 ? '#00A86B' : retSLATeam >= 40 ? '#E8860A' : '#E03131';
-
-  // Renewal coverage: aggregate from selected UFR month
-  const renewalCSMs = filtered.filter(d => { const r = getRenewal(d.csm); return r && r.total > 0; });
-  const renewTotal  = renewalCSMs.reduce((s,d) => s + (getRenewal(d.csm)?.total  || 0), 0);
-  const renewCalled = renewalCSMs.reduce((s,d) => s + (getRenewal(d.csm)?.called || 0), 0);
-  const renewPct = renewTotal > 0 ? (renewCalled / renewTotal * 100).toFixed(1) : null;
-  const renewColor = renewPct === null ? 'var(--muted)' : renewPct >= 70 ? '#00A86B' : renewPct >= 40 ? '#E8860A' : '#E03131';
-  const cohortLabel = (filtered[0] && filtered[0].renewalCohortMonthLabel) || (document.getElementById('renewalColHeader') ? document.getElementById('renewalColHeader').textContent.replace(' Cov','') : 'UFR');
-
-  // Avg call score
-  const scoredCSMs = filtered.filter(d => d.callScore !== null && d.callCount > 0);
-  const avgCall = scoredCSMs.length ? (scoredCSMs.reduce((s,d) => s + d.callScore, 0) / scoredCSMs.length).toFixed(1) : '—';
-  const callColor = avgCall === '—' ? 'var(--muted)' : parseFloat(avgCall) >= 80 ? '#00A86B' : parseFloat(avgCall) >= 70 ? '#E8860A' : '#E03131';
-
-  // Avg AR/day
-  const avgAR = filtered.length ? (filtered.reduce((s,d) => s + (d.arsPerDay||0), 0) / filtered.length).toFixed(2) : '—';
-  const arColor = avgAR === '—' ? 'var(--muted)' : parseFloat(avgAR) >= 1.5 ? '#00A86B' : parseFloat(avgAR) >= 0.75 ? '#E8860A' : '#E03131';
-
-  document.getElementById('leaderKPIs').innerHTML = `
-    <div class="kpi-card">
-      <div class="kpi-label">Team Ret. SLA</div>
-      <div class="kpi-value" style="color:${retColor}">${retSLATeam !== null ? retSLATeam + '%' : '—'}</div>
-      <div class="kpi-sub">${retDoneTotal}/${retCasesTotal} cases with outreach · L30D</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">${cohortLabel} Renewal Cov</div>
-      <div class="kpi-value" style="color:${renewColor}">${renewPct !== null ? renewPct + '%' : '—'}</div>
-      <div class="kpi-sub">${renewCalled}/${renewTotal} accounts contacted · 120d window</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Avg Call Score</div>
-      <div class="kpi-value" style="color:${callColor}">${avgCall}</div>
-      <div class="kpi-sub">V3 AI scoring · ${scoredCSMs.length} CSMs with scored calls</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Avg AR / Day</div>
-      <div class="kpi-value" style="color:${arColor}">${avgAR}</div>
-      <div class="kpi-sub">Account reviews per active business day · L30D</div>
-    </div>`;
-}
-
-function renderLeaderboard() {
-  let rows = [...getFiltered()];
-  rows.sort((a, b) => {
-    const getVal = (d) => currentSort.field === 'composite' ? calcComposite(d) : d[currentSort.field];
-    const av = getVal(a), bv = getVal(b);
-    if (av === null || av === undefined) return 1;
-    if (bv === null || bv === undefined) return -1;
-    return currentSort.asc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
-  });
-
-  const tbody = document.getElementById('leaderboardBody');
-  tbody.innerHTML = rows.map((d, i) => {
-    const rank = i + 1;
-    const rankLabel = rank <= 3 ? ['1st','2nd','3rd'][rank-1] : rank;
-    const rankCls = rank === 1 ? 'rank-gold-text' : rank === 2 ? 'rank-silver-text' : rank === 3 ? 'rank-bronze-text' : '';
-    const rowClass = d.overallStatus === 'red' ? 'fail-row' : '';
-    const segLabel = d.segment;
-
-    // AR velocity: segment-aware
-    const isPP = d.segment === 'Phones + Platform';
-    const arCls = isPP
-      ? (d.arsPerDay >= 1.5 ? 'status-pass' : d.arsPerDay >= 0.75 ? 'status-warn' : 'status-fail')
-      : (d.arsPerDay >= 4 ? 'status-pass' : d.arsPerDay >= 2 ? 'status-warn' : 'status-fail');
-
-    // Ret SLA data bar
-    const retSLA = d.retSLA || 0;
-    const retBarColor = barCol(retSLA, 70, 40);
-
-    // Renewal Coverage
-    const ren = getRenewal(d.csm);
-    let renewalCell;
-    if (isPP) {
-      // P+P: show data if available but indicate it doesn't count toward composite
-      if (!ren || !ren.total) {
-        renewalCell = `<td style="text-align:center;color:var(--muted)" title="P+P segment — UFR not counted toward composite">—</td>`;
-      } else {
-        const pct = ren.pct || 0;
-        const rColor = barCol(pct, 70, 40);
-        renewalCell = `<td title="UFR not counted toward composite for P+P">
-          <div class="data-bar-cell">
-            <span style="font-size:12px;font-weight:600;color:var(--muted)">${pct}%</span>
-            <div class="data-bar-track"><div class="data-bar-fill" style="width:${Math.min(pct,100)}%;background:${rColor};opacity:0.35"></div></div>
-          </div>
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-top:2px;text-align:center">unscored</div>
-        </td>`;
-      }
-    } else if (!ren || !ren.total) {
-      renewalCell = `<td style="text-align:center;color:var(--muted)">—</td>`;
-    } else {
-      const pct = ren.pct || 0;
-      const rColor = barCol(pct, 70, 40);
-      renewalCell = `<td>
-        <div class="data-bar-cell">
-          <span style="font-size:12px;font-weight:600">${pct}%</span>
-          <div class="data-bar-track"><div class="data-bar-fill" style="width:${Math.min(pct,100)}%;background:${rColor}"></div></div>
-        </div>
-      </td>`;
-    }
-
-    return `<tr class="${rowClass}">
-      <td class="rank-cell ${rankCls}">${rankLabel}</td>
-      <td><strong>${d.csm}</strong><br><span style="font-size:11px;color:var(--muted)">${d.manager}</span></td>
-      <td>${d.displayVertical}</td>
-      <td>${segLabel}</td>
-      ${scoreCell(calcComposite(d), true)}
-      ${scoreCell(d.callScore !== null ? Math.round(d.callScore) : null, true)}
-      <td class="${arCls}" style="font-weight:600">
-        <div class="data-bar-cell">
-          <span>${(d.arsPerDay||0).toFixed(1)}</span>
-          <div class="data-bar-track"><div class="data-bar-fill" style="width:${Math.min((d.arsPerDay||0)/6*100,100)}%;background:${barCol(d.arsPerDay||0,2,1)}"></div></div>
-        </div>
-      </td>
-      <td>
-        <div class="data-bar-cell">
-          <span style="font-size:12px">${retSLA}%</span>
-          <div class="data-bar-track"><div class="data-bar-fill" style="width:${retSLA}%;background:${retBarColor}"></div></div>
-        </div>
-      </td>
-      ${renewalCell}
-      <td>${delta(d.compositeDelta7d)}</td>
-    </tr>`;
-  }).join('');
-
-  // Update fail count badge
-  const failCount = rows.filter(d => d.overallStatus === 'red').length;
-  const failCountEl = document.getElementById('failCount');
-  if (failCountEl) failCountEl.textContent = failCount;
-}
-
-function sortTable(field) {
-  if (currentSort.field === field) currentSort.asc = !currentSort.asc;
-  else { currentSort.field = field; currentSort.asc = false; }
-  document.querySelectorAll('#leaderboardTable thead th').forEach(th => th.classList.remove('sorted'));
-  renderLeaderboard();
-}
-
-// =============================================================================
-// RENDER: MANAGER VIEW TAB
-// =============================================================================
-let managerViewSort = { field: 'avgComposite', asc: false };
-
-function renderManagerView() {
-  const filtered = getFiltered();
-  const managers = [...new Set(filtered.map(d => d.manager))].filter(Boolean).sort();
-
-  const teamRows = managers.map(mgr => {
-    const team = filtered.filter(d => d.manager === mgr);
-    const csmCount = team.length;
-    const avgComposite = Math.round(team.reduce((s, d) => s + (d.composite || 0), 0) / csmCount);
-    const scoredCSMs = team.filter(d => d.callScore !== null && d.callCount > 0);
-    const avgCallScore = scoredCSMs.length
-      ? parseFloat((scoredCSMs.reduce((s, d) => s + d.callScore, 0) / scoredCSMs.length).toFixed(1))
-      : null;
-    const avgArsPerDay = parseFloat((team.reduce((s, d) => s + (d.arsPerDay || 0), 0) / csmCount).toFixed(2));
-    const totalCases = team.reduce((s, d) => s + (d.retCases || 0), 0);
-    const doneCases  = team.reduce((s, d) => s + (d.retSLADone || 0), 0);
-    const retSLA = totalCases > 0 ? Math.round(doneCases / totalCases * 100) : null;
-    const renewTeam = team.filter(d => { const r = getRenewal(d.csm); return r && r.total > 0; });
-    const renewTotal  = renewTeam.reduce((s, d) => s + (getRenewal(d.csm)?.total  || 0), 0);
-    const renewCalled = renewTeam.reduce((s, d) => s + (getRenewal(d.csm)?.called || 0), 0);
-    const renewalCoverage = renewTotal > 0 ? Math.round(renewCalled / renewTotal * 100) : null;
-    const greenCount  = team.filter(d => d.overallStatus === 'green').length;
-    const yellowCount = team.filter(d => d.overallStatus === 'yellow').length;
-    const redCount    = team.filter(d => d.overallStatus === 'red').length;
-    return { manager: mgr, csmCount, avgComposite, avgCallScore, avgArsPerDay, retSLA, renewalCoverage, greenCount, yellowCount, redCount };
-  });
-
-  teamRows.sort((a, b) => {
-    const av = a[managerViewSort.field], bv = b[managerViewSort.field];
-    if (av === null || av === undefined) return 1;
-    if (bv === null || bv === undefined) return -1;
-    return managerViewSort.asc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
-  });
-
-  // KPIs
-  const allComposites = teamRows.map(r => r.avgComposite);
-  const bestTeam = teamRows.reduce((best, r) => r.avgComposite > best.avgComposite ? r : best, teamRows[0]);
-  const totalGreen = teamRows.reduce((s, r) => s + r.greenCount, 0);
-  const totalCSMs = filtered.length;
-  const greenPct = totalCSMs > 0 ? Math.round(totalGreen / totalCSMs * 100) : 0;
-  const avgTeamComp = teamRows.length ? Math.round(allComposites.reduce((s, v) => s + v, 0) / teamRows.length) : 0;
-
-  document.getElementById('managerKPIs').innerHTML = `
-    <div class="kpi-card">
-      <div class="kpi-label">Managers</div>
-      <div class="kpi-value">${teamRows.length}</div>
-      <div class="kpi-sub">${totalCSMs} CSMs total</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Avg Team Composite</div>
-      <div class="kpi-value" style="color:${avgTeamComp >= 67 ? '#00A86B' : avgTeamComp >= 45 ? '#E8860A' : '#E03131'}">${avgTeamComp}</div>
-      <div class="kpi-sub">Across all managers</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">CSMs Green</div>
-      <div class="kpi-value" style="color:${greenPct >= 70 ? '#00A86B' : greenPct >= 50 ? '#E8860A' : '#E03131'}">${greenPct}%</div>
-      <div class="kpi-sub">${totalGreen} of ${totalCSMs} CSMs passing all pillars</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Top Team</div>
-      <div class="kpi-value" style="color:var(--accent);font-size:18px;letter-spacing:-0.5px">${bestTeam ? bestTeam.manager.split(' ')[0] + ' ' + bestTeam.manager.split(' ').slice(-1)[0] : '—'}</div>
-      <div class="kpi-sub">${bestTeam ? bestTeam.avgComposite + ' avg composite' : ''}</div>
-    </div>`;
-
-  document.getElementById('managerViewBody').innerHTML = teamRows.map(r => {
-    const compCls = r.avgComposite >= 85 ? 'cs-elite' : r.avgComposite >= 70 ? 'cs-strong' : r.avgComposite >= 55 ? 'cs-warn' : 'cs-fail';
-    const callTd = r.avgCallScore !== null
-      ? `<td class="${r.avgCallScore >= 85 ? 'cs-elite' : r.avgCallScore >= 70 ? 'cs-strong' : r.avgCallScore >= 55 ? 'cs-warn' : 'cs-fail'}" style="text-align:center">${r.avgCallScore}</td>`
-      : `<td style="text-align:center;color:var(--muted)">—</td>`;
-    const arCls = r.avgArsPerDay >= 1.5 ? 'status-pass' : r.avgArsPerDay >= 0.75 ? 'status-warn' : 'status-fail';
-    const retTd = r.retSLA !== null
-      ? `<td><div class="data-bar-cell"><span style="font-size:12px;font-weight:600">${r.retSLA}%</span><div class="data-bar-track"><div class="data-bar-fill" style="width:${r.retSLA}%;background:${barCol(r.retSLA,70,40)}"></div></div></div></td>`
-      : `<td style="text-align:center;color:var(--muted)">—</td>`;
-    const renewTd = r.renewalCoverage !== null
-      ? `<td><div class="data-bar-cell"><span style="font-size:12px;font-weight:600">${r.renewalCoverage}%</span><div class="data-bar-track"><div class="data-bar-fill" style="width:${r.renewalCoverage}%;background:${barCol(r.renewalCoverage,70,40)}"></div></div></div></td>`
-      : `<td style="text-align:center;color:var(--muted)">—</td>`;
-    const statusDots = `<div style="display:flex;align-items:center;gap:6px">
-      ${r.greenCount > 0  ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--green-t);background:var(--green-bg);padding:2px 7px;border-radius:10px"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span>${r.greenCount}</span>` : ''}
-      ${r.yellowCount > 0 ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--amber-t);background:var(--amber-bg);padding:2px 7px;border-radius:10px"><span style="width:6px;height:6px;border-radius:50%;background:var(--amber);display:inline-block"></span>${r.yellowCount}</span>` : ''}
-      ${r.redCount > 0    ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--red-t);background:var(--red-bg);padding:2px 7px;border-radius:10px"><span style="width:6px;height:6px;border-radius:50%;background:var(--red);display:inline-block"></span>${r.redCount}</span>` : ''}
-    </div>`;
-    return `<tr>
-      <td><strong>${r.manager}</strong></td>
-      <td style="text-align:center;color:var(--muted)">${r.csmCount}</td>
-      <td class="${compCls}"><div class="data-bar-cell"><span style="letter-spacing:-0.3px">${r.avgComposite}</span><div class="data-bar-track"><div class="data-bar-fill" style="width:${r.avgComposite}%;background:${barCol(r.avgComposite,70,55)}"></div></div></div></td>
-      ${callTd}
-      <td class="${arCls}" style="font-weight:600;text-align:center">${r.avgArsPerDay.toFixed(2)}</td>
-      ${retTd}
-      ${renewTd}
-      <td>${statusDots}</td>
-    </tr>`;
-  }).join('');
-}
-
-function sortManagerView(field) {
-  if (managerViewSort.field === field) managerViewSort.asc = !managerViewSort.asc;
-  else { managerViewSort.field = field; managerViewSort.asc = false; }
-  document.querySelectorAll('#managerViewTable thead th').forEach(th => th.classList.remove('sorted'));
-  renderManagerView();
-}
-
-// =============================================================================
-// RENDER: CALL QUALITY
-// =============================================================================
-let callScoreChart = null, verticalChart = null;
-
-function renderCallQuality() {
-  const filtered = getFiltered();
-
-  // Only count CSMs with scored calls for averages
-  const scoredCSMs = filtered.filter(d => d.callScore !== null && d.callCount > 0);
-  const avgScore = scoredCSMs.length
-    ? (scoredCSMs.reduce((s, d) => s + d.callScore, 0) / scoredCSMs.length).toFixed(1)
-    : '—';
-  const totalCalls = filtered.reduce((s, d) => s + d.callCount, 0);
-  const trendingUp   = filtered.filter(d => d.callScoreDelta !== null && d.callScoreDelta > 2).length;
-  const trendingDown = filtered.filter(d => d.callScoreDelta !== null && d.callScoreDelta < -2).length;
-  const above80 = scoredCSMs.filter(d => d.callScore >= 80).length;
-
-  document.getElementById('callKPIs').innerHTML = `
-    <div class="kpi-card">
-      <div class="kpi-label">Avg Call Score</div>
-      <div class="kpi-value" style="color:${avgScore>='80'?'#00A86B':avgScore>='70'?'#E8860A':'#7A3300'}">${avgScore}</div>
-      <div class="kpi-sub">Across ${totalCalls} scored calls · ${scoredCSMs.length} CSMs</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Trending Up ▲</div>
-      <div class="kpi-value" style="color:#15803D">${trendingUp}</div>
-      <div class="kpi-sub">CSMs with call score delta &gt; +2 vs prior period</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Trending Down ▼</div>
-      <div class="kpi-value" style="color:#B91C1C">${trendingDown}</div>
-      <div class="kpi-sub">CSMs with call score delta &lt; −2 vs prior period</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">CSMs Scoring 80+</div>
-      <div class="kpi-value" style="color:#D4891A">${above80}</div>
-      <div class="kpi-sub">of ${scoredCSMs.length} CSMs with scored calls</div>
-    </div>`;
-
-  const sorted = [...scoredCSMs].sort((a, b) => b.callScore - a.callScore);
-  const labels = sorted.map(d => d.csm.split(' ')[0] + ' ' + d.csm.split(' ').slice(-1)[0]);
-  const scores = sorted.map(d => Math.round(d.callScore));
-  const cc = chartColors();
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const barColor = isDark ? 'rgba(242,241,238,0.85)' : 'rgba(26,26,24,0.82)';
-  const bgColors = sorted.map(() => barColor);
-
-  if (callScoreChart) callScoreChart.destroy();
-  const ctx = document.getElementById('callScoreChart').getContext('2d');
-  callScoreChart = new Chart(ctx, {
-    type: 'bar',
-    data: { labels, datasets: [{ data: scores, backgroundColor: bgColors, borderRadius: 4, borderWidth: 0 }] },
-    options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: {
-        callbacks: { label: ctx => ` Score: ${ctx.raw}  (${sorted[ctx.dataIndex].callCount} calls)` }
-      }},
-      scales: {
-        x: { min: 40, max: 100, grid: { color: cc.grid }, ticks: { color: cc.tick, font: { size: 11 } } },
-        y: { grid: { display: false }, ticks: { color: cc.text, font: { size: 11 } } }
-      }
-    }
-  });
-
-  // Vertical avg score — use vertical brand colors
-  const verticals = [...new Set(scoredCSMs.map(d => d.displayVertical))].sort();
-  const vertAvgs = verticals.map(v => {
-    const csms = scoredCSMs.filter(d => d.displayVertical === v);
-    return csms.length ? parseFloat((csms.reduce((s, d) => s + d.callScore, 0) / csms.length).toFixed(1)) : 0;
-  });
-  const vertSorted = verticals.map((v, i) => ({ v, score: vertAvgs[i] })).sort((a,b) => b.score - a.score);
-  const vertBrandColors = vertSorted.map(() => barColor);
-
-  if (verticalChart) verticalChart.destroy();
-  const ctx2 = document.getElementById('verticalScoreChart').getContext('2d');
-  const cc2 = chartColors();
-  verticalChart = new Chart(ctx2, {
-    type: 'bar',
-    data: {
-      labels: vertSorted.map(x => x.v),
-      datasets: [{ data: vertSorted.map(x => x.score), backgroundColor: vertBrandColors, borderWidth: 0, borderRadius: 4 }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` Avg score: ${ctx.raw}` } }
-      },
-      scales: {
-        x: { min: 50, max: 100, grid: { color: cc2.grid }, ticks: { color: cc2.tick, font: { size: 11 } } },
-        y: { grid: { display: false }, ticks: { color: cc2.text, font: { size: 12, weight: '600' } } }
-      }
-    }
-  });
-
-  renderCallDetail();
-}
-
-let callDetailSort = { field: 'callScore', asc: false };
-function renderCallDetail() {
-  let rows = [...getFiltered()].sort((a, b) => {
-    const av = a[callDetailSort.field], bv = b[callDetailSort.field];
-    if (av === null || av === undefined) return 1;
-    if (bv === null || bv === undefined) return -1;
-    return callDetailSort.asc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
-  });
-  const tbody = document.getElementById('callDetailBody');
-  if (!tbody) return;
-  tbody.innerHTML = rows.map((d, i) => {
-    const dCell = d.callScoreDelta !== null && d.callScoreDelta !== undefined
-      ? `<td style="text-align:center">${delta(d.callScoreDelta)}</td>`
-      : `<td style="text-align:center;color:var(--muted)">—</td>`;
-    if (d.callScore === null || d.callCount === 0) {
-      return `<tr>
-        <td style="color:var(--muted)">${i+1}</td>
-        <td><strong>${d.csm}</strong></td>
-        <td>${d.displayVertical}</td>
-        <td colspan="5" style="text-align:center;color:var(--muted);font-style:italic">No scored calls</td>
-        <td style="text-align:center;color:var(--muted)">${d.callCount}</td>
-        ${dCell}
-      </tr>`;
-    }
-    return `<tr>
-      <td style="color:var(--muted)">${i+1}</td>
-      <td><strong>${d.csm}</strong></td>
-      <td>${d.displayVertical}</td>
-      ${scoreCell(Math.round(d.callScore), false)}
-      ${scoreCell(d.valueCreation !== null ? Math.round(d.valueCreation) : null, false)}
-      ${scoreCell(d.relationship !== null ? Math.round(d.relationship) : null, false)}
-      ${scoreCell(d.adaptiveness !== null ? Math.round(d.adaptiveness) : null, false)}
-      ${scoreCell(d.ownership !== null ? Math.round(d.ownership) : null, false)}
-      <td style="text-align:center;color:var(--muted)">${d.callCount}</td>
-      ${dCell}
-    </tr>`;
-  }).join('');
-}
-
-function sortCallDetail(field) {
-  if (callDetailSort.field === field) callDetailSort.asc = !callDetailSort.asc;
-  else { callDetailSort.field = field; callDetailSort.asc = false; }
-  renderCallDetail();
-}
-
-// =============================================================================
-// TABS & FILTERS
-// =============================================================================
-function switchTab(name, el) {
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  el.classList.add('active');
-
-  if (name === 'leaderboard')  { renderVerticalCards(); renderLeaderboard(); }
-  else if (name === 'managerview')  { renderManagerView(); }
-  else if (name === 'callquality')  { setTimeout(renderCallQuality, 50); }
-  else if (name === 'definitions')  { /* static content */ }
-}
-
-function applyFilters() {
-  activeFilters.manager  = document.getElementById('filterManager').value;
-  activeFilters.vertical = document.getElementById('filterVertical').value;
-  activeFilters.segment  = document.getElementById('filterSegment').value;
-
-  const activeEl = document.querySelector('.tab-content.active');
-  const tabId = activeEl ? activeEl.id.replace('tab-', '') : 'leaderboard';
-
-  if (tabId === 'leaderboard')  { renderVerticalCards(); renderLeaderboard(); }
-  else if (tabId === 'managerview') renderManagerView();
-  else if (tabId === 'callquality') setTimeout(renderCallQuality, 50);
-}
-
-function renderAll() {
-  renderVerticalCards();
-  renderLeaderboard();
-}
-
-// =============================================================================
-// INIT — fetch data from cs_perf_data.json, then render
-// =============================================================================
-fetch('cs_perf_data.json')
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════
+fetch('cs_perf_data.json?v=' + Date.now())
   .then(r => {
     if (!r.ok) throw new Error(`HTTP ${r.status} loading cs_perf_data.json`);
     return r.json();
   })
   .then(json => {
-    data = json.csms.map(d => ({
-      ...d,
-      displayVertical: d.vertical || 'Unknown',
-      normAR: Math.min(100, Math.round((d.arsPerDay / 5.0) * 100)),
-    }));
+    allData = json.csms.map(d => ({ ...d }));
+    sparklines  = json.sparklines  || {};
+    riskDetail  = json.riskDetail  || {};
+    console.log('CS Perf Hub loaded:', {
+      csms: allData.length,
+      sparklines: Object.keys(sparklines).length,
+      riskDetail: Object.keys(riskDetail).length,
+      ufrPacing: window._ufrPacing,
+      sampleSparkline: sparklines[allData[0]?.csm],
+      sampleRisk: riskDetail[Object.keys(riskDetail)[0]],
+    });
+
     if (json.meta) {
+      window._ufrPacing = json.meta?.ufrPacing || null;
+
       if (json.meta.lastRefreshed) {
-        const d = new Date(json.meta.lastRefreshed);
-        const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        const el = document.getElementById('lastUpdatedLabel');
-        if (el) el.textContent = `L30D Rolling · Refreshed ${label}`;
+        const dt = new Date(json.meta.lastRefreshed);
+        const label = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        window._lastRefreshed = label;
+        document.getElementById('topbarUpdated').textContent = 'Updated ' + new Date(json.meta.lastRefreshed).toLocaleDateString();
       }
-      // Load multi-month renewal data and build picker
+
       if (json.renewalByMonth) {
-        renewalByMonth = json.renewalByMonth;
+        renewalByMonth     = json.renewalByMonth;
         renewalMonthLabels = json.meta.renewalMonthLabels || Object.keys(renewalByMonth);
-        // Default to current cohort month (+2) if present, else first available
         const defaultMonth = json.meta.renewalCohortMonthLabel && renewalByMonth[json.meta.renewalCohortMonthLabel]
           ? json.meta.renewalCohortMonthLabel
           : renewalMonthLabels[0];
-        // Build pill buttons
-        const pillContainer = document.getElementById('ufr-month-pills');
-        if (pillContainer) {
-          pillContainer.innerHTML = renewalMonthLabels.map(label => `
-            <button class="ufr-pill" data-month="${label}" onclick="setRenewalMonth('${label}')"
-              style="padding:4px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);
-                     color:var(--text);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s">
-              ${label}
-            </button>`).join('');
-          document.getElementById('ufr-month-bar').style.display = 'flex';
-        }
+
+        const pillsEl = document.getElementById('ufrPills');
+        pillsEl.innerHTML = renewalMonthLabels.map(lbl =>
+          `<button class="ufr-pill" data-month="${lbl}" onclick="setRenewalMonth('${lbl}')">${lbl}</button>`
+        ).join('');
+        document.getElementById('ufrBar').style.display = 'flex';
         setRenewalMonth(defaultMonth);
-      } else if (json.meta.renewalCohortMonthLabel) {
-        // Legacy: single month in meta only
-        const cohortLabel = json.meta.renewalCohortMonthLabel;
-        const renewalTh = document.getElementById('renewalColHeader');
-        if (renewalTh) renewalTh.textContent = cohortLabel + ' Cov';
+        return; // setRenewalMonth calls renderAll
       }
     }
+
+    populateFilters(allData);
+    renderContextBar();
     renderAll();
   })
   .catch(err => {
-    document.querySelector('.tab-content.active').innerHTML =
-      `<div style="padding:40px;font-family:monospace;color:#991B1B;background:#FEF2F2;margin:24px;border-radius:8px;border:1px solid #FCA5A5">
+    document.getElementById('mainContent').innerHTML = `
+      <div class="error-card">
         <strong>Failed to load cs_perf_data.json</strong><br><br>
         ${err.message}<br><br>
         To fix:<br>
         1. Run <code>python ~/Documents/Development/sigma-mcp/export_cs_perf_data.py</code><br>
-        2. Serve this directory: <code>cd ~/Desktop &amp;&amp; python -m http.server 8080</code><br>
-        3. Open <a href="http://localhost:8080/index_v2.html">http://localhost:8080/index_v2.html</a>
+        2. Serve locally: <code>python -m http.server 8080</code><br>
+        3. Open <code>http://localhost:8080/</code>
       </div>`;
   });
+
 </script>
 </body>
 </html>
