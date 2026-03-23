@@ -1575,7 +1575,7 @@ function renderOverview(container) {
   container.innerHTML = `
     <div class="overview-section" style="margin-bottom:0">
       <div class="section-label">Performance Trend</div>
-      <div class="trend-bar" id="trendBar" onclick="if(!event.target.closest('.view-toggle,.toggle-btn')){trendExpanded=!trendExpanded;renderTrendBar()}"></div>
+      <div class="trend-bar" id="trendBar" onclick="if(!event.target.closest('.view-toggle,.toggle-btn')){toggleTrendExpanded();renderTrendBar()}"></div>
     </div>
     <div class="overview-section" id="heroKpis" style="margin-top:24px">
       <div class="section-label">Key Performance Metrics</div>
@@ -3056,7 +3056,9 @@ function trendLabel(result, usePoints) {
   return `<span style="color:${color};font-size:13px;font-weight:600">${arrow} ${display} ${word}</span>`;
 }
 
-let trendExpanded = false;
+const trendExpandedState = {}; // per-page: { 'overview': false, 'dive-call': false, 'dive-ufr': false }
+function isTrendExpanded() { return trendExpandedState[nav.level] || false; }
+function toggleTrendExpanded() { trendExpandedState[nav.level] = !isTrendExpanded(); }
 
 function renderTrendBar() {
   const el = document.getElementById('trendBar');
@@ -3092,7 +3094,7 @@ function renderTrendBar() {
     </div>`;
   }).join('<div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>');
 
-  const detailRows = !trendExpanded ? '' : `
+  const detailRows = !isTrendExpanded() ? '' : `
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
       ${results.map(m => {
         if (!m.result) return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;text-align:center">
@@ -3120,7 +3122,7 @@ function renderTrendBar() {
         ${summaryItems}
       </div>
       <div style="display:flex;align-items:center;gap:10px">
-        <button style="font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;background:none;border:none;font-family:inherit;transition:color 0.12s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'" onclick="trendExpanded=!trendExpanded;renderTrendBar()">${trendExpanded ? '▴ Collapse' : '▾ Details'}</button>
+        <button style="font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;background:none;border:none;font-family:inherit;transition:color 0.12s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'" onclick="toggleTrendExpanded();renderTrendBar()">${isTrendExpanded() ? '▴ Collapse' : '▾ Details'}</button>
         <span style="width:1px;height:14px;background:var(--border)"></span>
         <span style="font-size:10px;color:var(--muted);font-weight:500">${compLabel}</span>
         <div class="view-toggle">
@@ -3457,7 +3459,7 @@ function renderCallDeepDive(container) {
   container.innerHTML = `
     <div class="overview-section" style="margin-bottom:0">
       <div class="section-label">Performance Trend</div>
-      <div class="trend-bar" onclick="if(!event.target.closest('.view-toggle,.toggle-btn')){trendExpanded=!trendExpanded;renderAll()}">
+      <div class="trend-bar" onclick="if(!event.target.closest('.view-toggle,.toggle-btn')){toggleTrendExpanded();renderAll()}">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
           <div style="display:flex;flex-direction:column;gap:2px">
@@ -3504,7 +3506,7 @@ function renderCallDeepDive(container) {
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-          <button style="font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;background:none;border:none;font-family:inherit" onclick="trendExpanded=!trendExpanded;renderAll()">${trendExpanded ? '▴ Collapse' : '▾ Details'}</button>
+          <button style="font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;background:none;border:none;font-family:inherit" onclick="toggleTrendExpanded();renderAll()">${isTrendExpanded() ? '▴ Collapse' : '▾ Details'}</button>
           <span style="width:1px;height:14px;background:var(--border)"></span>
           <span style="font-size:10px;color:var(--muted);font-weight:500">${compLabel}</span>
           <div class="view-toggle">
@@ -3514,7 +3516,7 @@ function renderCallDeepDive(container) {
           </div>
         </div>
       </div>
-      ${trendExpanded ? `
+      ${isTrendExpanded() ? `
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
         <div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
           <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Call Score</div>
@@ -4178,7 +4180,7 @@ function renderUfrDeepDive(container) {
   container.innerHTML = `
     <div class="overview-section" style="margin-bottom:0">
       <div class="section-label">Performance Trend</div>
-      <div class="trend-bar" onclick="if(!event.target.closest('.view-toggle,.toggle-btn')){trendExpanded=!trendExpanded;renderAll()}">
+      <div class="trend-bar" onclick="if(!event.target.closest('.view-toggle,.toggle-btn')){toggleTrendExpanded();renderAll()}">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
           ${renewalMonthLabels.map((lbl, idx) => {
@@ -4196,7 +4198,7 @@ function renderUfrDeepDive(container) {
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-          <button style="font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;background:none;border:none;font-family:inherit" onclick="trendExpanded=!trendExpanded;renderAll()">${trendExpanded ? '▴ Collapse' : '▾ Details'}</button>
+          <button style="font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;background:none;border:none;font-family:inherit" onclick="toggleTrendExpanded();renderAll()">${isTrendExpanded() ? '▴ Collapse' : '▾ Details'}</button>
           <span style="width:1px;height:14px;background:var(--border)"></span>
           <span style="font-size:10px;color:var(--muted);font-weight:500">${ufrCompLabel}</span>
           <div class="view-toggle">
@@ -4206,7 +4208,7 @@ function renderUfrDeepDive(container) {
           </div>
         </div>
       </div>
-      ${trendExpanded ? `
+      ${isTrendExpanded() ? `
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
         ${renewalMonthLabels.map((lbl, idx) => {
           const delta = [ufrM1Delta, ufrM2Delta, ufrM3Delta][idx];
