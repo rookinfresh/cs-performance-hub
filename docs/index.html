@@ -3424,11 +3424,35 @@ function renderCallDeepDive(container) {
 
   const score80Delta = computeDistDelta(p => p.call >= 80, days);
 
-  // Risk distribution (current snapshot — no historical trend available for risk)
+  // Risk distribution (current snapshot)
   let rLow=0, rElev=0, rHigh=0, rCrit=0, rTotal=0;
   filtered.forEach(d => { const r = riskDetail[d.csm]; if (r) { rLow += r.lowRisk||0; rElev += r.elevatedRisk||0; rHigh += r.highRisk||0; rCrit += r.criticalRisk||0; rTotal += r.totalOrgsAnalyzed||0; }});
   const atRisk = rHigh + rCrit;
   const atRiskPct = rTotal > 0 ? Math.round(atRisk / rTotal * 100) : 0;
+
+  // Period-level sum from sparklines for risk/cancel (returns {curSum, prevSum} for the period)
+  function computeSparklineSumDelta(key, periodDays) {
+    const dateMap = {};
+    filtered.forEach(d => { (sparklines[d.csm] || []).forEach(sp => {
+      if (sp[key] == null) return;
+      if (!dateMap[sp.date]) dateMap[sp.date] = 0;
+      dateMap[sp.date] += sp[key];
+    }); });
+    const allDates = Object.keys(dateMap).sort();
+    if (allDates.length < 2) return null;
+    if (periodDays === 1) {
+      return { cur: dateMap[allDates[allDates.length-1]], prev: dateMap[allDates[allDates.length-2]] };
+    }
+    const latest = new Date(allDates[allDates.length-1]);
+    const ps = new Date(latest); ps.setDate(ps.getDate() - periodDays);
+    const pp = new Date(ps); pp.setDate(pp.getDate() - periodDays);
+    const psS = ps.toISOString().slice(0,10), ppS = pp.toISOString().slice(0,10);
+    const curDs = allDates.filter(d => d > psS), priDs = allDates.filter(d => d > ppS && d <= psS);
+    if (!curDs.length || !priDs.length) return null;
+    return { cur: Math.round(curDs.reduce((s,d) => s+dateMap[d],0)/curDs.length), prev: Math.round(priDs.reduce((s,d) => s+dateMap[d],0)/priDs.length) };
+  }
+  const riskTrend = computeSparklineSumDelta('riskOrgs', days);
+  const cancelTrend = computeSparklineSumDelta('cancelSignals', days);
 
   container.innerHTML = `
     <div class="overview-section" style="margin-bottom:0">
@@ -3449,13 +3473,15 @@ function renderCallDeepDive(container) {
           <div style="display:flex;flex-direction:column;gap:2px">
             <span style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">Org Risk</span>
             ${(() => {
-              const r = computeOrgPeriodDelta('riskOrgs', days);
-              if (r) {
-                const d = Math.round(r.delta);
-                const color = d === 0 ? 'var(--muted)' : d > 0 ? 'var(--red)' : 'var(--green)';
-                const arrow = d === 0 ? '→' : d > 0 ? '▲' : '▼';
-                const word = d === 0 ? 'Stable' : d > 0 ? 'Worsening' : 'Improving';
-                return `<span style="font-size:13px;font-weight:600;color:${color}">${arrow} ${d > 0 ? '+' : ''}${d} orgs ${word}</span>`;
+              if (riskTrend && rTotal > 0) {
+                const curPct = Math.round(riskTrend.cur / rTotal * 100);
+                const prevPct = Math.round(riskTrend.prev / rTotal * 100);
+                const pp = curPct - prevPct;
+                const d = riskTrend.cur - riskTrend.prev;
+                const color = pp === 0 ? 'var(--muted)' : pp > 0 ? 'var(--red)' : 'var(--green)';
+                const arrow = pp === 0 ? '→' : pp > 0 ? '▲' : '▼';
+                const word = pp === 0 ? 'Stable' : pp > 0 ? 'Worsening' : 'Improving';
+                return `<span style="font-size:13px;font-weight:600;color:${color}">${arrow} ${pp > 0 ? '+' : ''}${pp}pp ${word}</span>`;
               }
               return `<span style="font-size:13px;font-weight:600;color:${atRiskPct > 15 ? 'var(--red)' : 'var(--text2)'}">${atRiskPct}% high/critical</span>`;
             })()}
@@ -3464,13 +3490,14 @@ function renderCallDeepDive(container) {
           <div style="display:flex;flex-direction:column;gap:2px">
             <span style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">Cancel Intent</span>
             ${(() => {
-              const r = computeOrgPeriodDelta('cancelSignals', days);
-              if (r) {
-                const d = Math.round(r.delta);
-                const color = d === 0 ? 'var(--muted)' : d > 0 ? 'var(--red)' : 'var(--green)';
-                const arrow = d === 0 ? '→' : d > 0 ? '▲' : '▼';
-                const word = d === 0 ? 'Stable' : d > 0 ? 'Worsening' : 'Improving';
-                return `<span style="font-size:13px;font-weight:600;color:${color}">${arrow} ${d > 0 ? '+' : ''}${d} signals ${word}</span>`;
+              if (cancelTrend && rTotal > 0) {
+                const curPct = Math.round(cancelTrend.cur / rTotal * 100);
+                const prevPct = Math.round(cancelTrend.prev / rTotal * 100);
+                const pp = curPct - prevPct;
+                const color = pp === 0 ? 'var(--muted)' : pp > 0 ? 'var(--red)' : 'var(--green)';
+                const arrow = pp === 0 ? '→' : pp > 0 ? '▲' : '▼';
+                const word = pp === 0 ? 'Stable' : pp > 0 ? 'Worsening' : 'Improving';
+                return `<span style="font-size:13px;font-weight:600;color:${color}">${arrow} ${pp > 0 ? '+' : ''}${pp}pp ${word}</span>`;
               }
               return `<span style="font-size:13px;font-weight:600;color:${parseFloat(cancelPctOrgs) > 5 ? 'var(--red)' : 'var(--text2)'}">${cancelPctOrgs}% of orgs</span>`;
             })()}
@@ -3508,96 +3535,48 @@ function renderCallDeepDive(container) {
           <div style="text-align:center;font-size:12px;font-weight:700;color:${score80Delta.delta >= 0 ? 'var(--green)' : 'var(--red)'}">${score80Delta.delta >= 0 ? '+' : ''}${score80Delta.delta}pp</div>` : '<div style="text-align:center;color:var(--muted);font-size:11px">Accumulating</div>'}
         </div>
         ${(() => {
-          // Compute risk trend from sparkline riskOrgs
-          const rDM = {};
-          filtered.forEach(d => { (sparklines[d.csm] || []).forEach(sp => {
-            if (sp.riskOrgs == null) return;
-            if (!rDM[sp.date]) rDM[sp.date] = 0;
-            rDM[sp.date] += sp.riskOrgs;
-          }); });
-          const rDs = Object.keys(rDM).sort();
-          if (rDs.length >= 2 && days === 1) {
-            const cur = rDM[rDs[rDs.length-1]], prev = rDM[rDs[rDs.length-2]], d = cur - prev;
-            const c = d === 0 ? 'var(--muted)' : d > 0 ? 'var(--red)' : 'var(--green)';
+          if (riskTrend && rTotal > 0) {
+            const curPct = Math.round(riskTrend.cur / rTotal * 100);
+            const prevPct = Math.round(riskTrend.prev / rTotal * 100);
+            const pp = curPct - prevPct;
+            const d = riskTrend.cur - riskTrend.prev;
+            const c = pp === 0 ? 'var(--muted)' : pp > 0 ? 'var(--red)' : 'var(--green)';
             return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
-              <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">High-Risk Orgs</div>
+              <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Org Risk (% High/Crit)</div>
               <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px">
-                <span style="font-size:13px;color:var(--text2)">${prev}</span>
+                <span style="font-size:13px;color:var(--text2)">${prevPct}%</span>
                 <span style="font-size:11px;color:var(--muted)">→</span>
-                <span style="font-size:16px;font-weight:800;color:var(--text)">${cur}</span>
+                <span style="font-size:16px;font-weight:800;color:var(--text)">${curPct}%</span>
               </div>
-              <div style="text-align:center;font-size:12px;font-weight:700;color:${c}">${d > 0 ? '+' : ''}${d} orgs</div></div>`;
-          } else if (rDs.length >= 2) {
-            const latest = new Date(rDs[rDs.length-1]);
-            const ps = new Date(latest); ps.setDate(ps.getDate() - days);
-            const pp = new Date(ps); pp.setDate(pp.getDate() - days);
-            const psS = ps.toISOString().slice(0,10), ppS = pp.toISOString().slice(0,10);
-            const curDs = rDs.filter(d => d > psS), priDs = rDs.filter(d => d > ppS && d <= psS);
-            if (curDs.length && priDs.length) {
-              const curAvg = Math.round(curDs.reduce((s,d) => s+rDM[d],0)/curDs.length);
-              const priAvg = Math.round(priDs.reduce((s,d) => s+rDM[d],0)/priDs.length);
-              const d = curAvg - priAvg;
-              const c = d === 0 ? 'var(--muted)' : d > 0 ? 'var(--red)' : 'var(--green)';
-              return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
-                <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">High-Risk Orgs</div>
-                <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px">
-                  <span style="font-size:13px;color:var(--text2)">${priAvg}</span>
-                  <span style="font-size:11px;color:var(--muted)">→</span>
-                  <span style="font-size:16px;font-weight:800;color:var(--text)">${curAvg}</span>
-                </div>
-                <div style="text-align:center;font-size:12px;font-weight:700;color:${c}">${d > 0 ? '+' : ''}${d} avg orgs</div></div>`;
-            }
+              <div style="text-align:center;font-size:12px;font-weight:700;color:${c}">${pp > 0 ? '+' : ''}${pp}pp</div>
+              <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:2px">${riskTrend.prev} → ${riskTrend.cur} orgs (${d > 0 ? '+' : ''}${d})</div></div>`;
           }
           return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
-            <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">High-Risk Orgs</div>
-            <div style="font-size:16px;font-weight:800;color:var(--text);text-align:center;margin-bottom:4px">${atRisk}</div>
-            <div style="text-align:center;font-size:10px;color:var(--muted)">${atRiskPct}% of ${rTotal.toLocaleString()} orgs</div></div>`;
+            <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Org Risk (% High/Crit)</div>
+            <div style="font-size:16px;font-weight:800;color:var(--text);text-align:center;margin-bottom:4px">${atRiskPct}%</div>
+            <div style="text-align:center;font-size:10px;color:var(--muted)">${atRisk} of ${rTotal.toLocaleString()} orgs</div></div>`;
         })()}
         ${(() => {
-          // Compute cancel intent trend from sparkline cancelSignals
-          const cDM = {};
-          filtered.forEach(d => { (sparklines[d.csm] || []).forEach(sp => {
-            if (sp.cancelSignals == null) return;
-            if (!cDM[sp.date]) cDM[sp.date] = 0;
-            cDM[sp.date] += sp.cancelSignals;
-          }); });
-          const cDs = Object.keys(cDM).sort();
-          if (cDs.length >= 2 && days === 1) {
-            const cur = cDM[cDs[cDs.length-1]], prev = cDM[cDs[cDs.length-2]], d = cur - prev;
-            const c = d === 0 ? 'var(--muted)' : d > 0 ? 'var(--red)' : 'var(--green)';
+          if (cancelTrend && rTotal > 0) {
+            const curPct = Math.round(cancelTrend.cur / rTotal * 100);
+            const prevPct = Math.round(cancelTrend.prev / rTotal * 100);
+            const pp = curPct - prevPct;
+            const d = cancelTrend.cur - cancelTrend.prev;
+            const c = pp === 0 ? 'var(--muted)' : pp > 0 ? 'var(--red)' : 'var(--green)';
             return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
-              <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Cancel Intent</div>
+              <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Cancel Intent (% of Orgs)</div>
               <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px">
-                <span style="font-size:13px;color:var(--text2)">${prev}</span>
+                <span style="font-size:13px;color:var(--text2)">${prevPct}%</span>
                 <span style="font-size:11px;color:var(--muted)">→</span>
-                <span style="font-size:16px;font-weight:800;color:var(--text)">${cur}</span>
+                <span style="font-size:16px;font-weight:800;color:var(--text)">${curPct}%</span>
               </div>
-              <div style="text-align:center;font-size:12px;font-weight:700;color:${c}">${d > 0 ? '+' : ''}${d} signals</div></div>`;
-          } else if (cDs.length >= 2) {
-            const latest = new Date(cDs[cDs.length-1]);
-            const ps = new Date(latest); ps.setDate(ps.getDate() - days);
-            const pp = new Date(ps); pp.setDate(pp.getDate() - days);
-            const psS = ps.toISOString().slice(0,10), ppS = pp.toISOString().slice(0,10);
-            const curDs = cDs.filter(d => d > psS), priDs = cDs.filter(d => d > ppS && d <= psS);
-            if (curDs.length && priDs.length) {
-              const curAvg = Math.round(curDs.reduce((s,d) => s+cDM[d],0)/curDs.length);
-              const priAvg = Math.round(priDs.reduce((s,d) => s+cDM[d],0)/priDs.length);
-              const d = curAvg - priAvg;
-              const c = d === 0 ? 'var(--muted)' : d > 0 ? 'var(--red)' : 'var(--green)';
-              return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
-                <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Cancel Intent</div>
-                <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px">
-                  <span style="font-size:13px;color:var(--text2)">${priAvg}</span>
-                  <span style="font-size:11px;color:var(--muted)">→</span>
-                  <span style="font-size:16px;font-weight:800;color:var(--text)">${curAvg}</span>
-                </div>
-                <div style="text-align:center;font-size:12px;font-weight:700;color:${c}">${d > 0 ? '+' : ''}${d} avg signals</div></div>`;
-            }
+              <div style="text-align:center;font-size:12px;font-weight:700;color:${c}">${pp > 0 ? '+' : ''}${pp}pp</div>
+              <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:2px">${cancelTrend.prev} → ${cancelTrend.cur} signals (${d > 0 ? '+' : ''}${d})</div></div>`;
           }
           return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
-            <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Cancel Intent</div>
-            <div style="font-size:16px;font-weight:800;color:var(--text);text-align:center;margin-bottom:4px">${cancelCount}</div>
-            <div style="text-align:center;font-size:10px;color:var(--muted)">${cancelPctOrgs}% of ${totalOrgsAnalyzed} orgs</div></div>`;
+            <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Cancel Intent (% of Orgs)</div>
+            <div style="font-size:16px;font-weight:800;color:var(--text);text-align:center;margin-bottom:4px">${cancelPctOrgs}%</div>
+            <div style="text-align:center;font-size:10px;color:var(--muted)">${cancelCount} of ${totalOrgsAnalyzed} orgs</div></div>`;
         })()}
       </div>` : ''}
     </div>
