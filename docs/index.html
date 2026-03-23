@@ -3330,7 +3330,7 @@ function renderCallDeepDive(container) {
     }).map(d => {
       const ct = cbt[d.csm][callClassFilter];
       return { ...d, callScore: ct.score, callCount: ct.count, valueCreation: ct.value, relationship: ct.relate, adaptiveness: ct.adapt, ownership: ct.own,
-        callScoreMin: null, callScoreMax: null, valueCreationMin: null, valueCreationMax: null, relationshipMin: null, relationshipMax: null, adaptivenessMin: null, adaptivenessMax: null, ownershipMin: null, ownershipMax: null };
+        callScoreMin: ct.minScore, callScoreMax: ct.maxScore, valueCreationMin: ct.minValue, valueCreationMax: ct.maxValue, relationshipMin: ct.minRelate, relationshipMax: ct.maxRelate, adaptivenessMin: ct.minAdapt, adaptivenessMax: ct.maxAdapt, ownershipMin: ct.minOwn, ownershipMax: ct.maxOwn };
     });
   } else {
     scored = filtered.filter(d => d.callScore != null);
