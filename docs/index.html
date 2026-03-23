@@ -2858,7 +2858,6 @@ let trendHorizon = '1d'; // '1d' | '7d' | '30d'
 // Point-to-point comparison: today's value vs N days ago
 // Used for UFR where period averaging is misleading due to cohort resets
 function computeOrgPointDelta(pillarKey, daysBack) {
-  const isUfr = pillarKey.startsWith('ufr_');
   const dateMap = {};
   const filtered = getFiltered();
   filtered.forEach(d => {
@@ -2868,20 +2867,13 @@ function computeOrgPointDelta(pillarKey, daysBack) {
       dateMap[p.date].push(p[pillarKey]);
     });
   });
-  let allDates = Object.keys(dateMap).sort();
+  const allDates = Object.keys(dateMap).sort();
   if (allDates.length < 2) return null;
   const latestDate = allDates[allDates.length - 1];
-  // For UFR: only compare within same calendar month (M1/M2/M3 shift at month boundaries)
-  if (isUfr) {
-    const latestMonth = latestDate.slice(0, 7);
-    allDates = allDates.filter(d => d.slice(0, 7) === latestMonth);
-    if (allDates.length < 2) return null;
-  }
   const latestAvg = dateMap[latestDate].reduce((a, b) => a + b, 0) / dateMap[latestDate].length;
   const target = new Date(latestDate);
   target.setDate(target.getDate() - daysBack);
   const targetStr = target.toISOString().slice(0, 10);
-  // Find closest date at or before the target
   let compDate = null;
   for (const d of allDates) {
     if (d <= targetStr) compDate = d;
@@ -2979,29 +2971,25 @@ function computeRatioRollupDelta(doneKey, totalKey, periodDays) {
   return { delta: curPct - priPct, current: curPct, prior: priPct };
 }
 
-// Proper rollup for UFR point-to-point: sum(called)/sum(total) for specific dates
-// Only compares within the same calendar month — M1/M2/M3 are relative offsets that
-// shift at month boundaries, so cross-month comparisons are apples-to-oranges.
-function computeUfrRollupDelta(calledKey, totalKey, pctKey, daysBack) {
+// Proper rollup for UFR point-to-point using absolute month labels.
+// Sparkline data stores ufrByMonth: { "Apr 2026": { pct, called, total }, ... }
+// so we can track a specific cohort across calendar month boundaries.
+function computeUfrRollupDelta(monthLabel, daysBack) {
   const dateMap = {};
   const filtered = getFiltered();
   filtered.forEach(d => {
     (sparklines[d.csm] || []).forEach(p => {
-      if (p[pctKey] == null) return;
+      const m = (p.ufrByMonth || {})[monthLabel];
+      if (!m || m.total == null) return;
       if (!dateMap[p.date]) dateMap[p.date] = { called: 0, total: 0 };
-      dateMap[p.date].called += (p[calledKey] || 0);
-      dateMap[p.date].total += (p[totalKey] || 0);
+      dateMap[p.date].called += (m.called || 0);
+      dateMap[p.date].total += (m.total || 0);
     });
   });
   const allDates = Object.keys(dateMap).sort().filter(d => dateMap[d].total > 0);
   if (allDates.length < 2) return null;
 
   const latestDate = allDates[allDates.length - 1];
-  const latestMonth = latestDate.slice(0, 7); // "2026-03"
-  // Only use dates in the same calendar month (M2 = same renewal month)
-  const sameMonthDates = allDates.filter(d => d.slice(0, 7) === latestMonth);
-  if (sameMonthDates.length < 2) return null;
-
   const cur = dateMap[latestDate];
   const curPct = cur.total > 0 ? Math.round(cur.called / cur.total * 1000) / 10 : 0;
 
@@ -3009,12 +2997,38 @@ function computeUfrRollupDelta(calledKey, totalKey, pctKey, daysBack) {
   target.setDate(target.getDate() - daysBack);
   const targetStr = target.toISOString().slice(0, 10);
   let compDate = null;
-  for (const d of sameMonthDates) { if (d <= targetStr) compDate = d; }
+  for (const d of allDates) { if (d <= targetStr) compDate = d; }
   if (!compDate || compDate === latestDate) return null;
 
   const prev = dateMap[compDate];
   const prevPct = prev.total > 0 ? Math.round(prev.called / prev.total * 1000) / 10 : 0;
   return { delta: curPct - prevPct, current: curPct, prior: prevPct };
+}
+
+// Fallback UFR point delta using percentage averages from ufrByMonth
+function computeUfrPointDelta(monthLabel, daysBack) {
+  const dateMap = {};
+  const filtered = getFiltered();
+  filtered.forEach(d => {
+    (sparklines[d.csm] || []).forEach(p => {
+      const m = (p.ufrByMonth || {})[monthLabel];
+      if (!m || m.pct == null) return;
+      if (!dateMap[p.date]) dateMap[p.date] = [];
+      dateMap[p.date].push(m.pct);
+    });
+  });
+  const allDates = Object.keys(dateMap).sort();
+  if (allDates.length < 2) return null;
+  const latestDate = allDates[allDates.length - 1];
+  const latestAvg = dateMap[latestDate].reduce((a, b) => a + b, 0) / dateMap[latestDate].length;
+  const target = new Date(latestDate);
+  target.setDate(target.getDate() - daysBack);
+  const targetStr = target.toISOString().slice(0, 10);
+  let compDate = null;
+  for (const d of allDates) { if (d <= targetStr) compDate = d; }
+  if (!compDate || compDate === latestDate) return null;
+  const priorAvg = dateMap[compDate].reduce((a, b) => a + b, 0) / dateMap[compDate].length;
+  return { delta: latestAvg - priorAvg, current: Math.round(latestAvg * 10) / 10, prior: Math.round(priorAvg * 10) / 10 };
 }
 
 // usePoints: true for metrics already expressed as % (composite, sla, ufr) — shows "+10pp"
@@ -3048,26 +3062,21 @@ function renderTrendBar() {
   const days = trendHorizon === '1d' ? 1 : trendHorizon === '7d' ? 7 : 30;
   const compLabel = trendHorizon === '1d' ? 'Day-over-Day' : trendHorizon === '7d' ? 'Week-over-Week' : 'Month-over-Month';
 
-  const ufrIdx = renewalMonthLabels.indexOf(selectedRenewalMonth);
-  const ufrSuffix = ufrIdx === 0 ? '1' : ufrIdx === 2 ? '3' : '2';
-  const ufrPctKey = 'ufr_m' + ufrSuffix;
-  const ufrCalledKey = 'm' + ufrSuffix + 'Called';
-  const ufrTotalKey = 'm' + ufrSuffix + 'Total';
+  const ufrMonth = selectedRenewalMonth;
 
   const metrics = [
     { key: 'composite', label: 'Composite', points: true },
     { key: 'ar', label: 'AR/Day', points: false },
     { key: 'call', label: 'Call Score', points: true },
     { key: 'sla', label: 'Ret SLA', points: true, rollup: true },
-    { key: ufrPctKey, label: 'UFR', points: true, pointToPoint: true },
+    { key: 'ufr', label: 'UFR', points: true, ufrMonth: ufrMonth },
   ];
   const results = metrics.map(m => {
     let result;
     if (m.rollup) {
       result = computeRatioRollupDelta('slaDone', 'slaTotal', days);
-    } else if (m.pointToPoint) {
-      // Use proper rollup if counts available, fall back to avg
-      result = computeUfrRollupDelta(ufrCalledKey, ufrTotalKey, ufrPctKey, days) || computeOrgPointDelta(m.key, days);
+    } else if (m.ufrMonth) {
+      result = computeUfrRollupDelta(m.ufrMonth, days) || computeUfrPointDelta(m.ufrMonth, days);
     } else {
       result = computeOrgPeriodDelta(m.key, days);
     }
@@ -4052,12 +4061,14 @@ function getUfrCsmsForVert(vert) {
 
 function computeVertWoWDelta(vertical) {
   const csms = getUfrCsmsForVert(vertical);
+  const mLabel = selectedRenewalMonth;
   const dateMap = {};
   csms.forEach(d => {
     (sparklines[d.csm] || []).forEach(p => {
-      if (p.ufr == null) return;
+      const m = (p.ufrByMonth || {})[mLabel];
+      if (!m || m.pct == null) return;
       if (!dateMap[p.date]) dateMap[p.date] = [];
-      dateMap[p.date].push(p.ufr);
+      dateMap[p.date].push(m.pct);
     });
   });
   const dates = Object.keys(dateMap).sort();
@@ -4124,9 +4135,9 @@ function renderUfrDeepDive(container) {
   // UFR trend bar — compute deltas for all 3 months
   const ufrTrendDays = trendHorizon === '1d' ? 1 : trendHorizon === '7d' ? 7 : 30;
   const ufrCompLabel = trendHorizon === '1d' ? 'Day-over-Day' : trendHorizon === '7d' ? 'Week-over-Week' : 'Month-over-Month';
-  const ufrM1Delta = computeUfrRollupDelta('m1Called', 'm1Total', 'ufr_m1', ufrTrendDays) || computeOrgPointDelta('ufr_m1', ufrTrendDays);
-  const ufrM2Delta = computeUfrRollupDelta('m2Called', 'm2Total', 'ufr_m2', ufrTrendDays) || computeOrgPointDelta('ufr_m2', ufrTrendDays);
-  const ufrM3Delta = computeUfrRollupDelta('m3Called', 'm3Total', 'ufr_m3', ufrTrendDays) || computeOrgPointDelta('ufr_m3', ufrTrendDays);
+  const ufrM1Delta = renewalMonthLabels[0] ? (computeUfrRollupDelta(renewalMonthLabels[0], ufrTrendDays) || computeUfrPointDelta(renewalMonthLabels[0], ufrTrendDays)) : null;
+  const ufrM2Delta = renewalMonthLabels[1] ? (computeUfrRollupDelta(renewalMonthLabels[1], ufrTrendDays) || computeUfrPointDelta(renewalMonthLabels[1], ufrTrendDays)) : null;
+  const ufrM3Delta = renewalMonthLabels[2] ? (computeUfrRollupDelta(renewalMonthLabels[2], ufrTrendDays) || computeUfrPointDelta(renewalMonthLabels[2], ufrTrendDays)) : null;
 
   container.innerHTML = `
     <div class="overview-section" style="margin-bottom:0">
