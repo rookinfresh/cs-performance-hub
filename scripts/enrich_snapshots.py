@@ -9,7 +9,7 @@ import snowflake.connector
 from datetime import date, timedelta
 
 START_DATE = date(2026, 1, 28)
-END_DATE = date(2026, 3, 20)
+END_DATE = date(2026, 3, 23)
 
 # Retention SLA counts per CSM for a given anchor date
 RET_SLA_COUNTS_SQL = """

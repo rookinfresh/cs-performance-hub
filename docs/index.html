@@ -2858,6 +2858,7 @@ let trendHorizon = '1d'; // '1d' | '7d' | '30d'
 // Point-to-point comparison: today's value vs N days ago
 // Used for UFR where period averaging is misleading due to cohort resets
 function computeOrgPointDelta(pillarKey, daysBack) {
+  const isUfr = pillarKey.startsWith('ufr_');
   const dateMap = {};
   const filtered = getFiltered();
   filtered.forEach(d => {
@@ -2867,9 +2868,15 @@ function computeOrgPointDelta(pillarKey, daysBack) {
       dateMap[p.date].push(p[pillarKey]);
     });
   });
-  const allDates = Object.keys(dateMap).sort();
+  let allDates = Object.keys(dateMap).sort();
   if (allDates.length < 2) return null;
   const latestDate = allDates[allDates.length - 1];
+  // For UFR: only compare within same calendar month (M1/M2/M3 shift at month boundaries)
+  if (isUfr) {
+    const latestMonth = latestDate.slice(0, 7);
+    allDates = allDates.filter(d => d.slice(0, 7) === latestMonth);
+    if (allDates.length < 2) return null;
+  }
   const latestAvg = dateMap[latestDate].reduce((a, b) => a + b, 0) / dateMap[latestDate].length;
   const target = new Date(latestDate);
   target.setDate(target.getDate() - daysBack);
@@ -2973,6 +2980,8 @@ function computeRatioRollupDelta(doneKey, totalKey, periodDays) {
 }
 
 // Proper rollup for UFR point-to-point: sum(called)/sum(total) for specific dates
+// Only compares within the same calendar month — M1/M2/M3 are relative offsets that
+// shift at month boundaries, so cross-month comparisons are apples-to-oranges.
 function computeUfrRollupDelta(calledKey, totalKey, pctKey, daysBack) {
   const dateMap = {};
   const filtered = getFiltered();
@@ -2988,6 +2997,11 @@ function computeUfrRollupDelta(calledKey, totalKey, pctKey, daysBack) {
   if (allDates.length < 2) return null;
 
   const latestDate = allDates[allDates.length - 1];
+  const latestMonth = latestDate.slice(0, 7); // "2026-03"
+  // Only use dates in the same calendar month (M2 = same renewal month)
+  const sameMonthDates = allDates.filter(d => d.slice(0, 7) === latestMonth);
+  if (sameMonthDates.length < 2) return null;
+
   const cur = dateMap[latestDate];
   const curPct = cur.total > 0 ? Math.round(cur.called / cur.total * 1000) / 10 : 0;
 
@@ -2995,7 +3009,7 @@ function computeUfrRollupDelta(calledKey, totalKey, pctKey, daysBack) {
   target.setDate(target.getDate() - daysBack);
   const targetStr = target.toISOString().slice(0, 10);
   let compDate = null;
-  for (const d of allDates) { if (d <= targetStr) compDate = d; }
+  for (const d of sameMonthDates) { if (d <= targetStr) compDate = d; }
   if (!compDate || compDate === latestDate) return null;
 
   const prev = dateMap[compDate];
