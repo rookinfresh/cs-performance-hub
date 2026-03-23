@@ -3315,7 +3315,8 @@ function renderCallDeepDive(container) {
       return ct && ct[callClassFilter];
     }).map(d => {
       const ct = cbt[d.csm][callClassFilter];
-      return { ...d, callScore: ct.score, callCount: ct.count, valueCreation: ct.value, relationship: ct.relate, adaptiveness: ct.adapt, ownership: ct.own };
+      return { ...d, callScore: ct.score, callCount: ct.count, valueCreation: ct.value, relationship: ct.relate, adaptiveness: ct.adapt, ownership: ct.own,
+        callScoreMin: null, callScoreMax: null, valueCreationMin: null, valueCreationMax: null, relationshipMin: null, relationshipMax: null, adaptivenessMin: null, adaptivenessMax: null, ownershipMin: null, ownershipMax: null };
     });
   } else {
     scored = filtered.filter(d => d.callScore != null);
@@ -3829,8 +3830,8 @@ function renderCallRankings() {
     });
     if (callRankingsSort.field) {
       const cf = callRankingsSort.field;
-      mgrData.sort((a, b) => { const av = a[cf] || 0, bv = b[cf] || 0; return callRankingsSort.asc ? av - bv : bv - av; });
-    } else { mgrData.sort((a, b) => (b.avgScore || 0) - (a.avgScore || 0)); }
+      vertData.sort((a, b) => { const av = a[cf] || 0, bv = b[cf] || 0; return callRankingsSort.asc ? av - bv : bv - av; });
+    } else { vertData.sort((a, b) => (b.avgScore || 0) - (a.avgScore || 0)); }
 
     el.innerHTML = `<div class="table-scroll" style="max-height:640px"><table>
       <thead><tr><th>#</th><th>Vertical</th>
