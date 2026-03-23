@@ -3449,30 +3449,13 @@ function renderCallDeepDive(container) {
           <div style="display:flex;flex-direction:column;gap:2px">
             <span style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">Org Risk</span>
             ${(() => {
-              const riskDelta = computeDistDelta(p => {
-                const csm = filtered.find(c => sparklines[c.csm] && sparklines[c.csm].some(sp => sp.date === p.date && sp.call === p.call));
-                return csm && (csm.highRiskOrgCount || 0) > 0;
-              }, days);
-              // Try sparkline-based risk tracking
-              const riskDateMap = {};
-              filtered.forEach(d => {
-                (sparklines[d.csm] || []).forEach(sp => {
-                  if (sp.riskOrgs == null) return;
-                  if (!riskDateMap[sp.date]) riskDateMap[sp.date] = { risk: 0, total: 0 };
-                  riskDateMap[sp.date].risk += sp.riskOrgs;
-                  riskDateMap[sp.date].total++;
-                });
-              });
-              const rDates = Object.keys(riskDateMap).sort();
-              if (rDates.length >= 2) {
-                const curR = riskDateMap[rDates[rDates.length-1]];
-                const prevR = riskDateMap[rDates[rDates.length-2]];
-                const curRisk = curR.total > 0 ? curR.risk : 0;
-                const prevRisk = prevR.total > 0 ? prevR.risk : 0;
-                const delta = curRisk - prevRisk;
-                const color = delta === 0 ? 'var(--muted)' : delta > 0 ? 'var(--red)' : 'var(--green)';
-                const arrow = delta === 0 ? '→' : delta > 0 ? '▲' : '▼';
-                return `<span style="font-size:13px;font-weight:600;color:${color}">${arrow} ${atRiskPct}% (${delta > 0 ? '+' : ''}${delta} orgs)</span>`;
+              const r = computeOrgPeriodDelta('riskOrgs', days);
+              if (r) {
+                const d = Math.round(r.delta);
+                const color = d === 0 ? 'var(--muted)' : d > 0 ? 'var(--red)' : 'var(--green)';
+                const arrow = d === 0 ? '→' : d > 0 ? '▲' : '▼';
+                const word = d === 0 ? 'Stable' : d > 0 ? 'Worsening' : 'Improving';
+                return `<span style="font-size:13px;font-weight:600;color:${color}">${arrow} ${d > 0 ? '+' : ''}${d} orgs ${word}</span>`;
               }
               return `<span style="font-size:13px;font-weight:600;color:${atRiskPct > 15 ? 'var(--red)' : 'var(--text2)'}">${atRiskPct}% high/critical</span>`;
             })()}
@@ -3481,23 +3464,13 @@ function renderCallDeepDive(container) {
           <div style="display:flex;flex-direction:column;gap:2px">
             <span style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">Cancel Intent</span>
             ${(() => {
-              const cDateMap = {};
-              filtered.forEach(d => {
-                (sparklines[d.csm] || []).forEach(sp => {
-                  if (sp.cancelSignals == null) return;
-                  if (!cDateMap[sp.date]) cDateMap[sp.date] = { signals: 0, total: 0 };
-                  cDateMap[sp.date].signals += sp.cancelSignals;
-                  cDateMap[sp.date].total++;
-                });
-              });
-              const cDates = Object.keys(cDateMap).sort();
-              if (cDates.length >= 2) {
-                const curC = cDateMap[cDates[cDates.length-1]].signals;
-                const prevC = cDateMap[cDates[cDates.length-2]].signals;
-                const delta = curC - prevC;
-                const color = delta === 0 ? 'var(--muted)' : delta > 0 ? 'var(--red)' : 'var(--green)';
-                const arrow = delta === 0 ? '→' : delta > 0 ? '▲' : '▼';
-                return `<span style="font-size:13px;font-weight:600;color:${color}">${arrow} ${cancelPctOrgs}% (${delta > 0 ? '+' : ''}${delta} signals)</span>`;
+              const r = computeOrgPeriodDelta('cancelSignals', days);
+              if (r) {
+                const d = Math.round(r.delta);
+                const color = d === 0 ? 'var(--muted)' : d > 0 ? 'var(--red)' : 'var(--green)';
+                const arrow = d === 0 ? '→' : d > 0 ? '▲' : '▼';
+                const word = d === 0 ? 'Stable' : d > 0 ? 'Worsening' : 'Improving';
+                return `<span style="font-size:13px;font-weight:600;color:${color}">${arrow} ${d > 0 ? '+' : ''}${d} signals ${word}</span>`;
               }
               return `<span style="font-size:13px;font-weight:600;color:${parseFloat(cancelPctOrgs) > 5 ? 'var(--red)' : 'var(--text2)'}">${cancelPctOrgs}% of orgs</span>`;
             })()}
