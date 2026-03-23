@@ -7,7 +7,7 @@ Uses the same deduplication, active-day calculation, and normalization.
 import snowflake.connector
 from datetime import date, timedelta
 
-START_DATE = date(2026, 2, 20)
+START_DATE = date(2026, 1, 28)
 END_DATE = date(2026, 3, 20)
 
 # This query mirrors the procedure's logic exactly, with CURRENT_DATE replaced by {anchor}
