@@ -1,0 +1,333 @@
+#!/usr/bin/env python3
+"""
+Backfill CS_PERF_HUB_SNAPSHOTS using the EXACT same logic as the daily procedure.
+Uses the same deduplication, active-day calculation, and normalization.
+"""
+
+import snowflake.connector
+from datetime import date, timedelta
+
+START_DATE = date(2026, 2, 20)
+END_DATE = date(2026, 3, 20)
+
+# This query mirrors the procedure's logic exactly, with CURRENT_DATE replaced by {anchor}
+BACKFILL_SQL_TEMPLATE = """
+WITH csm_allowlist AS (
+    SELECT DISTINCT SALESFORCE_USER_FULL_NAME AS CSM_NAME
+    FROM BUILD.SALESFORCE.CORE_USERS
+    WHERE SALESFORCE_USER_IS_ACTIVE = TRUE
+      AND (SALESFORCE_USER_TITLE ILIKE '%customer success manager%' OR SALESFORCE_USER_TITLE ILIKE 'csm%' OR SALESFORCE_USER_TITLE = 'CSM')
+      AND SALESFORCE_USER_ROLE_NAME NOT ILIKE 'Manager%'
+      AND SALESFORCE_USER_ROLE_NAME NOT ILIKE 'VP%'
+      AND SALESFORCE_USER_FULL_NAME NOT IN ('Maria Lam')
+      AND (USER_WORKING_LOCATION IS NULL OR USER_WORKING_LOCATION NOT ILIKE '%australia%')
+),
+sfdc_ars AS (
+    SELECT DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) AS EVENT_DATE,
+           csa.CUSTOMER_SUCCESS_ACTION_OWNER_FULL_NAME AS CSM_NAME,
+           csa.ORGANIZATION_UID
+    FROM BUILD.SALESFORCE.CORE_CUSTOMER_SUCCESS_ACTIONS csa
+    INNER JOIN csm_allowlist al ON csa.CUSTOMER_SUCCESS_ACTION_OWNER_FULL_NAME = al.CSM_NAME
+    WHERE csa.RECORD_TYPE_ID = '0125G000001QG3fQAG'
+      AND LOWER(csa.CUSTOMER_SUCCESS_ACTION_STATUS) = 'closed'
+      AND csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT IS NOT NULL
+      AND DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) >= DATEADD('day', -30, '{anchor}')
+      AND DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) < '{anchor}'
+),
+gong_dark AS (
+    SELECT DATE(gc.CALL_EFFECTIVE_START_AT) AS EVENT_DATE,
+           gc.CALL_SALESFORCE_USER_FULL_NAME AS CSM_NAME,
+           gc.ORGANIZATION_UID
+    FROM BUILD.GONG.CORE_CONVERSATIONS gc
+    INNER JOIN csm_allowlist al ON gc.CALL_SALESFORCE_USER_FULL_NAME = al.CSM_NAME
+    WHERE LOWER(gc.CALL_STATUS) = 'completed' AND gc.CALL_ELAPSED_MINUTES >= 15
+      AND gc.CALL_EFFECTIVE_START_AT >= DATEADD('day', -30, '{anchor}')
+      AND gc.CALL_EFFECTIVE_START_AT < '{anchor}'
+      AND gc.ORGANIZATION_UID IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1 FROM sfdc_ars ar
+          WHERE ar.CSM_NAME = gc.CALL_SALESFORCE_USER_FULL_NAME
+            AND ar.ORGANIZATION_UID = gc.ORGANIZATION_UID
+            AND ar.EVENT_DATE = DATE(gc.CALL_EFFECTIVE_START_AT)
+      )
+),
+podium_dark AS (
+    SELECT DATE(pc.CALL_INSERTED_AT) AS EVENT_DATE,
+           pc.CALL_MADE_BY_USER_FULL_NAME AS CSM_NAME,
+           pc.CALL_MADE_TO_ORGANIZATION_UID AS ORGANIZATION_UID
+    FROM BUILD.PODIUM_INTERNAL.CORE_CALLS pc
+    INNER JOIN csm_allowlist al ON pc.CALL_MADE_BY_USER_FULL_NAME = al.CSM_NAME
+    WHERE pc.CALL_DURATION_SECONDS >= 900
+      AND pc.CALL_INSERTED_AT >= DATEADD('day', -30, '{anchor}')
+      AND pc.CALL_INSERTED_AT < '{anchor}'
+      AND pc.CALL_MADE_TO_ORGANIZATION_UID IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1 FROM sfdc_ars ar
+          WHERE ar.CSM_NAME = pc.CALL_MADE_BY_USER_FULL_NAME
+            AND ar.ORGANIZATION_UID = pc.CALL_MADE_TO_ORGANIZATION_UID
+            AND ar.EVENT_DATE = DATE(pc.CALL_INSERTED_AT)
+      )
+),
+ar_events AS (
+    SELECT EVENT_DATE, ORGANIZATION_UID, CSM_NAME FROM sfdc_ars
+    UNION ALL
+    SELECT EVENT_DATE, ORGANIZATION_UID, CSM_NAME FROM gong_dark
+    UNION ALL
+    SELECT EVENT_DATE, ORGANIZATION_UID, CSM_NAME FROM podium_dark
+),
+outreach_events_l30 AS (
+    SELECT DISTINCT EVENT_DATE, CSM_NAME, ORGANIZATION_UID FROM ar_events
+),
+-- All outreach events (no duration filter) — used for active days + retention SLA
+retention_outreach AS (
+    SELECT DISTINCT DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) AS EVENT_DATE,
+           csa.CUSTOMER_SUCCESS_ACTION_OWNER_FULL_NAME AS CSM_NAME, csa.ORGANIZATION_UID
+    FROM BUILD.SALESFORCE.CORE_CUSTOMER_SUCCESS_ACTIONS csa
+    INNER JOIN csm_allowlist al ON csa.CUSTOMER_SUCCESS_ACTION_OWNER_FULL_NAME = al.CSM_NAME
+    WHERE csa.RECORD_TYPE_ID = '0125G000001QG3fQAG' AND LOWER(csa.CUSTOMER_SUCCESS_ACTION_STATUS) = 'closed'
+      AND csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT IS NOT NULL
+      AND DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) >= DATEADD('day', -30, '{anchor}') AND DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) < '{anchor}'
+    UNION
+    SELECT DISTINCT DATE(gc.CALL_EFFECTIVE_START_AT), gc.CALL_SALESFORCE_USER_FULL_NAME, gc.ORGANIZATION_UID
+    FROM BUILD.GONG.CORE_CONVERSATIONS gc
+    INNER JOIN csm_allowlist al ON gc.CALL_SALESFORCE_USER_FULL_NAME = al.CSM_NAME
+    WHERE LOWER(gc.CALL_STATUS) = 'completed' AND gc.ORGANIZATION_UID IS NOT NULL
+      AND gc.CALL_EFFECTIVE_START_AT >= DATEADD('day', -30, '{anchor}') AND gc.CALL_EFFECTIVE_START_AT < '{anchor}'
+    UNION
+    SELECT DISTINCT DATE(pc.CALL_INSERTED_AT), pc.CALL_MADE_BY_USER_FULL_NAME, pc.CALL_MADE_TO_ORGANIZATION_UID
+    FROM BUILD.PODIUM_INTERNAL.CORE_CALLS pc
+    INNER JOIN csm_allowlist al ON pc.CALL_MADE_BY_USER_FULL_NAME = al.CSM_NAME
+    WHERE pc.CALL_MADE_TO_ORGANIZATION_UID IS NOT NULL
+      AND pc.CALL_INSERTED_AT >= DATEADD('day', -30, '{anchor}') AND pc.CALL_INSERTED_AT < '{anchor}'
+),
+csm_active_days AS (
+    SELECT CSM_NAME, COUNT(DISTINCT EVENT_DATE)::FLOAT AS n_days
+    FROM retention_outreach
+    WHERE DAYOFWEEK(EVENT_DATE) NOT IN (0, 6)
+    GROUP BY CSM_NAME
+),
+ar_metrics AS (
+    SELECT a.CSM_NAME,
+           ROUND(COUNT(*) / cd.n_days, 2) AS ARS_PER_DAY
+    FROM ar_events a
+    JOIN csm_active_days cd ON a.CSM_NAME = cd.CSM_NAME
+    GROUP BY a.CSM_NAME, cd.n_days
+),
+call_metrics AS (
+    SELECT s.CALL_SALESFORCE_USER_FULL_NAME AS CSM_NAME,
+           ROUND(AVG(s.FINAL_ADJUSTED_SCORE), 1) AS AVG_CALL_SCORE,
+           ROUND(AVG(s.FINAL_ADJUSTED_SCORE) / 100.0, 4) AS CALL_SCORE_NORM
+    FROM (
+        SELECT CALL_SALESFORCE_USER_FULL_NAME, FINAL_ADJUSTED_SCORE
+        FROM ANALYSIS.CUSTOMER_SUCCESS.HVAC_CALL_SCORING_PROCESSED
+        WHERE INTERACTION_QUALITY != 'incomplete' AND CONVERSATION_DATE >= DATEADD('day', -90, '{anchor}') AND CONVERSATION_DATE < '{anchor}'
+        UNION ALL
+        SELECT CALL_SALESFORCE_USER_FULL_NAME, FINAL_ADJUSTED_SCORE
+        FROM ANALYSIS.CUSTOMER_SUCCESS.AUTOMOTIVE_CALL_SCORING_PROCESSED
+        WHERE INTERACTION_QUALITY != 'incomplete' AND CONVERSATION_DATE >= DATEADD('day', -90, '{anchor}') AND CONVERSATION_DATE < '{anchor}'
+        UNION ALL
+        SELECT CALL_SALESFORCE_USER_FULL_NAME, FINAL_ADJUSTED_SCORE
+        FROM ANALYSIS.CUSTOMER_SUCCESS.MEDSPA_CALL_SCORING_PROCESSED
+        WHERE INTERACTION_QUALITY != 'incomplete' AND CONVERSATION_DATE >= DATEADD('day', -90, '{anchor}') AND CONVERSATION_DATE < '{anchor}'
+        UNION ALL
+        SELECT CALL_SALESFORCE_USER_FULL_NAME, FINAL_ADJUSTED_SCORE
+        FROM ANALYSIS.CUSTOMER_SUCCESS.ACCOUNT_REVIEW_GRADING_EMERGING_MARKETS_PROCESSED
+        WHERE INTERACTION_QUALITY != 'incomplete' AND CONVERSATION_DATE >= DATEADD('day', -90, '{anchor}') AND CONVERSATION_DATE < '{anchor}'
+    ) s
+    INNER JOIN csm_allowlist al ON s.CALL_SALESFORCE_USER_FULL_NAME = al.CSM_NAME
+    GROUP BY s.CALL_SALESFORCE_USER_FULL_NAME
+),
+ret_sla AS (
+    SELECT c.CASE_OWNER_FULL_NAME AS CSM_NAME,
+           ROUND(COUNT(DISTINCT CASE WHEN ro.ORGANIZATION_UID IS NOT NULL THEN c.CASE_ID END)::FLOAT
+                 / NULLIF(COUNT(DISTINCT c.CASE_ID), 0), 3) AS RET_SLA_PCT
+    FROM BUILD.SALESFORCE.CORE_CASES c
+    INNER JOIN csm_allowlist al ON c.CASE_OWNER_FULL_NAME = al.CSM_NAME
+    LEFT JOIN retention_outreach ro ON c.ORGANIZATION_UID = ro.ORGANIZATION_UID AND ro.EVENT_DATE >= c.CASE_CREATED_AT::DATE
+    WHERE c.CASE_RECORD_TYPE_NAME = 'Retention'
+      AND c.CASE_CREATED_AT >= DATEADD('day', -30, '{anchor}') AND c.CASE_CREATED_AT < '{anchor}'
+      AND c.ORGANIZATION_UID IS NOT NULL
+      AND (c.CASE_CREATED_BY_ID IS NULL OR c.CASE_CREATED_BY_ID != c.CASE_OWNER_ID)
+    GROUP BY c.CASE_OWNER_FULL_NAME
+),
+csm_segment AS (
+    SELECT CSM_NAME, SEGMENT FROM (
+        SELECT m.MONTH_START_ACCOUNT_OWNER AS CSM_NAME,
+               m.ORGANIZATION_ACCOUNT_SEGMENT AS SEGMENT,
+               COUNT(*) AS CNT
+        FROM ANALYSIS.FINANCE.SALESFORCE_ORGANIZATION_MONTH_MRR_PLUS_6_MONTHS m
+        INNER JOIN csm_allowlist al ON m.MONTH_START_ACCOUNT_OWNER = al.CSM_NAME
+        WHERE m.MONTH = DATE_TRUNC('month', '{anchor}'::DATE) AND m.ORGANIZATION_MONTH_START_MRR_USD > 0
+        GROUP BY 1, 2
+    ) QUALIFY ROW_NUMBER() OVER (PARTITION BY CSM_NAME ORDER BY CNT DESC) = 1
+),
+renewal_cohort_all AS (
+    SELECT DISTINCT m.MONTH_START_ACCOUNT_OWNER AS CSM_NAME, m.ORGANIZATION_UID,
+           DATE_TRUNC('month', m.MONTH_START_CONTRACT_END_MONTH) AS RENEWAL_MONTH
+    FROM ANALYSIS.FINANCE.SALESFORCE_ORGANIZATION_MONTH_MRR_PLUS_6_MONTHS m
+    INNER JOIN csm_allowlist al ON m.MONTH_START_ACCOUNT_OWNER = al.CSM_NAME
+    WHERE m.MONTH = DATE_TRUNC('month', '{anchor}'::DATE)
+      AND m.ORGANIZATION_MONTH_START_MRR_USD > 0
+      AND DATE_TRUNC('month', m.MONTH_START_CONTRACT_END_MONTH) IN (
+          DATE_TRUNC('month', DATEADD('month', 1, '{anchor}'::DATE)),
+          DATE_TRUNC('month', DATEADD('month', 2, '{anchor}'::DATE)),
+          DATE_TRUNC('month', DATEADD('month', 3, '{anchor}'::DATE))
+      )
+),
+renewal_contacted AS (
+    SELECT DISTINCT csa.CUSTOMER_SUCCESS_ACTION_OWNER_FULL_NAME AS CSM_NAME, csa.ORGANIZATION_UID,
+           DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) AS EVENT_DATE
+    FROM BUILD.SALESFORCE.CORE_CUSTOMER_SUCCESS_ACTIONS csa
+    INNER JOIN renewal_cohort_all rc ON csa.ORGANIZATION_UID = rc.ORGANIZATION_UID
+    WHERE csa.RECORD_TYPE_ID = '0125G000001QG3fQAG' AND LOWER(csa.CUSTOMER_SUCCESS_ACTION_STATUS) = 'closed'
+      AND csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT IS NOT NULL
+      AND DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) >= DATEADD('day', -120, rc.RENEWAL_MONTH)
+      AND DATE(csa.CUSTOMER_SUCCESS_ACTION_CLOSED_AT) < '{anchor}'
+    UNION
+    SELECT DISTINCT gc.CALL_SALESFORCE_USER_FULL_NAME, gc.ORGANIZATION_UID, DATE(gc.CALL_EFFECTIVE_START_AT)
+    FROM BUILD.GONG.CORE_CONVERSATIONS gc
+    INNER JOIN renewal_cohort_all rc ON gc.ORGANIZATION_UID = rc.ORGANIZATION_UID
+    WHERE LOWER(gc.CALL_STATUS) = 'completed' AND gc.CALL_ELAPSED_MINUTES >= 15 AND gc.ORGANIZATION_UID IS NOT NULL
+      AND DATE(gc.CALL_EFFECTIVE_START_AT) >= DATEADD('day', -120, rc.RENEWAL_MONTH)
+      AND DATE(gc.CALL_EFFECTIVE_START_AT) < '{anchor}'
+    UNION
+    SELECT DISTINCT pc.CALL_MADE_BY_USER_FULL_NAME, pc.CALL_MADE_TO_ORGANIZATION_UID, DATE(pc.CALL_INSERTED_AT)
+    FROM BUILD.PODIUM_INTERNAL.CORE_CALLS pc
+    INNER JOIN renewal_cohort_all rc ON pc.CALL_MADE_TO_ORGANIZATION_UID = rc.ORGANIZATION_UID
+    WHERE pc.CALL_DURATION_SECONDS >= 900 AND pc.CALL_MADE_TO_ORGANIZATION_UID IS NOT NULL
+      AND DATE(pc.CALL_INSERTED_AT) >= DATEADD('day', -120, rc.RENEWAL_MONTH)
+      AND DATE(pc.CALL_INSERTED_AT) < '{anchor}'
+),
+renewal_coverage_all AS (
+    SELECT rc.CSM_NAME, rc.RENEWAL_MONTH,
+           COUNT(DISTINCT rc.ORGANIZATION_UID) AS COHORT_TOTAL,
+           ROUND(COUNT(DISTINCT CASE WHEN rac.ORGANIZATION_UID IS NOT NULL THEN rc.ORGANIZATION_UID END)::FLOAT
+                 / NULLIF(COUNT(DISTINCT rc.ORGANIZATION_UID), 0), 3) AS COVERAGE_PCT
+    FROM renewal_cohort_all rc
+    LEFT JOIN renewal_contacted rac ON rc.ORGANIZATION_UID = rac.ORGANIZATION_UID AND rc.CSM_NAME = rac.CSM_NAME
+    GROUP BY rc.CSM_NAME, rc.RENEWAL_MONTH
+),
+renewal_m1 AS (SELECT * FROM renewal_coverage_all WHERE RENEWAL_MONTH = DATE_TRUNC('month', DATEADD('month', 1, '{anchor}'::DATE))),
+renewal_m2 AS (SELECT * FROM renewal_coverage_all WHERE RENEWAL_MONTH = DATE_TRUNC('month', DATEADD('month', 2, '{anchor}'::DATE))),
+renewal_m3 AS (SELECT * FROM renewal_coverage_all WHERE RENEWAL_MONTH = DATE_TRUNC('month', DATEADD('month', 3, '{anchor}'::DATE))),
+interaction_intelligence AS (
+    SELECT
+        CURRENT_CSM_FULL_NAME AS CSM_NAME,
+        COUNT(CASE WHEN OVERALL_RISK_LEVEL IN ('high', 'critical') THEN 1 END) AS HIGH_RISK_ORG_COUNT,
+        COUNT(CASE WHEN HAS_CANCELLATION_INTENT = TRUE THEN 1 END) AS CANCELLATION_INTENT_COUNT
+    FROM BUILD.CUSTOMER_SUCCESS.CORE_INTERACTION_INTELLIGENCE_PROCESSED
+    WHERE ANALYSIS_DATE = (SELECT MAX(ANALYSIS_DATE) FROM BUILD.CUSTOMER_SUCCESS.CORE_INTERACTION_INTELLIGENCE_PROCESSED WHERE ANALYSIS_DATE <= '{anchor}'::DATE)
+    GROUP BY CURRENT_CSM_FULL_NAME
+),
+composite AS (
+    SELECT al.CSM_NAME, a.ARS_PER_DAY, c.AVG_CALL_SCORE, rs.RET_SLA_PCT,
+           rm2.COVERAGE_PCT AS RENEWAL_COVERAGE_PCT,
+           rm1.COVERAGE_PCT AS RENEWAL_M1_PCT,
+           rm2.COVERAGE_PCT AS RENEWAL_M2_PCT,
+           rm3.COVERAGE_PCT AS RENEWAL_M3_PCT,
+           ii.HIGH_RISK_ORG_COUNT,
+           ii.CANCELLATION_INTENT_COUNT,
+        ROUND((
+            LEAST(COALESCE(a.ARS_PER_DAY, 0) / CASE WHEN seg.SEGMENT ILIKE '%phone%' OR seg.SEGMENT ILIKE '%platform%' THEN 2.5 WHEN seg.SEGMENT ILIKE '%Mid%' THEN 3.0 WHEN seg.SEGMENT ILIKE '%Strategic%' THEN 1.5 ELSE 4.0 END, 1.0)
+            + COALESCE(c.CALL_SCORE_NORM, 0)
+            + COALESCE(rs.RET_SLA_PCT, 0)
+            + CASE WHEN seg.SEGMENT NOT ILIKE '%phone%' AND seg.SEGMENT NOT ILIKE '%platform%' AND COALESCE(rm2.COHORT_TOTAL, 0) > 0 THEN COALESCE(rm2.COVERAGE_PCT, 0) ELSE 0 END
+        ) / (1.0
+            + CASE WHEN c.CALL_SCORE_NORM IS NOT NULL THEN 1.0 ELSE 0 END
+            + CASE WHEN rs.RET_SLA_PCT IS NOT NULL THEN 1.0 ELSE 0 END
+            + CASE WHEN seg.SEGMENT NOT ILIKE '%phone%' AND seg.SEGMENT NOT ILIKE '%platform%' AND COALESCE(rm2.COHORT_TOTAL, 0) > 0 THEN 1.0 ELSE 0 END
+        ), 4) AS COMPOSITE_SCORE,
+        CASE
+            WHEN ROUND((
+                LEAST(COALESCE(a.ARS_PER_DAY, 0) / CASE WHEN seg.SEGMENT ILIKE '%phone%' OR seg.SEGMENT ILIKE '%platform%' THEN 2.5 WHEN seg.SEGMENT ILIKE '%Mid%' THEN 3.0 WHEN seg.SEGMENT ILIKE '%Strategic%' THEN 1.5 ELSE 4.0 END, 1.0)
+                + COALESCE(c.CALL_SCORE_NORM, 0) + COALESCE(rs.RET_SLA_PCT, 0)
+                + CASE WHEN seg.SEGMENT NOT ILIKE '%phone%' AND seg.SEGMENT NOT ILIKE '%platform%' AND COALESCE(rm2.COHORT_TOTAL, 0) > 0 THEN COALESCE(rm2.COVERAGE_PCT, 0) ELSE 0 END
+            ) / (1.0 + CASE WHEN c.CALL_SCORE_NORM IS NOT NULL THEN 1.0 ELSE 0 END + CASE WHEN rs.RET_SLA_PCT IS NOT NULL THEN 1.0 ELSE 0 END + CASE WHEN seg.SEGMENT NOT ILIKE '%phone%' AND seg.SEGMENT NOT ILIKE '%platform%' AND COALESCE(rm2.COHORT_TOTAL, 0) > 0 THEN 1.0 ELSE 0 END), 4) >= 0.80 THEN 'green'
+            WHEN ROUND((
+                LEAST(COALESCE(a.ARS_PER_DAY, 0) / CASE WHEN seg.SEGMENT ILIKE '%phone%' OR seg.SEGMENT ILIKE '%platform%' THEN 2.5 WHEN seg.SEGMENT ILIKE '%Mid%' THEN 3.0 WHEN seg.SEGMENT ILIKE '%Strategic%' THEN 1.5 ELSE 4.0 END, 1.0)
+                + COALESCE(c.CALL_SCORE_NORM, 0) + COALESCE(rs.RET_SLA_PCT, 0)
+                + CASE WHEN seg.SEGMENT NOT ILIKE '%phone%' AND seg.SEGMENT NOT ILIKE '%platform%' AND COALESCE(rm2.COHORT_TOTAL, 0) > 0 THEN COALESCE(rm2.COVERAGE_PCT, 0) ELSE 0 END
+            ) / (1.0 + CASE WHEN c.CALL_SCORE_NORM IS NOT NULL THEN 1.0 ELSE 0 END + CASE WHEN rs.RET_SLA_PCT IS NOT NULL THEN 1.0 ELSE 0 END + CASE WHEN seg.SEGMENT NOT ILIKE '%phone%' AND seg.SEGMENT NOT ILIKE '%platform%' AND COALESCE(rm2.COHORT_TOTAL, 0) > 0 THEN 1.0 ELSE 0 END), 4) >= 0.50 THEN 'yellow'
+            ELSE 'red'
+        END AS OVERALL_STATUS
+    FROM csm_allowlist al
+    LEFT JOIN ar_metrics a ON al.CSM_NAME = a.CSM_NAME
+    LEFT JOIN call_metrics c ON al.CSM_NAME = c.CSM_NAME
+    LEFT JOIN ret_sla rs ON al.CSM_NAME = rs.CSM_NAME
+    LEFT JOIN csm_segment seg ON al.CSM_NAME = seg.CSM_NAME
+    LEFT JOIN renewal_m1 rm1 ON al.CSM_NAME = rm1.CSM_NAME
+    LEFT JOIN renewal_m2 rm2 ON al.CSM_NAME = rm2.CSM_NAME
+    LEFT JOIN renewal_m3 rm3 ON al.CSM_NAME = rm3.CSM_NAME
+    LEFT JOIN interaction_intelligence ii ON al.CSM_NAME = ii.CSM_NAME
+)
+SELECT '{anchor}' AS SNAPSHOT_DATE, CSM_NAME, COMPOSITE_SCORE, ARS_PER_DAY, AVG_CALL_SCORE, RET_SLA_PCT, RENEWAL_COVERAGE_PCT, OVERALL_STATUS, RENEWAL_M1_PCT, RENEWAL_M2_PCT, RENEWAL_M3_PCT, HIGH_RISK_ORG_COUNT, CANCELLATION_INTENT_COUNT
+FROM composite WHERE ARS_PER_DAY IS NOT NULL OR AVG_CALL_SCORE IS NOT NULL OR RET_SLA_PCT IS NOT NULL
+"""
+
+
+def main():
+    print("=" * 65)
+    print("  CS Performance Hub — Accurate Snapshot Backfill")
+    print("=" * 65)
+
+    conn = snowflake.connector.connect(
+        user="josh.rookstool@podium.com",
+        account="rla99487",
+        authenticator="externalbrowser",
+        warehouse="PUBLIC",
+        database="ANALYST_SANDBOX",
+        schema="JOSH_ROOKSTOOL",
+        role="EXPLORER_WRITE_OKTA",
+    )
+    cur = conn.cursor()
+    print("Connected\n")
+
+    # Delete old backfill
+    cur.execute(f"DELETE FROM CS_PERF_HUB_SNAPSHOTS WHERE SNAPSHOT_DATE BETWEEN '{START_DATE}' AND '{END_DATE}'")
+    print(f"Cleared {cur.rowcount} old backfill rows\n")
+
+    current = START_DATE
+    total = 0
+    while current <= END_DATE:
+        d = current.isoformat()
+        print(f"  {d}: ", end="", flush=True)
+
+        query = BACKFILL_SQL_TEMPLATE.replace("{anchor}", d)
+        try:
+            cur.execute(query)
+            rows = cur.fetchall()
+            cols = [desc[0] for desc in cur.description]
+
+            if rows:
+                for row in rows:
+                    vals = list(row)
+                    # Build safe INSERT
+                    csm = vals[1].replace("'", "''")
+                    parts = [f"'{vals[0]}'", f"'{csm}'"]
+                    for v in vals[2:]:
+                        parts.append('NULL' if v is None else f"'{v}'" if isinstance(v, str) else str(v))
+                    cur.execute(f"INSERT INTO CS_PERF_HUB_SNAPSHOTS (SNAPSHOT_DATE, CSM_NAME, COMPOSITE_SCORE, ARS_PER_DAY, AVG_CALL_SCORE, RET_SLA_PCT, RENEWAL_COVERAGE_PCT, OVERALL_STATUS, RENEWAL_M1_PCT, RENEWAL_M2_PCT, RENEWAL_M3_PCT, HIGH_RISK_ORG_COUNT, CANCELLATION_INTENT_COUNT) SELECT {', '.join(parts)}")
+                total += len(rows)
+                # Spot check
+                sample = next((r for r in rows if r[1] == 'Alex Woerner'), None)
+                ar_val = sample[3] if sample else '?'
+                print(f"✓ {len(rows)} CSMs (Alex W. AR={ar_val})")
+            else:
+                print("no data")
+        except Exception as e:
+            print(f"ERROR: {e}")
+
+        current += timedelta(days=1)
+
+    print(f"\nDone. {total} rows backfilled.")
+
+    cur.execute("SELECT SNAPSHOT_DATE, COUNT(*), ROUND(AVG(ARS_PER_DAY), 2) FROM CS_PERF_HUB_SNAPSHOTS GROUP BY 1 ORDER BY 1")
+    print("\nSnapshot coverage (avg AR/Day):")
+    for r in cur.fetchall():
+        print(f"  {r[0]}: {r[1]} CSMs, avg AR={r[2]}")
+
+    conn.close()
+
+
+if __name__ == "__main__":
+    main()

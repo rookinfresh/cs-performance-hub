@@ -98,24 +98,21 @@ a { color: inherit; text-decoration: none; }
   -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
 }
 .topbar-left { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .topbar-logo { flex-shrink: 0; }
 .topbar-title { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); white-space: nowrap; }
-.topbar-nav { display: flex; gap: 2px; }
-.topbar-link {
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.12s;
-  user-select: none;
+.topbar-nav { display: flex; align-items: center; gap: 2px; flex: 1; justify-content: center; }
+.topbar-nav-link {
+  padding: 6px 14px; font-size: 12px; font-weight: 600;
+  color: var(--muted); cursor: pointer; border-radius: 6px;
+  transition: all 0.12s; user-select: none; white-space: nowrap;
 }
-.topbar-link:hover { color: var(--text); background: var(--surface2); }
+.topbar-nav-link:hover { color: var(--text); background: var(--surface2); }
+.topbar-nav-link.active { color: var(--text); background: var(--surface2); }
+.topbar-sep { width: 1px; height: 14px; background: var(--border); margin: 0 6px; flex-shrink: 0; }
+
 .topbar-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .topbar-btn {
   width: 32px;
@@ -138,6 +135,12 @@ a { color: inherit; text-decoration: none; }
 /* ── Context bar ─────────────────────────────────────────────── */
 .context-bar {
   display: none;
+  padding: 6px 24px;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
 }
 .back-btn {
   display: inline-flex;
@@ -208,6 +211,44 @@ a { color: inherit; text-decoration: none; }
   cursor: pointer;
   outline: none;
 }
+.filter-select-wrap { position: relative; }
+.filter-select-btn {
+  width: 100%;
+  padding: 7px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.filter-select-btn:hover { border-color: var(--border2); }
+.filter-select-btn .arrow { font-size: 10px; color: var(--muted); transition: transform 0.15s; }
+.filter-select-btn.open .arrow { transform: rotate(180deg); }
+.filter-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  z-index: 300;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px;
+}
+.filter-dropdown.open { display: block; }
+.filter-check-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text); cursor: pointer; padding: 5px 8px; border-radius: 6px; }
+.filter-check-item:hover { background: var(--surface2); }
+.filter-check-item input[type="checkbox"] { accent-color: var(--green); cursor: pointer; width: 14px; height: 14px; }
 
 /* ── UFR month bar ──────────────────────────────────────────────────── */
 .ufr-bar {
@@ -565,6 +606,16 @@ td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; color: var(
 .def-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
 .def-table th { background: var(--surface3); text-align: left; padding: 6px 10px; font-weight: 600; color: var(--muted); border: 1px solid var(--border); text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
 .def-table td { padding: 6px 10px; border: 1px solid var(--border); color: var(--text2); }
+.def-detail { display: none; }
+.def-detail.open { display: block; }
+#defAccordion .def-card { transition: background 0.12s; border-radius: 10px; padding: 14px 16px; margin-bottom: 4px; }
+#defAccordion .def-card:hover { background: var(--surface2); }
+#defAccordion .def-table { font-size: 11px; }
+#defAccordion .def-table th, #defAccordion .def-table td { padding: 5px 8px; }
+#defsPanel .def-body { font-size: 12px; line-height: 1.5; }
+#defsPanel .def-formula { font-size: 11px; }
+.def-section-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; margin-top: 10px; }
+.def-section-label:first-child { margin-top: 0; }
 .def-green { color: var(--green); font-weight: 600; }
 .def-amber { color: var(--amber); font-weight: 600; }
 .def-red   { color: var(--red);   font-weight: 600; }
@@ -597,7 +648,7 @@ td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; color: var(
 .vert-compare-section { background: var(--surface); border-radius: 12px; padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
 .vert-compare-section-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
 .vert-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.vert-bar-label { width: 80px; font-size: 12px; font-weight: 600; color: var(--text2); text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vert-bar-label { width: 120px; font-size: 12px; font-weight: 600; color: var(--text2); text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vert-bar-track { flex: 1; height: 8px; background: var(--surface3); border-radius: 4px; overflow: hidden; }
 .vert-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
 .vert-bar-value { width: 50px; font-size: 12px; font-weight: 700; color: var(--text); }
@@ -640,6 +691,103 @@ td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; color: var(
 .loading-state { padding: 60px; text-align: center; color: var(--muted); font-size: 14px; }
 .error-card { background: var(--red-bg); border: 1px solid rgba(220,38,38,0.2); border-radius: 10px; padding: 24px; margin: 24px; font-size: 13px; color: var(--red-t); }
 
+/* ── UFR Deep Dive ─────────────────────────────────────────────────── */
+.race-list { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden; }
+.race-row {
+  display: grid;
+  grid-template-columns: 36px 84px 1fr 58px 96px 160px;
+  gap: 10px; align-items: center;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+  cursor: pointer;
+}
+.race-row:last-child { border-bottom: none; }
+.race-row:hover { background: var(--surface2); }
+.race-row.rank-1 { background: linear-gradient(90deg, rgba(232,134,10,0.05) 0%, transparent 40%); }
+.race-row.rank-2 { background: linear-gradient(90deg, rgba(140,140,140,0.04) 0%, transparent 30%); }
+.race-row.rank-3 { background: linear-gradient(90deg, rgba(180,100,50,0.03) 0%, transparent 25%); }
+.race-row.rank-1:hover, .race-row.rank-2:hover, .race-row.rank-3:hover { background: var(--surface2); }
+.race-rank { font-size: 12px; font-weight: 700; color: var(--muted); text-align: center; }
+.race-rank.rank-1 { color: #D4A017; font-size: 14px; }
+.race-rank.rank-2 { color: #8A8A82; font-size: 13px; }
+.race-rank.rank-3 { color: #B87333; font-size: 13px; }
+.race-medal { font-size: 16px; display: block; line-height: 1; }
+.race-vert-name { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.race-vert-accent { width: 3px; height: 16px; border-radius: 2px; flex-shrink: 0; }
+.race-pacing-bar { position: relative; height: 10px; background: var(--surface3); border-radius: 5px; }
+.race-pacing-fill { height: 100%; border-radius: 5px; transition: width 0.4s; position: relative; z-index: 1; }
+.race-pacing-expected {
+  position: absolute; top: -2px; width: 2px; height: 14px;
+  background: var(--text); opacity: 0.35; border-radius: 1px; z-index: 2;
+}
+.race-pct { font-size: 15px; font-weight: 800; text-align: right; }
+.race-orgs { font-size: 12px; color: var(--text2); font-weight: 600; text-align: right; white-space: nowrap; }
+.race-meta { display: flex; align-items: center; gap: 6px; justify-content: flex-end; white-space: nowrap; }
+.race-wow { font-size: 10px; font-weight: 600; white-space: nowrap; }
+.delta-up { color: var(--green); }
+.delta-down { color: var(--red); }
+
+.race-divider { height: 1px; background: var(--border2); margin: 0 16px; }
+
+.month-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.month-card {
+  background: var(--surface); border-radius: 12px; border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm); padding: 18px 20px; cursor: pointer; transition: all 0.15s;
+}
+.month-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.month-card.active { border-color: var(--text); box-shadow: var(--shadow-md); }
+.month-card-label { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.month-card-pct { font-size: 28px; font-weight: 800; letter-spacing: -1px; line-height: 1; margin-bottom: 4px; }
+.month-card-sub { font-size: 12px; color: var(--text2); font-weight: 600; }
+.month-card-top { font-size: 11px; color: var(--muted); margin-top: 8px; }
+.month-card-hint { font-size: 10px; color: var(--muted2); margin-top: 4px; }
+
+.pacing-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.pacing-kpi {
+  background: var(--surface); border-radius: 12px; padding: 20px;
+  border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+  min-height: 140px; display: flex; flex-direction: column;
+}
+.pacing-kpi-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.pacing-kpi-value { font-size: 36px; font-weight: 800; letter-spacing: -1.5px; line-height: 1; margin-bottom: 6px; }
+.pacing-kpi-sub { font-size: 11px; color: var(--muted); }
+.pacing-kpi-bottom { margin-top: auto; padding-top: 10px; }
+.pacing-kpi-bar { height: 4px; background: var(--surface3); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.pacing-kpi-bar-fill { height: 100%; border-radius: 2px; }
+
+.trend-bar {
+  background: var(--surface); border-radius: 12px; border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm); padding: 16px 20px; cursor: pointer;
+}
+.trend-bar:hover { box-shadow: var(--shadow-md); }
+#unifiedRankingsTable td { padding: 8px 12px; }
+#unifiedRankingsTable th { padding: 9px 12px; }
+
+.trend-card { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); padding: 20px; }
+.trend-placeholder {
+  padding: 40px 24px; text-align: center; color: var(--muted);
+  font-size: 13px; border: 1px dashed var(--border2); border-radius: 8px; margin-top: 12px;
+}
+.chart-container { position: relative; height: 280px; margin-top: 12px; }
+
+/* ── Definition tooltips ──────────────────────────────────────────────── */
+.def-tip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--surface3); color: var(--muted); font-size: 9px; font-weight: 700;
+  cursor: help; margin-left: 4px; vertical-align: middle;
+}
+.def-tip:hover { background: var(--border2); color: var(--text); }
+#globalTip {
+  display: none; position: fixed; z-index: 600;
+  background: var(--text); color: var(--bg); font-size: 11px; font-weight: 500;
+  padding: 8px 12px; border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  max-width: 260px; line-height: 1.4; pointer-events: none;
+}
+#globalTip.show { display: block; }
+
 /* ── Responsive ──────────────────────────────────────────────────────── */
 @media (max-width: 1100px) {
   .vert-grid { grid-template-columns: repeat(3, 1fr); }
@@ -650,14 +798,22 @@ td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; color: var(
   .hero-card .hero-meta { display: none; }
   .mgr-row { grid-template-columns: 36px 1fr auto auto; }
   .mgr-csm-count, .mgr-arr { display: none; }
-  .hero-kpis { grid-template-columns: repeat(2, 1fr); }
+  .hero-kpis, .ufr-hero-kpis { grid-template-columns: repeat(2, 1fr); }
   .vert-compare-grid { grid-template-columns: 1fr; }
+  .race-row { grid-template-columns: 28px 66px 1fr 46px 80px; }
+  .race-meta { display: none; }
+  .month-cards { grid-template-columns: repeat(2, 1fr); }
+  .pacing-kpis { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 640px) {
   .vert-grid { grid-template-columns: 1fr 1fr; }
   .hero-card { grid-template-columns: 1fr; }
   .main { padding: 16px; }
   .panel { width: 100vw; }
+  .race-row { grid-template-columns: 24px 56px 1fr 40px; }
+  .race-orgs { display: none; }
+  .month-cards { grid-template-columns: 1fr 1fr; }
+  .pacing-kpis { grid-template-columns: 1fr 1fr; }
 }
 </style>
 </head>
@@ -672,11 +828,11 @@ td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; color: var(
     </svg>
     <span class="topbar-title">CS Performance Hub</span>
   </div>
-  <nav class="topbar-nav" id="sectionNav">
-    <a class="topbar-link" onclick="scrollToSection('heroKpis')">Metrics</a>
-    <a class="topbar-link" onclick="scrollToSection('verticalComparison')">Verticals</a>
-    <a class="topbar-link" onclick="scrollToSection('mgrLeaderboard')">Managers</a>
-    <a class="topbar-link" onclick="scrollToSection('globalLeaderboard')">Rankings</a>
+  <nav class="topbar-nav" id="topbarNav">
+    <a class="topbar-nav-link" data-level="overview" onclick="navTo('overview')">Overview</a>
+    <span class="topbar-sep"></span>
+    <a class="topbar-nav-link" data-level="dive-call" onclick="navTo('dive-call')">Call Quality</a>
+    <a class="topbar-nav-link" data-level="dive-ufr" onclick="navTo('dive-ufr')">UFR Coverage</a>
   </nav>
   <div class="topbar-right">
     <span class="topbar-updated" id="topbarUpdated"></span>
@@ -684,7 +840,7 @@ td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; color: var(
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M1 3h14M4 8h8M6 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
     </button>
     <button class="topbar-btn" onclick="openDefs()" title="Definitions">?</button>
-    <button class="topbar-btn" onclick="toggleTheme()" title="Toggle theme"><span id="themeIcon">☽</span></button>
+    <button class="topbar-btn" onclick="toggleTheme()" title="Toggle theme"><span id="themeIcon">&#9789;</span></button>
   </div>
 </header>
 
@@ -705,15 +861,43 @@ td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; color: var(
   <div class="filter-drawer-title">Filters</div>
   <div class="filter-row">
     <label class="filter-label">Manager</label>
-    <select id="filterManager" onchange="applyFilters()"><option value="">All</option></select>
+    <div class="filter-select-wrap">
+      <button class="filter-select-btn" onclick="toggleFilterDropdown('manager')">
+        <span id="filterManagerLabel">All</span> <span class="arrow">▾</span>
+      </button>
+      <div class="filter-dropdown" id="filterManagerDropdown">
+        <div id="filterManagerChecks"></div>
+      </div>
+    </div>
   </div>
   <div class="filter-row">
     <label class="filter-label">Vertical</label>
-    <select id="filterVertical" onchange="applyFilters()"><option value="">All</option></select>
+    <div class="filter-select-wrap">
+      <button class="filter-select-btn" onclick="toggleFilterDropdown('vertical')">
+        <span id="filterVerticalLabel">All</span> <span class="arrow">▾</span>
+      </button>
+      <div class="filter-dropdown" id="filterVerticalDropdown">
+        <div id="filterVerticalChecks"></div>
+      </div>
+    </div>
   </div>
   <div class="filter-row">
     <label class="filter-label">Segment</label>
-    <select id="filterSegment" onchange="applyFilters()"><option value="">All</option></select>
+    <div class="filter-select-wrap">
+      <button class="filter-select-btn" onclick="toggleFilterDropdown('segment')">
+        <span id="filterSegmentLabel">All</span> <span class="arrow">▾</span>
+      </button>
+      <div class="filter-dropdown" id="filterSegmentDropdown">
+        <div id="filterSegmentChecks"></div>
+      </div>
+    </div>
+  </div>
+  <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:12px">
+    <label class="filter-check-item" style="font-weight:600">
+      <input type="checkbox" id="excludeM2M" checked onchange="applyFilters()">
+      <span>Exclude M2M from UFR</span>
+    </label>
+    <div style="font-size:10px;color:var(--muted);margin-top:4px;margin-left:22px">Removes month-to-month contracts from renewal cohort</div>
   </div>
 </div>
 
@@ -734,86 +918,143 @@ td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; color: var(
   <div class="modal-content" id="metricModalContent" style="max-width:1000px;max-height:90vh;width:95vw;overflow-y:auto;background:var(--surface);border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow-xl);padding:28px;position:relative"></div>
 </div>
 
+<!-- ─── UFR Vertical Modal ────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this)closeModal()"></div>
+
 <!-- ─── Definitions Modal ─────────────────────────────────────────────── -->
-<div class="modal-backdrop" id="defsBackdrop" onclick="closeDefs(event)">
-  <div class="modal" id="defsModal">
-    <div class="modal-header">
-      <div class="modal-title">Metric Definitions</div>
-      <button class="modal-close" onclick="closeDefs()">✕</button>
+<div class="panel-backdrop" id="defsBackdrop" onclick="closeDefs()"></div>
+<div class="panel" id="defsPanel" style="width:500px">
+  <button class="panel-close" onclick="closeDefs()">✕</button>
+  <div class="panel-name" style="margin-bottom:16px">Definitions & Scoring</div>
+
+  <div class="panel-section" id="defAccordion" style="display:flex;flex-direction:column;gap:8px">
+    <div class="def-card" style="cursor:pointer" onclick="const d=this.querySelector('.def-detail');d.style.display=d.style.display==='block'?'none':'block'">
+      <div class="def-title" id="def-composite" style="display:flex;justify-content:space-between;align-items:center">Composite Score <span style="font-size:10px;color:var(--muted);font-weight:500">▾</span></div>
+      <div class="def-detail" style="display:none;margin-top:12px">
+        <p class="def-body"><strong>Equal-weight average</strong> of up to <strong>4 pillars</strong>: AR velocity, call quality, retention SLA, and UFR pacing. Each normalized <strong>0–1</strong>, scaled to <strong>0–100</strong>.</p>
+        <div class="def-section-label">Color Scale</div>
+        <div style="display:flex;gap:12px;font-size:12px;font-weight:600">
+          <span class="def-green">● ≥ 80 On Track</span>
+          <span class="def-amber">● 50–79 Watch</span>
+          <span class="def-red">● &lt; 50 Critical</span>
+        </div>
+        <div class="def-section-label">Pillar Weights</div>
+        <p class="def-body"><strong>AI/SOA, Mid Market, Strategic:</strong> 4 pillars — <strong>25%</strong> each<br><strong>Phones + Platform:</strong> 3 pillars (no UFR) — <strong>33%</strong> each<br><span style="color:var(--muted)">Pillars with no data are excluded dynamically.</span></p>
+        <div class="def-section-label">Formula</div>
+        <div class="def-formula">(AR + Call + SLA + UFR) ÷ active_pillars × 100</div>
+      </div>
     </div>
-    <div class="def-card">
-      <div class="def-title">Composite Score</div>
-      <div class="def-formula">( Normalized AR Score + Call Quality Score + Ret SLA Score + UFR Pacing Score ) ÷ active pillars × 100</div>
-      <p class="def-body">Equal-weight average of active pillar scores (0–1 each, scaled to 0–100). AR is segment-normalized against a segment-specific ceiling. UFR uses a pacing model (not flat coverage). P+P segment is excluded from UFR pillar. Pillars are excluded when no data exists (e.g., no ret cases → SLA excluded). <span class="def-green">≥ 65 green</span> · <span class="def-amber">≥ 45 yellow</span> · <span class="def-red">&lt; 45 red</span>.</p>
+
+    <div class="def-card" style="cursor:pointer" onclick="const d=this.querySelector('.def-detail');d.style.display=d.style.display==='block'?'none':'block'">
+      <div class="def-title" id="def-arDay" style="display:flex;justify-content:space-between;align-items:center">AR / Day <span style="font-size:10px;color:var(--muted);font-weight:500">▾</span></div>
+      <div class="def-detail" style="display:none;margin-top:12px">
+        <p class="def-body"><strong>Account Reviews per active business day</strong> (L30). Counts closed <strong>SFDC ARs</strong>, <strong>Gong calls ≥15 min</strong>, and <strong>Podium calls ≥15 min</strong>. Deduplicated per org per day.</p>
+        <div class="def-section-label">Segment Thresholds</div>
+        <table class="def-table">
+          <tr><th>Segment</th><th>Target</th><th style="color:var(--green)">Green</th><th style="color:var(--amber)">Amber</th><th style="color:var(--red)">Red</th></tr>
+          <tr><td>AI / SOA</td><td><strong>4.0</strong>/day</td><td>≥ 3.3</td><td>≥ 2.0</td><td>&lt; 2.0</td></tr>
+          <tr><td>P+P</td><td><strong>2.5</strong>/day</td><td>≥ 2.0</td><td>≥ 1.0</td><td>&lt; 1.0</td></tr>
+          <tr><td>Mid Market</td><td><strong>3.0</strong>/day</td><td>≥ 2.5</td><td>≥ 1.2</td><td>&lt; 1.2</td></tr>
+          <tr><td>Strategic</td><td><strong>1.5</strong>/day</td><td>≥ 1.2</td><td>≥ 0.7</td><td>&lt; 0.7</td></tr>
+        </table>
+        <p class="def-body" style="color:var(--muted);margin-top:6px">Gong/Podium deduplicated against SFDC — no double counting.</p>
+      </div>
     </div>
-    <div class="def-card">
-      <div class="def-title">AR Velocity — ARs / Day (Segment-Normalized)</div>
-      <div class="def-formula">AR Score = min( arsPerDay ÷ segment_ceiling, 1.0 )</div>
-      <p class="def-body">Closed SFDC Account Review, Gong call ≥ 15 min, or Podium call ≥ 15 min — deduplicated per org per day. Score is normalized against a segment-specific ceiling so high-volume segments don't inflate composite.</p>
-      <table class="def-table">
-        <tr><th>Segment</th><th>Ceiling (AR/Day)</th><th>Green (raw)</th><th>Yellow (raw)</th></tr>
-        <tr><td>AI / SOA</td><td>4.2</td><td>≥ 3.5</td><td>≥ 2.0</td></tr>
-        <tr><td>Phones + Platform</td><td>2.8</td><td>≥ 2.0</td><td>≥ 1.0</td></tr>
-        <tr><td>Mid Market</td><td>3.3</td><td>≥ 2.5</td><td>≥ 1.2</td></tr>
-        <tr><td>Strategic</td><td>1.5</td><td>≥ 1.2</td><td>≥ 0.7</td></tr>
-      </table>
+
+    <div class="def-card" style="cursor:pointer" onclick="const d=this.querySelector('.def-detail');d.style.display=d.style.display==='block'?'none':'block'">
+      <div class="def-title" id="def-callScore" style="display:flex;justify-content:space-between;align-items:center">Call Quality <span style="font-size:10px;color:var(--muted);font-weight:500">▾</span></div>
+      <div class="def-detail" style="display:none;margin-top:12px">
+        <p class="def-body"><strong>AI-scored</strong> call quality (<strong>0–100</strong>) averaged across scored calls in <strong>L90</strong>. Powered by <strong>Cortex AI</strong> analyzing Gong and SFDC transcripts.</p>
+        <div class="def-section-label">Color Scale</div>
+        <div style="display:flex;gap:12px;font-size:12px;font-weight:600">
+          <span class="def-green">● ≥ 80</span>
+          <span class="def-amber">● 70–79</span>
+          <span class="def-red">● &lt; 70</span>
+        </div>
+        <div class="def-section-label">4 Subscores</div>
+        <p class="def-body">
+          <strong>Value Creation</strong> — product recommendations, optimization, ROI<br>
+          <strong>Relationship</strong> — listening, empathy, personalization, follow-through<br>
+          <strong>Adaptiveness</strong> — reading the room, handling objections<br>
+          <strong>Ownership</strong> — action items, timelines, proactive next steps
+        </p>
+      </div>
     </div>
-    <div class="def-card">
-      <div class="def-title">Call Quality Score</div>
-      <div class="def-formula">Avg V3 AI score across scored calls in L90, expressed 0–100</div>
-      <p class="def-body">V3 Cortex AI pipeline. Sub-scores: Value Creation · Relationship · Adaptiveness · Ownership. Source: <code>V3_*_CALL_SCORING_PROCESSED</code> — manual refresh ~weekly. CSMs without scored calls have this pillar excluded from composite. <span class="def-green">≥ 80 green</span> · <span class="def-amber">≥ 70 yellow</span> · <span class="def-red">&lt; 70 red</span>.</p>
+
+    <div class="def-card" style="cursor:pointer" onclick="const d=this.querySelector('.def-detail');d.style.display=d.style.display==='block'?'none':'block'">
+      <div class="def-title" id="def-retSla" style="display:flex;justify-content:space-between;align-items:center">Retention SLA <span style="font-size:10px;color:var(--muted);font-weight:500">▾</span></div>
+      <div class="def-detail" style="display:none;margin-top:12px">
+        <p class="def-body">% of retention cases where outreach was made to the same org <strong>on or after</strong> case creation (L30). <strong>Self-created cases excluded</strong> — only externally-created cases count.</p>
+        <div class="def-section-label">Color Scale</div>
+        <div style="display:flex;gap:12px;font-size:12px;font-weight:600">
+          <span class="def-green">● ≥ 80%</span>
+          <span class="def-amber">● 50–79%</span>
+          <span class="def-red">● &lt; 50%</span>
+        </div>
+        <div class="def-section-label">What Counts as Outreach</div>
+        <p class="def-body">Closed <strong>SFDC AR</strong>, <strong>Gong call</strong>, or <strong>Podium call</strong> of <strong>any duration</strong> (including unanswered) by <strong>any CSM</strong> to the same org, on or after case creation.</p>
+      </div>
     </div>
-    <div class="def-card">
-      <div class="def-title">Retention SLA</div>
-      <div class="def-formula">Retention tasks with outreach ÷ Total retention tasks (L30) × 100</div>
-      <p class="def-body"><code>fastball_Retention_Case</code> tasks. Any closed SFDC AR, Gong call, or Podium call on/after task creation date counts. CSMs without ret cases have this pillar excluded. <span class="def-green">≥ 80% green</span> · <span class="def-amber">50–80% amber</span> · <span class="def-red">&lt; 50% red</span>.</p>
+
+    <div class="def-card" style="cursor:pointer" onclick="const d=this.querySelector('.def-detail');d.style.display=d.style.display==='block'?'none':'block'">
+      <div class="def-title" id="def-ufr" style="display:flex;justify-content:space-between;align-items:center">UFR Coverage & Pacing <span style="font-size:10px;color:var(--muted);font-weight:500">▾</span></div>
+      <div class="def-detail" style="display:none;margin-top:12px">
+        <p class="def-body">% of <strong>renewal cohort</strong> orgs contacted. Color is based on <strong>pacing ratio</strong> (actual ÷ expected), not raw coverage %.</p>
+        <div class="def-section-label">Pacing Color</div>
+        <div style="display:flex;gap:12px;font-size:12px;font-weight:600">
+          <span class="def-green">● ≥ 100% On pace</span>
+          <span class="def-amber">● 70–100%</span>
+          <span class="def-red">● &lt; 70%</span>
+        </div>
+        <p class="def-body" style="color:var(--muted);margin-top:4px">30% coverage can be green if only 25% was expected by now.</p>
+        <div class="def-section-label">Outreach Window</div>
+        <p class="def-body"><strong>3 months prior</strong> (1st) → <strong>2 months prior</strong> (last day)<br>Example: Jun renewals = <strong>Mar 1 – Apr 30</strong></p>
+        <div class="def-section-label">What Counts</div>
+        <p class="def-body">Closed <strong>SFDC AR</strong>, <strong>Gong ≥15 min</strong>, or <strong>Podium ≥15 min</strong>. M2M toggle available in filters.</p>
+      </div>
     </div>
-    <div class="def-card">
-      <div class="def-title">10-in-14 Compliance</div>
-      <div class="def-formula">10in14 tasks with outreach ÷ Total 10in14 tasks (L30) × 100</div>
-      <p class="def-body"><code>fastball_10in14_Churn_Risk</code> tasks. Tracked as a separate indicator — no longer gates the composite score. Unattempted tasks are flagged with a warning icon in the CSM profile.</p>
+
+    <div class="def-card" style="cursor:pointer" onclick="const d=this.querySelector('.def-detail');d.style.display=d.style.display==='block'?'none':'block'">
+      <div class="def-title" id="def-risk" style="display:flex;justify-content:space-between;align-items:center">Risk & Cancellation Intent <span style="font-size:10px;color:var(--muted);font-weight:500">▾</span></div>
+      <div class="def-detail" style="display:none;margin-top:12px">
+        <p class="def-body"><strong>AI-powered</strong> org-level churn risk from <strong>Cortex AI</strong>. Analyzes all CSM-customer interactions daily for risk signals and <strong>cancellation intent</strong>.</p>
+        <div class="def-section-label">Risk Levels</div>
+        <div style="display:flex;gap:12px;font-size:12px;font-weight:600">
+          <span class="def-green">● Low</span>
+          <span class="def-amber">● Elevated</span>
+          <span class="def-red">● High</span>
+          <span style="color:#991B1B">● Critical</span>
+        </div>
+        <p class="def-body" style="color:var(--muted);margin-top:6px"><strong>Note:</strong> Risk has near-zero correlation with composite. A green CSM can have high-risk orgs.</p>
+      </div>
     </div>
-    <div class="def-card">
-      <div class="def-title">Renewal (UFR) Coverage — Pacing Model</div>
-      <div class="def-formula">Pacing Score = min( orgs_contacted ÷ expected_contacts_by_today, 1.0 )
-Expected contacts = cohort_size × (biz_days_elapsed ÷ active_window_biz_days)</div>
-      <p class="def-body">Non-Trane orgs renewing in the selected calendar month. P+P segment excluded from composite. The <strong>active outreach window</strong> runs from 120 days to 60 days before renewal (target: complete all contacts by 60 days out). Contacts made after the 60-day mark still count toward UFR coverage, but pacing is measured against the active window. Any closed SFDC AR, Gong call ≥ 15 min, or Podium call ≥ 15 min counts. <strong>Color coding:</strong> <span class="def-green">on/ahead of pace = green</span> · <span class="def-amber">70–100% of pace = amber</span> · <span class="def-red">&lt; 70% of pace = red</span>.</p>
-    </div>
-    <div class="def-card">
-      <div class="def-title">Interaction Intelligence — Risk Scores</div>
-      <p class="def-body">Org-level churn risk scores powered by Podium's interaction intelligence model. Scores are bucketed into <span class="def-green">low</span> · <span class="def-amber">elevated</span> · <span class="def-red">high</span> · critical risk. The CSM profile panel shows a risk bar breakdown and flags cancellation intent signals detected in recent conversations. Risk data is sourced from the master export and may lag the live model by 24–48 hours.</p>
-    </div>
-    <div class="def-card">
-      <div class="def-title">Trend Data (Sparklines)</div>
-      <p class="def-body">Daily snapshots of each CSM's composite score, AR velocity, call score, and retention SLA are captured in <code>CS_PERF_HUB_SNAPSHOTS</code>. The procedure snapshots metrics before each daily rebuild at 6 AM MST. Sparklines show the trailing 30-day trend.</p>
-    </div>
-    <div class="def-card">
-      <div class="def-title">Risk Intelligence</div>
-      <p class="def-body">Risk data comes from <code>BUILD.CUSTOMER_SUCCESS.CORE_INTERACTION_INTELLIGENCE_PROCESSED</code>, a Cortex AI model (Claude Sonnet 4.6) that analyzes all CSM-customer interactions daily. It outputs: overall risk level (low/elevated/high/critical), sentiment trajectory, cancellation intent signals, and open ask tracking. Risk is attributed to CSMs based on org ownership.</p>
-    </div>
-    <div class="def-card">
-      <div class="def-title">Overall Status Logic</div>
-      <table class="def-table">
-        <tr><th>Condition</th><th>Status</th></tr>
-        <tr><td>Composite ≥ 65</td><td><span class="def-green">green</span></td></tr>
-        <tr><td>Composite ≥ 45</td><td><span class="def-amber">yellow</span></td></tr>
-        <tr><td>Composite &lt; 45</td><td><span class="def-red">red</span></td></tr>
-      </table>
-    </div>
-    <div class="def-card">
-      <div class="def-title">Data Sources</div>
-      <table class="def-table">
-        <tr><th>Source</th><th>Table</th><th>Refresh</th></tr>
-        <tr><td>Salesforce ARs + Users</td><td><code>BUILD.SALESFORCE.CORE_CUSTOMER_SUCCESS_ACTIONS</code></td><td>Daily (dbt)</td></tr>
-        <tr><td>Gong calls</td><td><code>BUILD.GONG.CORE_CONVERSATIONS</code></td><td>Daily (dbt)</td></tr>
-        <tr><td>Podium calls</td><td><code>BUILD.PODIUM_INTERNAL.CORE_CALLS</code></td><td>Daily (dbt)</td></tr>
-        <tr><td>Lighthouse tasks</td><td><code>BUILD.LIGHTHOUSE.CORE_TASKS</code></td><td>Daily (Fivetran)</td></tr>
-        <tr><td>V3 call scores</td><td><code>ANALYST_SANDBOX.JOSH_ROOKSTOOL.V3_*_CALL_SCORING_PROCESSED</code></td><td>Manual ~weekly</td></tr>
-        <tr><td>Master table</td><td><code>ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_MASTER</code></td><td>Daily 6 AM MST</td></tr>
-      </table>
+
+    <div class="def-card" style="cursor:pointer" onclick="const d=this.querySelector('.def-detail');d.style.display=d.style.display==='block'?'none':'block'">
+      <div class="def-title" style="display:flex;justify-content:space-between;align-items:center">Data Refresh <span style="font-size:10px;color:var(--muted);font-weight:500">▾ details</span></div>
+      <div style="margin-top:8px">
+        <div class="def-section-label">Schedule</div>
+        <p class="def-body">Master table rebuilds daily at 6 AM MST. Dashboard JSON export is manual (sync script).</p>
+      </div>
+      <div class="def-detail" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+        <table class="def-table">
+          <tr><th>Source</th><th>Refresh</th></tr>
+          <tr><td>SFDC ARs & Cases</td><td>Daily (dbt)</td></tr>
+          <tr><td>Gong calls</td><td>Daily (dbt)</td></tr>
+          <tr><td>Podium calls</td><td>Daily (dbt)</td></tr>
+          <tr><td>Call scoring (Cortex AI)</td><td>Daily</td></tr>
+          <tr><td>Risk intelligence (Cortex AI)</td><td>Daily</td></tr>
+          <tr><td>CS Perf Hub Master</td><td>Daily 6 AM MST</td></tr>
+        </table>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- Global tooltip -->
+<div id="globalTip"></div>
+
+<!-- Floating Help Button -->
+<button onclick="openDefs()" style="position:fixed;bottom:24px;right:24px;z-index:90;width:44px;height:44px;border-radius:50%;background:var(--text);color:var(--bg);border:none;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;transition:transform 0.15s,box-shadow 0.15s;font-family:'Inter',sans-serif" onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.2)'">?</button>
 
 <script>
 // ═══════════════════════════════════════════════════════════════════════════
@@ -826,7 +1067,7 @@ let selectedRenewalMonth = null;
 let sparklines = {};
 let riskDetail = {};
 
-let filters = { manager: '', vertical: '', segment: '' };
+let filters = { manager: [], vertical: [], segment: [] };
 
 let nav = {
   level: 'overview',   // 'overview' | 'team'
@@ -843,7 +1084,9 @@ let teamTableSort = { field: 'composite', asc: false };
 // ═══════════════════════════════════════════════════════════════════════════
 const VERT_COLORS = {
   OEM: '#2563EB', HVAC: '#0284C7', MedSpa: '#7C3AED', Emerging: '#EA580C',
-  Auto: '#059669', FAM: '#D97706', Jewelry: '#DB2777', Retail: '#475569'
+  Auto: '#059669', FAM: '#D97706', Jewelry: '#DB2777', Retail: '#475569',
+  Specialty: '#8B5CF6',
+  'Retail + FAM + Jewelry': '#8B5CF6'
 };
 
 function vertColor(v) { return VERT_COLORS[v] || '#8A8A82'; }
@@ -852,9 +1095,9 @@ function vertColor(v) { return VERT_COLORS[v] || '#8A8A82'; }
 // SEGMENT AR CEILINGS
 // ═══════════════════════════════════════════════════════════════════════════
 const AR_CEILING = {
-  'AI/SOA': 4.2,
-  'Phones + Platform': 2.8,
-  'Mid Market': 3.3,
+  'AI/SOA': 4.0,
+  'Phones + Platform': 2.5,
+  'Mid Market': 3.0,
   'Strategic': 1.5,
 };
 
@@ -875,14 +1118,14 @@ function arColor(arsPerDay, segment) {
 // FIXED COLOR THRESHOLDS
 // ═══════════════════════════════════════════════════════════════════════════
 const THRESHOLDS = {
-  composite: { green: 65, yellow: 45 },
+  composite: { green: 80, yellow: 50 },
   callScore: { green: 80, yellow: 70 },
   retSLA: { green: 80, yellow: 50 },
   renewalCoveragePct: { green: 40, yellow: 20 },
 };
 
 const AR_THRESHOLDS = {
-  'AI/SOA': { green: 3.5, yellow: 2.0 },
+  'AI/SOA': { green: 3.3, yellow: 2.0 },
   'Phones + Platform': { green: 2.0, yellow: 1.0 },
   'Mid Market': { green: 2.5, yellow: 1.2 },
   'Strategic': { green: 1.2, yellow: 0.7 },
@@ -912,7 +1155,7 @@ function metricStatus(value, metric, segment) {
 
 function statusFromComposite(comp) {
   if (comp == null) return 'muted';
-  return comp >= 65 ? 'green' : comp >= 45 ? 'yellow' : 'red';
+  return comp >= 80 ? 'green' : comp >= 50 ? 'yellow' : 'red';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -929,7 +1172,7 @@ function fmtMrrToArr(mrr) { return fmtArr(mrr * 12); }
 
 function scoreColor(v) {
   if (v == null) return 'var(--muted)';
-  return v >= 67 ? 'var(--green)' : v >= 33 ? 'var(--amber)' : 'var(--red)';
+  return v >= 80 ? 'var(--green)' : v >= 50 ? 'var(--amber)' : 'var(--red)';
 }
 
 function pillarBarColor(v, gThresh, aThresh) {
@@ -1017,7 +1260,17 @@ function sparklineSVG(values, opts = {}) {
 // ═══════════════════════════════════════════════════════════════════════════
 function getRenewal(csmName) {
   if (!selectedRenewalMonth || !renewalByMonth[selectedRenewalMonth]) return null;
-  return renewalByMonth[selectedRenewalMonth][csmName] || null;
+  const raw = renewalByMonth[selectedRenewalMonth][csmName] || null;
+  if (!raw) return null;
+  if (excludeM2M && raw.m2m > 0) {
+    const adjTotal = Math.max(0, (raw.total || 0) - (raw.m2m || 0));
+    // Estimate annual calls proportionally
+    const annualRatio = raw.total > 0 ? adjTotal / raw.total : 0;
+    const annualCalled = Math.round((raw.called || 0) * annualRatio);
+    const pct = adjTotal > 0 ? Math.round(annualCalled / adjTotal * 100) : null;
+    return { total: adjTotal, called: annualCalled, pct, m2mExcluded: raw.m2m };
+  }
+  return raw;
 }
 
 function setRenewalMonth(label) {
@@ -1057,10 +1310,10 @@ function getPacingWindow(monthLabel) {
   if (mon == null || isNaN(yr)) return null;
 
   const renewalDate = new Date(yr, mon, 1); // 1st of renewal month
-  const windowStart = new Date(renewalDate);
-  windowStart.setDate(windowStart.getDate() - 120); // 120 days before renewal
-  const activeEnd = new Date(renewalDate);
-  activeEnd.setDate(activeEnd.getDate() - 60); // 60 days before renewal (target completion)
+  // Window: 1st of month 3 months prior → last day of month 2 months prior
+  // e.g. Apr renewal: Jan 1 → Feb 28/29, May renewal: Feb 1 → Mar 31
+  const windowStart = new Date(yr, mon - 3, 1); // 1st of 3 months before
+  const activeEnd = new Date(yr, mon - 1, 0); // last day of 2 months before (day 0 = last day of prev month)
   const today = new Date();
   today.setHours(0,0,0,0);
 
@@ -1147,19 +1400,29 @@ function calcComposite(d) {
 // ═══════════════════════════════════════════════════════════════════════════
 function getFiltered() {
   return allData.filter(d => {
-    if (filters.manager  && d.manager  !== filters.manager)  return false;
-    if (filters.vertical && d.vertical !== filters.vertical) return false;
-    if (filters.segment  && d.segment  !== filters.segment)  return false;
+    if (filters.manager.length  && !filters.manager.includes(d.manager))   return false;
+    if (filters.vertical.length && !filters.vertical.includes(d.vertical)) return false;
+    if (filters.segment.length  && !filters.segment.includes(d.segment))   return false;
     return true;
   });
 }
 
 function applyFilters() {
-  filters.manager  = document.getElementById('filterManager').value;
-  filters.vertical = document.getElementById('filterVertical').value;
-  filters.segment  = document.getElementById('filterSegment').value;
+  filters.manager  = [...document.querySelectorAll('#filterManagerChecks input:checked')].map(i => i.value);
+  filters.vertical = [...document.querySelectorAll('#filterVerticalChecks input:checked')].map(i => i.value);
+  filters.segment  = [...document.querySelectorAll('#filterSegmentChecks input:checked')].map(i => i.value);
+  const m2mEl = document.getElementById('excludeM2M');
+  excludeM2M = m2mEl ? m2mEl.checked : true;
+  updateFilterLabels();
   renderContextBar();
   renderAll();
+}
+
+function removeFilter(key, value) {
+  const id = 'filter' + key.charAt(0).toUpperCase() + key.slice(1) + 'Checks';
+  const checks = document.querySelectorAll('#' + id + ' input');
+  checks.forEach(c => { if (c.value === value) c.checked = false; });
+  applyFilters();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1172,7 +1435,7 @@ function scrollToSection(id) {
 
 function navTo(level, teamType, teamValue) {
   const scrollTarget = level === 'overview'
-    ? (nav.teamType === 'manager' ? 'mgrLeaderboard' : nav.teamType === 'vertical' ? 'verticalComparison' : null)
+    ? (nav.teamType === 'manager' || nav.teamType === 'vertical' ? 'unifiedRankings' : null)
     : null;
   nav.level     = level;
   nav.teamType  = teamType  || null;
@@ -1206,7 +1469,40 @@ window.addEventListener('popstate', (e) => {
 
 function toggleFilterDrawer() {
   document.getElementById('filterDrawer').classList.toggle('open');
+  closeDiveDropdown();
 }
+
+// Dropdown removed — using pill tabs in nav bar
+
+function toggleFilterDropdown(key) {
+  const cap = key.charAt(0).toUpperCase() + key.slice(1);
+  const dd = document.getElementById('filter' + cap + 'Dropdown');
+  const btn = dd?.previousElementSibling;
+  // Close other dropdowns
+  document.querySelectorAll('.filter-dropdown.open').forEach(el => {
+    if (el !== dd) el.classList.remove('open');
+  });
+  document.querySelectorAll('.filter-select-btn.open').forEach(el => {
+    if (el !== btn) el.classList.remove('open');
+  });
+  if (dd) dd.classList.toggle('open');
+  if (btn) btn.classList.toggle('open');
+}
+
+function updateFilterLabels() {
+  ['manager', 'vertical', 'segment'].forEach(key => {
+    const cap = key.charAt(0).toUpperCase() + key.slice(1);
+    const label = document.getElementById('filter' + cap + 'Label');
+    if (!label) return;
+    const selected = filters[key];
+    if (!selected || selected.length === 0) label.textContent = 'All';
+    else if (selected.length === 1) label.textContent = selected[0];
+    else label.textContent = selected.length + ' selected';
+  });
+}
+
+// Global M2M exclusion flag
+let excludeM2M = true;
 
 // Close filter drawer when clicking outside
 document.addEventListener('click', (e) => {
@@ -1218,21 +1514,55 @@ document.addEventListener('click', (e) => {
 });
 
 function renderContextBar() {
-  // Only manage section nav visibility — back button is rendered inside team view
-  const navEl = document.getElementById('sectionNav');
-  if (navEl) navEl.style.display = nav.level === 'overview' ? 'flex' : 'none';
+  // Nav bar is always visible (sticky row 2)
+
+  // Render active filter chips in context bar
+  const filtersEl = document.getElementById('contextFilters');
+  if (filtersEl) {
+    const activeFilters = [];
+    if (filters.manager.length)  activeFilters.push(...filters.manager.map(v  => ({ key: 'manager',  label: v })));
+    if (filters.vertical.length) activeFilters.push(...filters.vertical.map(v => ({ key: 'vertical', label: v })));
+    if (filters.segment.length)  activeFilters.push(...filters.segment.map(v  => ({ key: 'segment',  label: v })));
+    if (activeFilters.length) {
+      document.getElementById('contextBar').style.display = 'flex';
+      filtersEl.innerHTML = activeFilters.map(f =>
+        `<span class="filter-chip">${f.label} <button onclick="removeFilter('${f.key}','${f.label.replace(/'/g, "\\'")}')">&times;</button></span>`
+      ).join('');
+    } else {
+      document.getElementById('contextBar').style.display = 'none';
+      filtersEl.innerHTML = '';
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN RENDER DISPATCHER
 // ═══════════════════════════════════════════════════════════════════════════
+let ufrTrendView = 'daily';
+let ufrTrendChart = null;
+
 function renderAll() {
   const main = document.getElementById('mainContent');
+  const isDive = nav.level.startsWith('dive-');
+
   if (nav.level === 'overview') {
     renderOverview(main);
   } else if (nav.level === 'team') {
     renderTeamView(main);
+  } else if (nav.level === 'dive-ufr') {
+    renderUfrDeepDive(main);
+  } else if (nav.level === 'dive-call') {
+    renderCallDeepDive(main);
   }
+
+  // Update nav active states
+  document.querySelectorAll('.topbar-nav-link').forEach(link => {
+    link.classList.toggle('active', link.dataset.level === nav.level);
+  });
+
+  // Show/hide UFR bar
+  const ufrBar = document.getElementById('ufrBar');
+  if (ufrBar) ufrBar.style.display = (nav.level === 'dive-ufr' || nav.level === 'overview' || nav.level === 'dive-call') ? 'flex' : 'none';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1241,34 +1571,53 @@ function renderAll() {
 function renderOverview(container) {
   const filtered = getFiltered();
   container.innerHTML = `
-    <div class="overview-section" id="heroKpis">
+    <div class="overview-section" style="margin-bottom:0">
+      <div class="section-label">Performance Trend</div>
+      <div class="trend-bar" id="trendBar" onclick="if(!event.target.closest('.view-toggle,.toggle-btn')){trendExpanded=!trendExpanded;renderTrendBar()}"></div>
+    </div>
+    <div class="overview-section" id="heroKpis" style="margin-top:24px">
       <div class="section-label">Key Performance Metrics</div>
       <div id="heroKpisSection"></div>
       <div id="heroSection"></div>
     </div>
     <div class="overview-section">
-      <div class="section-label">Vertical Overview</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="section-label" style="margin-bottom:0">Team Overview</div>
+        <div class="view-toggle" id="overviewGridToggle">
+          <button class="toggle-btn${overviewGridView === 'vertical' ? ' active' : ''}" onclick="setOverviewGridView('vertical')">Verticals</button>
+          <button class="toggle-btn${overviewGridView === 'manager' ? ' active' : ''}" onclick="setOverviewGridView('manager')">Managers</button>
+        </div>
+      </div>
       <div id="vertGrid" class="vert-grid"></div>
     </div>
     <div class="overview-section" id="verticalComparison">
-      <div class="section-label">Vertical Performance</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="section-label" style="margin-bottom:0">Team Performance</div>
+        <div class="view-toggle" id="overviewCompareToggle">
+          <button class="toggle-btn${overviewCompareView === 'vertical' ? ' active' : ''}" onclick="setOverviewCompareView('vertical')">Verticals</button>
+          <button class="toggle-btn${overviewCompareView === 'manager' ? ' active' : ''}" onclick="setOverviewCompareView('manager')">Managers</button>
+        </div>
+      </div>
       <div id="vertCompareSection"></div>
     </div>
-    <div class="overview-section" id="mgrLeaderboard">
-      <div class="section-label">Manager Leaderboard</div>
-      <div id="mgrList" class="mgr-list"></div>
-    </div>
-    <div class="overview-section" id="globalLeaderboard">
-      <div class="section-label">CSM Rankings</div>
-      <div id="globalLeaderboardTable"></div>
+    <div class="overview-section" id="unifiedRankings">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="section-label" style="margin-bottom:0">Rankings</div>
+        <div class="view-toggle" id="rankingsToggle">
+          <button class="toggle-btn${rankingsView === 'csm' ? ' active' : ''}" onclick="setRankingsView('csm')">CSMs</button>
+          <button class="toggle-btn${rankingsView === 'manager' ? ' active' : ''}" onclick="setRankingsView('manager')">Managers</button>
+          <button class="toggle-btn${rankingsView === 'vertical' ? ' active' : ''}" onclick="setRankingsView('vertical')">Verticals</button>
+        </div>
+      </div>
+      <div id="unifiedRankingsTable" style="min-height:660px"></div>
     </div>`;
 
+  renderTrendBar();
   renderHeroKpis(filtered);
   renderHeroBar(filtered);
   renderVertGrid(filtered);
   renderVerticalComparison(filtered);
-  renderMgrLeaderboard(filtered);
-  renderGlobalLeaderboard(filtered);
+  renderUnifiedRankings(filtered);
 }
 
 // ── Hero KPI Strip ──────────────────────────────────────────────────────
@@ -1345,38 +1694,32 @@ function renderHeroKpis(filtered) {
     </div>`;
   }
 
-  // UFR pacing note — built from aggregatePacingStatus
-  let ufrPacingNote = '';
-  if (aggPacing && aggPacing.status !== 'muted' && aggPacing.ratio != null) {
-    const pctDiff = Math.round((aggPacing.ratio - 1) * 100);
-    const paceStr = pctDiff >= 0 ? `+${pctDiff}% ahead of pace` : `${Math.abs(pctDiff)}% behind pace`;
-    ufrPacingNote = `<div style="font-size:10px;font-weight:600;color:${aggPacing.color};margin-top:2px">${paceStr}</div>`;
-  }
+  const ufrPacingNote = '';
 
   const el = document.getElementById('heroKpisSection');
   if (!el) return;
   el.innerHTML = `
     <div class="hero-kpis">
       <div class="hero-kpi" onclick="openMetricRanking('arsPerDay')">
-        <div class="hero-kpi-label">AR/Day</div>
+        <div class="hero-kpi-label">AR/Day ${defTip('arDay')}</div>
         <div class="hero-kpi-value" style="color:${arColor(avgAr, null)}">${avgAr != null ? avgAr.toFixed(1) : '—'}</div>
         <div class="hero-kpi-sub">across ${filtered.length} CSMs</div>
         ${heroBottom(topArVert?.v, topArVert ? topArVert.avgAr.toFixed(1) : null, topArCsm?.csm, topArCsm ? topArCsm.arsPerDay.toFixed(1) : null)}
       </div>
       <div class="hero-kpi" onclick="openMetricRanking('callScore')">
-        <div class="hero-kpi-label">Call Score</div>
+        <div class="hero-kpi-label">Call Score ${defTip('callScore')}</div>
         <div class="hero-kpi-value" style="color:${metricColor(avgCall, 'callScore')}">${avgCall != null ? Math.round(avgCall) : '—'}</div>
         <div class="hero-kpi-sub">${callVals.length} CSMs scored</div>
         ${heroBottom(topCallVert?.v, topCallVert ? Math.round(topCallVert.avgCall) : null, topCallCsm?.csm, topCallCsm ? Math.round(topCallCsm.callScore) : null)}
       </div>
       <div class="hero-kpi" onclick="openMetricRanking('retSLA')">
-        <div class="hero-kpi-label">Retention SLA</div>
+        <div class="hero-kpi-label">Retention SLA ${defTip('retSla')}</div>
         <div class="hero-kpi-value" style="color:${metricColor(teamSla, 'retSLA')}">${teamSla != null ? teamSla + '%' : '—'}</div>
         <div class="hero-kpi-sub">${totalRetDone}/${totalRetCases} cases</div>
         ${heroBottom(topSlaVert?.v, topSlaVert ? topSlaVert.sla + '%' : null, topSlaCsm?.csm, topSlaCsm ? Math.round(topSlaCsm.retSLA) + '%' : null)}
       </div>
       <div class="hero-kpi" onclick="openMetricRanking('renewalCoveragePct')">
-        <div class="hero-kpi-label">UFR Coverage</div>
+        <div class="hero-kpi-label">UFR Coverage ${defTip('ufrCoverage')}</div>
         <div class="hero-kpi-value" style="color:${aggPacing.color}">${teamUfr != null ? teamUfr + '%' : '—'}</div>
         <div class="hero-kpi-sub">${totalCalled}/${totalCohort} orgs contacted</div>
         ${ufrPacingNote}
@@ -1389,9 +1732,9 @@ function renderHeroKpis(filtered) {
 function renderHeroBar(filtered) {
   const composites = filtered.map(d => calcComposite(d)).filter(v => v != null);
   const avgComp = composites.length ? Math.round(composites.reduce((a, b) => a + b, 0) / composites.length) : null;
-  const greens  = filtered.filter(d => d.overallStatus === 'green').length;
-  const yellows = filtered.filter(d => d.overallStatus === 'yellow').length;
-  const reds    = filtered.filter(d => d.overallStatus === 'red').length;
+  const greens  = filtered.filter(d => statusFromComposite(calcComposite(d)) === 'green').length;
+  const yellows = filtered.filter(d => statusFromComposite(calcComposite(d)) === 'yellow').length;
+  const reds    = filtered.filter(d => { const s = statusFromComposite(calcComposite(d)); return s === 'red' || s === 'muted'; }).length;
   const total   = filtered.length;
   const greenPct  = total ? (greens  / total * 100).toFixed(0) : 0;
   const yellowPct = total ? (yellows / total * 100).toFixed(0) : 0;
@@ -1403,49 +1746,55 @@ function renderHeroBar(filtered) {
   const vertCount = new Set(filtered.map(d => d.vertical)).size;
 
   document.getElementById('heroSection').innerHTML = `
-    <div style="background:var(--surface);border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-sm);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+    <div style="background:var(--surface);border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-sm);padding:16px 20px;margin-bottom:36px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
       <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-        <div style="font-size:28px;font-weight:800;letter-spacing:-1px;color:${scoreColor(avgComp)}">${avgComp ?? '—'}</div>
+        <div style="font-size:36px;font-weight:800;letter-spacing:-1.5px;color:${scoreColor(avgComp)}">${avgComp ?? '—'}</div>
         <div>
-          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Composite</div>
-          ${avgDelta != null ? `<div style="font-size:11px;font-weight:600;margin-top:2px">${delta(avgDelta)} vs 7d</div>` : ''}
+          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Composite ${defTip('composite')}</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;justify-content:center;flex:1;min-width:300px">
-        <div style="width:100%">
-          <div style="height:16px;border-radius:8px;overflow:hidden;display:flex;background:var(--surface3);margin-bottom:6px">
-            <div style="width:${greenPct}%;background:var(--green);height:100%;"></div>
-            <div style="width:${yellowPct}%;background:var(--amber);height:100%;margin-left:1px;"></div>
-            <div style="width:${redPct}%;background:var(--red);height:100%;margin-left:1px;"></div>
-          </div>
-          <div style="font-size:11px;color:var(--muted);text-align:center">${greens} on track · ${yellows} watch · ${reds} critical</div>
+      <div style="flex:1;min-width:200px">
+        <div style="height:16px;border-radius:8px;overflow:hidden;display:flex;background:var(--surface3)">
+          <div style="width:${greenPct}%;background:var(--green);height:100%"></div>
+          <div style="width:${yellowPct}%;background:var(--amber);height:100%;margin-left:1px"></div>
+          <div style="width:${redPct}%;background:var(--red);height:100%;margin-left:1px"></div>
         </div>
       </div>
-      <div style="font-size:13px;color:var(--muted);flex-shrink:0">${total} CSMs · ${vertCount} verticals</div>
+      <div style="display:flex;gap:10px;font-size:11px;color:var(--muted);flex-shrink:0">
+        <span style="color:var(--green);font-weight:600">${greens} on track</span>
+        <span style="color:var(--amber);font-weight:600">${yellows} watch</span>
+        <span style="color:var(--red);font-weight:600">${reds} critical</span>
+      </div>
     </div>`;
 }
 
 
 // ── Vertical Heatmap ────────────────────────────────────────────────────
 function renderVertGrid(filtered) {
-  const vertMap = {};
+  const groupKey = overviewGridView === 'manager' ? 'manager' : 'vertical';
+  const groupMap = {};
   filtered.forEach(d => {
-    if (!vertMap[d.vertical]) vertMap[d.vertical] = [];
-    vertMap[d.vertical].push(d);
+    const key = d[groupKey];
+    if (!key) return;
+    if (!groupMap[key]) groupMap[key] = [];
+    groupMap[key].push(d);
   });
 
-  const vertSummaries = Object.entries(vertMap).map(([v, csms]) => {
+  const summaries = Object.entries(groupMap).map(([name, csms]) => {
     const composites = csms.map(d => calcComposite(d)).filter(x => x != null);
     const avgComp = composites.length ? Math.round(composites.reduce((a, b) => a + b, 0) / composites.length) : 0;
-    return { v, csms, avgComp };
+    return { name, csms, avgComp };
   }).sort((a, b) => b.avgComp - a.avgComp);
 
-  document.getElementById('vertGrid').innerHTML = vertSummaries.map(({ v, csms, avgComp }, i) => {
-    const totalRenew = csms.reduce((s, d) => { const ren = getRenewal(d.csm); return s + (ren ? (ren.total || 0) : (d.renewalCohortTotal || 0)); }, 0);
-    const calledRenew = csms.reduce((s, d) => { const ren = getRenewal(d.csm); return s + (ren ? (ren.called || 0) : (d.renewalCohortCalled || 0)); }, 0);
+  document.getElementById('vertGrid').innerHTML = summaries.map(({ name, csms, avgComp }, i) => {
+    const nonPP = csms.filter(d => d.segment !== 'Phones + Platform');
+    const totalRenew = nonPP.reduce((s, d) => { const ren = getRenewal(d.csm); return s + (ren ? (ren.total || 0) : (d.renewalCohortTotal || 0)); }, 0);
+    const calledRenew = nonPP.reduce((s, d) => { const ren = getRenewal(d.csm); return s + (ren ? (ren.called || 0) : (d.renewalCohortCalled || 0)); }, 0);
     const ufrPct = totalRenew > 0 ? Math.round(calledRenew / totalRenew * 100) : null;
-    const vertPacing = aggregatePacingStatus(csms);
-    const ufrColor = vertPacing.color;
+    const pacing = aggregatePacingStatus(csms);
+    const ufrColor = pacing.color;
+    const accent = groupKey === 'vertical' ? vertColor(name) : 'var(--text2)';
+    const navType = groupKey;
     const ufrBlock = ufrPct != null ? `
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
         <div style="display:flex;justify-content:space-between;align-items:center">
@@ -1455,9 +1804,9 @@ function renderVertGrid(filtered) {
         <div style="font-size:10px;color:var(--muted)">${calledRenew}/${totalRenew} orgs contacted</div>
       </div>` : '';
     return `
-      <div class="vert-card" style="border-left-color:${vertColor(v)}" onclick="navTo('team','vertical','${v}')">
+      <div class="vert-card" style="border-left-color:${accent}" onclick="navTo('team','${navType}','${name}')">
         <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">${ordinal(i+1)}</div>
-        <div class="vert-name">${v}</div>
+        <div class="vert-name">${name}</div>
         <div class="vert-csm-count">${csms.length} CSM${csms.length !== 1 ? 's' : ''}</div>
         <div class="vert-score" style="color:${scoreColor(avgComp)}">${avgComp}</div>
         <div class="vert-score-label">avg composite</div>
@@ -1472,71 +1821,101 @@ function renderVerticalComparison(filtered) {
   const el = document.getElementById('vertCompareSection');
   if (!el) return;
 
-  const vertMap = {};
+  const groupKey = overviewCompareView === 'manager' ? 'manager' : 'vertical';
+  const groupMap = {};
   filtered.forEach(d => {
-    if (!vertMap[d.vertical]) vertMap[d.vertical] = [];
-    vertMap[d.vertical].push(d);
+    const key = d[groupKey];
+    if (!key) return;
+    if (!groupMap[key]) groupMap[key] = [];
+    groupMap[key].push(d);
   });
 
   const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
 
-  const vertStats = Object.entries(vertMap).map(([v, vcsms]) => {
-    // AR/Day: average (Fix 6)
+  const vertStats = Object.entries(groupMap).map(([v, vcsms]) => {
     const arVals = vcsms.map(d => d.arsPerDay).filter(x => x != null);
     const avgAr = arVals.length ? arVals.reduce((s, val) => s + val, 0) / arVals.length : null;
-    // Call Score: average
     const callVals = vcsms.map(d => d.callScore).filter(x => x != null);
-    // Ret SLA: aggregate total done / total cases (Fix 5)
     const totalRetCases = vcsms.reduce((s, d) => s + (d.retCases || 0), 0);
     const totalRetDone = vcsms.reduce((s, d) => s + (d.retSLADone || 0), 0);
     const slaPct = totalRetCases > 0 ? Math.round(totalRetDone / totalRetCases * 100) : null;
-    // UFR: use getRenewal(), exclude P+P, aggregate (Fix 4)
     const nonPP = vcsms.filter(d => d.segment !== 'Phones + Platform');
-    const totalCohort = nonPP.reduce((s, d) => {
-      const ren = getRenewal(d.csm);
-      return s + (ren ? ren.total : (d.renewalCohortTotal || 0));
-    }, 0);
-    const totalCalled = nonPP.reduce((s, d) => {
-      const ren = getRenewal(d.csm);
-      return s + (ren ? ren.called : (d.renewalCohortCalled || 0));
-    }, 0);
+    const totalCohort = nonPP.reduce((s, d) => { const ren = getRenewal(d.csm); return s + (ren ? ren.total : (d.renewalCohortTotal || 0)); }, 0);
+    const totalCalled = nonPP.reduce((s, d) => { const ren = getRenewal(d.csm); return s + (ren ? ren.called : (d.renewalCohortCalled || 0)); }, 0);
     const ufrPct = totalCohort > 0 ? Math.round(totalCalled / totalCohort * 100) : null;
-    return {
-      v,
-      ar: avgAr,
-      call: avg(callVals),
-      sla: slaPct,
-      renewal: ufrPct,
-    };
+    return { v, ar: avgAr, call: avg(callVals), sla: slaPct, renewal: ufrPct };
   }).sort((a, b) => (b.ar || 0) - (a.ar || 0));
+  const vertMap = groupMap; // for backward compat with buildBars colorFn
 
-  const buildBars = (stats, key, label, fmt, metricKey, maxOverride, colorFn) => {
+  const sparkKey = { ar: 'ar', call: 'call', sla: 'sla', renewal: 'ufr' };
+  const diveLevel = { ar: 'dive-call', call: 'dive-call', sla: 'dive-call', renewal: 'dive-ufr' };
+
+  const buildBars = (stats, key, label, fmt, metricKey, maxOverride, colorFn, navLevel) => {
     const sorted = [...stats].sort((a, b) => (b[key] || 0) - (a[key] || 0));
     const vals = sorted.map(s => s[key]).filter(x => x != null);
     const maxVal = maxOverride || (vals.length ? Math.max(...vals) : 1) || 1;
+    const cardId = 'vc-' + key;
+
+    // WoW trends per vertical for back side
+    const trendRows = sorted.map(s => {
+      const sk = sparkKey[key] || key;
+      const vcsms = vertMap[s.v] || [];
+      const dateMap = {};
+      vcsms.forEach(d => {
+        (sparklines[d.csm] || []).forEach(p => {
+          if (p[sk] == null) return;
+          if (!dateMap[p.date]) dateMap[p.date] = [];
+          dateMap[p.date].push(p[sk]);
+        });
+      });
+      const allDates = Object.keys(dateMap).sort();
+      if (allDates.length < 2) return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0"><span style="width:120px;font-size:12px;font-weight:600;color:var(--text2);text-align:right;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.v}</span><span style="font-size:12px;font-weight:700;color:var(--text)">${s[key] != null ? fmt(s[key]) : '—'}</span><span style="font-size:11px;color:var(--muted)">Needs history</span></div>`;
+      const latest = allDates[allDates.length - 1];
+      const latestAvg = dateMap[latest].reduce((a,b)=>a+b,0)/dateMap[latest].length;
+      const target = new Date(latest); target.setDate(target.getDate()-7);
+      const tStr = target.toISOString().slice(0,10);
+      let prev = allDates[0];
+      allDates.forEach(d => { if (d <= tStr && d > prev) prev = d; });
+      if (prev === latest) return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0"><span style="width:120px;font-size:12px;font-weight:600;color:var(--text2);text-align:right;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.v}</span><span style="font-size:12px;font-weight:700;color:var(--text)">${fmt(s[key])}</span><span style="font-size:11px;color:var(--muted)">Needs history</span></div>`;
+      const prevAvg = dateMap[prev].reduce((a,b)=>a+b,0)/dateMap[prev].length;
+      const d = latestAvg - prevAvg;
+      const pct = prevAvg !== 0 ? Math.round((d/prevAvg)*100) : 0;
+      const color = pct === 0 ? 'var(--muted)' : pct > 0 ? 'var(--green)' : 'var(--red)';
+      const arrow = pct === 0 ? '→' : pct > 0 ? '▲' : '▼';
+      const word = pct === 0 ? 'Stable' : pct > 0 ? 'Improving' : 'Declining';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0">
+        <span style="width:120px;font-size:12px;font-weight:600;color:var(--text2);text-align:right;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.v}</span>
+        <span style="font-size:12px;font-weight:700;color:var(--text);width:36px;flex-shrink:0">${fmt(s[key])}</span>
+        <span style="font-size:12px;font-weight:600;color:${color}">${arrow} ${pct > 0 ? '+' : ''}${pct}% ${word}</span>
+      </div>`;
+    }).join('');
+
     return `
-      <div class="vert-compare-section">
-        <div class="vert-compare-section-title">${label}</div>
-        ${sorted.map(s => {
-          const val = s[key];
-          if (val == null) return `<div class="vert-bar-row"><div class="vert-bar-label" title="${s.v}">${s.v}</div><div class="vert-bar-track"><div class="vert-bar-fill" style="width:0%;background:var(--border2)"></div></div><div class="vert-bar-value" style="color:var(--muted)">—</div></div>`;
-          const pct = Math.min((val / maxVal) * 100, 100);
-          const color = colorFn ? colorFn(s, val) : (metricKey === 'arsPerDay' ? arColor(val, null) : metricColor(val, metricKey));
-          return `<div class="vert-bar-row">
-            <div class="vert-bar-label" title="${s.v}">${s.v}</div>
-            <div class="vert-bar-track"><div class="vert-bar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div>
-            <div class="vert-bar-value">${fmt(val)}</div>
-          </div>`;
-        }).join('')}
+      <div class="vert-compare-section" style="cursor:pointer;position:relative" onclick="const f=this.querySelector('.vc-front'),b=this.querySelector('.vc-back');if(f.style.display!=='none'){f.style.display='none';b.style.display='block'}else{f.style.display='block';b.style.display='none'}">
+        <div class="vert-compare-section-title" style="display:flex;justify-content:space-between;align-items:center">${label} <span style="font-size:9px;color:var(--muted2);font-weight:500;text-transform:none;letter-spacing:0">Click to flip</span></div>
+        <div class="vc-front">
+          ${sorted.map(s => {
+            const val = s[key];
+            if (val == null) return `<div class="vert-bar-row"><div class="vert-bar-label" title="${s.v}">${s.v}</div><div class="vert-bar-track"><div class="vert-bar-fill" style="width:0%;background:var(--border2)"></div></div><div class="vert-bar-value" style="color:var(--muted)">—</div></div>`;
+            const pct = Math.min((val / maxVal) * 100, 100);
+            const color = colorFn ? colorFn(s, val) : (metricKey === 'arsPerDay' ? arColor(val, null) : metricColor(val, metricKey));
+            return `<div class="vert-bar-row"><div class="vert-bar-label" title="${s.v}">${s.v}</div><div class="vert-bar-track"><div class="vert-bar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div><div class="vert-bar-value">${fmt(val)}</div></div>`;
+          }).join('')}
+        </div>
+        <div class="vc-back" style="display:none">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);margin-bottom:8px">7-Day Change</div>
+          ${trendRows}
+          ${navLevel ? `<div style="margin-top:10px;font-size:10px;color:var(--muted2);cursor:pointer" onclick="event.stopPropagation();navTo('${navLevel}')">Explore deep dive →</div>` : ''}
+        </div>
       </div>`;
   };
 
   el.innerHTML = `
     <div class="vert-compare-grid">
-      ${buildBars(vertStats, 'ar', 'AR/Day', v => v.toFixed(1), 'arsPerDay', null)}
-      ${buildBars(vertStats, 'call', 'Call Score', v => Math.round(v), 'callScore', 100)}
-      ${buildBars(vertStats, 'sla', 'Ret SLA', v => Math.round(v) + '%', 'retSLA', 100)}
-      ${buildBars(vertStats, 'renewal', 'UFR Coverage', v => Math.round(v) + '%', 'renewalCoveragePct', 100, (s) => aggregatePacingStatus(vertMap[s.v] || []).color)}
+      ${buildBars(vertStats, 'ar', 'AR/Day', v => v.toFixed(1), 'arsPerDay', null, null, null)}
+      ${buildBars(vertStats, 'call', 'Call Score', v => Math.round(v), 'callScore', 100, null, 'dive-call')}
+      ${buildBars(vertStats, 'sla', 'Ret SLA', v => Math.round(v) + '%', 'retSLA', 100, null, null)}
+      ${buildBars(vertStats, 'renewal', 'UFR Coverage', v => Math.round(v) + '%', 'renewalCoveragePct', 100, (s) => aggregatePacingStatus(vertMap[s.v] || []).color, 'dive-ufr')}
     </div>`;
 }
 
@@ -1561,12 +1940,13 @@ function renderMgrLeaderboard(filtered) {
     const totalRetCases = team.reduce((s, d) => s + (d.retCases || 0), 0);
     const totalRetDone = team.reduce((s, d) => s + (d.retSLADone || 0), 0);
     const aggSla = totalRetCases > 0 ? Math.round(totalRetDone / totalRetCases * 100) : null;
-    // Aggregate UFR: total called / total cohort (using selected month data when available)
-    const totalCohort = team.reduce((s, d) => {
+    // Aggregate UFR: total called / total cohort (non-P+P only, using selected month data when available)
+    const teamNonPP = team.filter(d => d.segment !== 'Phones + Platform');
+    const totalCohort = teamNonPP.reduce((s, d) => {
       const ren = getRenewal(d.csm);
       return s + (ren ? (ren.total || 0) : (d.renewalCohortTotal || 0));
     }, 0);
-    const totalCalled = team.reduce((s, d) => {
+    const totalCalled = teamNonPP.reduce((s, d) => {
       const ren = getRenewal(d.csm);
       return s + (ren ? (ren.called || 0) : (d.renewalCohortCalled || 0));
     }, 0);
@@ -1701,9 +2081,9 @@ function renderTeamView(container) {
   const totalRetention = teamCSMs.reduce((s, d) => s + (d.openRetentionCases || d.retCases || 0), 0);
   const composites = teamCSMs.map(d => calcComposite(d)).filter(x => x != null);
   const teamComp = composites.length ? Math.round(composites.reduce((a, b) => a + b, 0) / composites.length) : null;
-  const greens  = teamCSMs.filter(d => d.overallStatus === 'green').length;
-  const yellows = teamCSMs.filter(d => d.overallStatus === 'yellow').length;
-  const reds    = teamCSMs.filter(d => d.overallStatus === 'red').length;
+  const greens  = teamCSMs.filter(d => statusFromComposite(calcComposite(d)) === 'green').length;
+  const yellows = teamCSMs.filter(d => statusFromComposite(calcComposite(d)) === 'yellow').length;
+  const reds    = teamCSMs.filter(d => { const s = statusFromComposite(calcComposite(d)); return s === 'red' || s === 'muted'; }).length;
   const total   = teamCSMs.length;
   const greenPct  = total ? (greens  / total * 100).toFixed(0) : 0;
   const yellowPct = total ? (yellows / total * 100).toFixed(0) : 0;
@@ -1769,7 +2149,8 @@ function renderCsmCards(csms) {
 function csmCardHtml(d) {
   const comp = calcComposite(d);
   const compColor = scoreColor(comp);
-  const statusColor = d.overallStatus === 'green' ? 'var(--green)' : d.overallStatus === 'yellow' ? 'var(--amber)' : 'var(--red)';
+  const csmStatus = statusFromComposite(comp);
+  const statusColor = csmStatus === 'green' ? 'var(--green)' : csmStatus === 'yellow' ? 'var(--amber)' : 'var(--red)';
   const arr = fmtMrrToArr(d.bookMrr);
   const segment = d.segment || '';
   const vertical = d.vertical || '';
@@ -1987,7 +2368,7 @@ function openPanel(csmName) {
       <div class="panel-section-title">Composite Score</div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
         <div class="panel-composite" style="color:${scoreColor(comp)}">${comp ?? '—'}</div>
-        ${statusPill(d.overallStatus)}
+        ${statusPill(statusFromComposite(comp))}
         ${d.gatedBy10in14 ? '<span class="pill pill-amber">10-in-14 Gate</span>' : ''}
       </div>
       <div class="panel-pillar-row">
@@ -2189,14 +2570,24 @@ function openMetricRanking(metric) {
 // ═══════════════════════════════════════════════════════════════════════════
 // DEFINITIONS MODAL
 // ═══════════════════════════════════════════════════════════════════════════
-function openDefs() {
+function openDefs(sectionId) {
   document.getElementById('defsBackdrop').classList.add('open');
+  document.getElementById('defsPanel').classList.add('open');
+  if (sectionId) {
+    // Collapse all, then expand the target
+    document.querySelectorAll('#defAccordion .def-detail').forEach(d => d.style.display = 'none');
+    const target = document.getElementById(sectionId);
+    if (target) {
+      const detail = target.closest('.def-card').querySelector('.def-detail');
+      if (detail) detail.style.display = 'block';
+      setTimeout(() => target.scrollIntoView({ block: 'start', behavior: 'smooth' }), 100);
+    }
+  }
 }
 
-function closeDefs(e) {
-  if (!e || e.target === document.getElementById('defsBackdrop')) {
-    document.getElementById('defsBackdrop').classList.remove('open');
-  }
+function closeDefs() {
+  document.getElementById('defsBackdrop').classList.remove('open');
+  document.getElementById('defsPanel').classList.remove('open');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2204,9 +2595,19 @@ function closeDefs(e) {
 // ═══════════════════════════════════════════════════════════════════════════
 function toggleTheme() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
+  const next = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
   document.getElementById('themeIcon').textContent = isDark ? '☽' : '☀';
+  localStorage.setItem('cs-perf-theme', next);
 }
+// Default to dark, persist choice
+(function() {
+  const saved = localStorage.getItem('cs-perf-theme');
+  const theme = saved || 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.textContent = theme === 'dark' ? '☀' : '☽';
+})();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // POPULATE FILTER DROPDOWNS
@@ -2218,21 +2619,1811 @@ function populateFilters(data) {
   const verticals = unique(data.map(d => d.vertical));
   const segments  = unique(data.map(d => d.segment));
 
-  const fill = (id, vals) => {
-    const sel = document.getElementById(id);
-    const first = sel.querySelector('option');
-    sel.innerHTML = '';
-    sel.appendChild(first);
-    vals.forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v; opt.textContent = v;
-      sel.appendChild(opt);
-    });
+  const buildChecks = (containerId, values, filterKey) => {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = values.map(v => `
+      <label class="filter-check-item">
+        <input type="checkbox" value="${v}" onchange="applyFilters()" ${filters[filterKey] && filters[filterKey].includes(v) ? 'checked' : ''}>
+        <span>${v}</span>
+      </label>
+    `).join('');
   };
 
-  fill('filterManager',  managers);
-  fill('filterVertical', verticals);
-  fill('filterSegment',  segments);
+  buildChecks('filterManagerChecks',  managers,  'manager');
+  buildChecks('filterVerticalChecks', verticals, 'vertical');
+  buildChecks('filterSegmentChecks',  segments,  'segment');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UNIFIED RANKINGS
+// ═══════════════════════════════════════════════════════════════════════════
+let rankingsView = 'csm'; // 'csm' | 'manager' | 'vertical'
+let rankingsSort = { field: null, asc: false };
+let callRankingsSort = { field: null, asc: false };
+
+function sortHeader(label, field, sortState, onClickFn) {
+  const isActive = sortState.field === field;
+  const arrow = isActive ? (sortState.asc ? ' ▴' : ' ▾') : '';
+  return `<th style="text-align:center;cursor:pointer" onclick="${onClickFn}('${field}')">${label}${arrow}</th>`;
+}
+
+function toggleSort(sortState, field) {
+  if (sortState.field === field) {
+    sortState.asc = !sortState.asc;
+  } else {
+    sortState.field = field;
+    sortState.asc = false;
+  }
+}
+
+function sortRankingsBy(field) {
+  toggleSort(rankingsSort, field);
+  renderUnifiedRankings(getFiltered());
+}
+
+function sortCallRankingsBy(field) {
+  toggleSort(callRankingsSort, field);
+  renderCallRankings();
+}
+let overviewGridView = 'vertical'; // 'vertical' | 'manager'
+let overviewCompareView = 'vertical'; // 'vertical' | 'manager'
+
+function setOverviewGridView(view) {
+  overviewGridView = view;
+  document.querySelectorAll('#overviewGridToggle .toggle-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['vertical', 'manager'][i] === view);
+  });
+  renderVertGrid(getFiltered());
+}
+
+function setOverviewCompareView(view) {
+  overviewCompareView = view;
+  document.querySelectorAll('#overviewCompareToggle .toggle-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['vertical', 'manager'][i] === view);
+  });
+  renderVerticalComparison(getFiltered());
+}
+
+function setRankingsView(view) {
+  rankingsView = view;
+  document.querySelectorAll('#rankingsToggle .toggle-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['csm', 'manager', 'vertical'][i] === view);
+  });
+  renderUnifiedRankings(getFiltered());
+}
+
+function renderUnifiedRankings(filtered) {
+  const el = document.getElementById('unifiedRankingsTable');
+  if (!el) return;
+
+  if (rankingsView === 'csm') {
+    let sorted = [...filtered];
+    const sf = rankingsSort.field;
+    if (sf) {
+      sorted.sort((a, b) => {
+        const av = sf === 'composite' ? (calcComposite(a) || 0) : (a[sf] || 0);
+        const bv = sf === 'composite' ? (calcComposite(b) || 0) : (b[sf] || 0);
+        return rankingsSort.asc ? av - bv : bv - av;
+      });
+    } else {
+      sorted.sort((a, b) => (calcComposite(b) || 0) - (calcComposite(a) || 0));
+    }
+    el.innerHTML = `<div class="table-scroll" style="max-height:640px"><table>
+      <thead><tr><th>#</th><th>CSM</th><th>Segment</th><th>Trend</th>
+        ${sortHeader('Comp.', 'composite', rankingsSort, 'sortRankingsBy')}
+        ${sortHeader('AR/Day', 'arsPerDay', rankingsSort, 'sortRankingsBy')}
+        ${sortHeader('Call', 'callScore', rankingsSort, 'sortRankingsBy')}
+        ${sortHeader('SLA', 'retSLA', rankingsSort, 'sortRankingsBy')}
+        ${sortHeader('UFR', 'renewalCoveragePct', rankingsSort, 'sortRankingsBy')}
+        ${sortHeader('Risk', 'highRiskOrgCount', rankingsSort, 'sortRankingsBy')}
+      </tr></thead>
+      <tbody>${sorted.map((d, i) => {
+        const comp = calcComposite(d);
+        const compStatus = statusFromComposite(comp);
+        const borderColor = compStatus === 'green' ? 'var(--green)' : compStatus === 'yellow' ? 'var(--amber)' : 'var(--red)';
+        const sp = sparklines[d.csm] || [];
+        const compSpark = sp.length > 1 ? sp.map(p => p.composite) : null;
+        const isPP = d.segment === 'Phones + Platform';
+        const pacing = isPP ? null : calcPacing(d);
+        const ren = getRenewal(d.csm);
+        const ufrPct = ren ? ren.pct : d.renewalCoveragePct;
+        return `<tr style="border-left:3px solid ${borderColor}" onclick="openPanel('${d.csm.replace(/'/g, "\\'")}')" >
+          <td style="color:var(--muted);font-weight:600">${i + 1}</td>
+          <td><span class="csm-name-link" style="font-weight:600;font-size:13px">${d.csm}</span><div style="font-size:10px;color:var(--muted);line-height:1.2;margin-top:1px">${d.manager || ''} · ${d.vertical}</div></td>
+          <td style="font-size:11px;color:var(--text2)">${d.segment || ''}</td>
+          <td>${sparklineSVG(compSpark, { width: 50, height: 16, color: borderColor })}</td>
+          <td>${metricPill(comp, 'composite')}</td>
+          <td>${metricPill(d.arsPerDay, 'arsPerDay', d.segment)}</td>
+          <td>${metricPill(d.callScore, 'callScore')}</td>
+          <td>${metricPill(d.retSLA, 'retSLA')}</td>
+          <td>${isPP ? '<span class="pill pill-muted">P+P</span>' : ufrProgressCell(ufrPct, pacing ? pacing.status : 'muted')}</td>
+          <td>${(d.highRiskOrgCount || 0) > 0 ? `<span class="pill pill-red">${d.highRiskOrgCount}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+        </tr>`;
+      }).join('')}</tbody></table></div>`;
+
+  } else if (rankingsView === 'manager') {
+    const managers = [...new Set(filtered.map(d => d.manager))].filter(Boolean);
+    const mgrData = managers.map(m => {
+      const team = filtered.filter(d => d.manager === m);
+      const composites = team.map(d => calcComposite(d)).filter(v => v != null);
+      const avgComp = composites.length ? Math.round(composites.reduce((a, b) => a + b, 0) / composites.length) : null;
+      const avgAr = team.reduce((s, d) => s + (d.arsPerDay || 0), 0) / team.length;
+      const callScored = team.filter(d => d.callScore != null);
+      const avgCall = callScored.length ? callScored.reduce((s, d) => s + d.callScore, 0) / callScored.length : null;
+      const retTotal = team.reduce((s, d) => s + (d.retCases || 0), 0);
+      const retDone = team.reduce((s, d) => s + (d.retSLADone || 0), 0);
+      const sla = retTotal > 0 ? Math.round(retDone / retTotal * 100) : null;
+      const aggUfr = aggregatePacingStatus(team);
+      const totalArr = team.reduce((s, d) => s + (d.bookArr || 0), 0);
+      return { manager: m, team, size: team.length, avgComp, avgAr, avgCall, sla, aggUfr, totalArr };
+    });
+    if (rankingsSort.field) {
+      mgrData.sort((a, b) => { const av = a[rankingsSort.field] || 0; const bv = b[rankingsSort.field] || 0; return rankingsSort.asc ? av - bv : bv - av; });
+    } else {
+      mgrData.sort((a, b) => (b.avgComp || 0) - (a.avgComp || 0));
+    }
+
+    el.innerHTML = `<div class="table-scroll" style="max-height:640px"><table>
+      <thead><tr><th>#</th><th>Manager</th>
+        ${sortHeader('Team', 'size', rankingsSort, 'sortRankingsBy')}
+        ${sortHeader('ARR', 'totalArr', rankingsSort, 'sortRankingsBy')}
+        ${sortHeader('Comp.', 'avgComp', rankingsSort, 'sortRankingsBy')}
+        ${sortHeader('AR/Day', 'avgAr', rankingsSort, 'sortRankingsBy')}
+        ${sortHeader('Call', 'avgCall', rankingsSort, 'sortRankingsBy')}
+        ${sortHeader('SLA', 'sla', rankingsSort, 'sortRankingsBy')}
+        <th style="text-align:center">UFR</th><th>Status</th>
+      </tr></thead>
+      <tbody>${mgrData.map((m, i) => {
+        return `<tr onclick="navTo('team','manager','${m.manager}')" style="cursor:pointer">
+          <td style="color:var(--muted);font-weight:600">${i + 1}</td>
+          <td style="font-weight:600">${m.manager}</td>
+          <td style="text-align:center;color:var(--text2)">${m.size}</td>
+          <td style="text-align:right;color:var(--muted);font-size:12px">${fmtArr(m.totalArr)}</td>
+          <td>${metricPill(m.avgComp, 'composite')}</td>
+          <td>${metricPill(m.avgAr, 'arsPerDay', null)}</td>
+          <td>${metricPill(m.avgCall, 'callScore')}</td>
+          <td>${metricPill(m.sla, 'retSLA')}</td>
+          <td>${ufrProgressCell(m.aggUfr.pct, m.aggUfr.status)}</td>
+          <td>${statusCounts(m.team)}</td>
+        </tr>`;
+      }).join('')}</tbody></table></div>`;
+
+  } else {
+    const verts = [...new Set(filtered.map(d => d.vertical))].filter(Boolean);
+    const vertData = verts.map(v => {
+      const team = filtered.filter(d => d.vertical === v);
+      const composites = team.map(d => calcComposite(d)).filter(v => v != null);
+      const avgComp = composites.length ? Math.round(composites.reduce((a, b) => a + b, 0) / composites.length) : null;
+      const avgAr = team.reduce((s, d) => s + (d.arsPerDay || 0), 0) / team.length;
+      const callScored = team.filter(d => d.callScore != null);
+      const avgCall = callScored.length ? callScored.reduce((s, d) => s + d.callScore, 0) / callScored.length : null;
+      const retTotal = team.reduce((s, d) => s + (d.retCases || 0), 0);
+      const retDone = team.reduce((s, d) => s + (d.retSLADone || 0), 0);
+      const sla = retTotal > 0 ? Math.round(retDone / retTotal * 100) : null;
+      const aggUfr = aggregatePacingStatus(team);
+      return { vertical: v, team, size: team.length, avgComp, avgAr, avgCall, sla, aggUfr };
+    });
+    if (rankingsSort.field) {
+      vertData.sort((a, b) => { const av = a[rankingsSort.field] || 0; const bv = b[rankingsSort.field] || 0; return rankingsSort.asc ? av - bv : bv - av; });
+    } else {
+      vertData.sort((a, b) => (b.avgComp || 0) - (a.avgComp || 0));
+    }
+
+    el.innerHTML = `<div class="table-scroll" style="max-height:640px"><table>
+      <thead><tr><th>#</th><th>Vertical</th>
+        ${sortHeader('CSMs', 'size', rankingsSort, 'sortRankingsBy')}
+        ${sortHeader('Comp.', 'avgComp', rankingsSort, 'sortRankingsBy')}
+        ${sortHeader('AR/Day', 'avgAr', rankingsSort, 'sortRankingsBy')}
+        ${sortHeader('Call', 'avgCall', rankingsSort, 'sortRankingsBy')}
+        ${sortHeader('SLA', 'sla', rankingsSort, 'sortRankingsBy')}
+        <th style="text-align:center">UFR</th><th>Status</th>
+      </tr></thead>
+      <tbody>${vertData.map((v, i) => {
+        return `<tr onclick="navTo('team','vertical','${v.vertical}')" style="cursor:pointer">
+          <td style="color:var(--muted);font-weight:600">${i + 1}</td>
+          <td style="font-weight:600"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:3px;height:14px;border-radius:2px;background:${vertColor(v.vertical)};flex-shrink:0"></span>${v.vertical}</span></td>
+          <td style="text-align:center;color:var(--text2)">${v.size}</td>
+          <td>${metricPill(v.avgComp, 'composite')}</td>
+          <td>${metricPill(v.avgAr, 'arsPerDay', null)}</td>
+          <td>${metricPill(v.avgCall, 'callScore')}</td>
+          <td>${metricPill(v.sla, 'retSLA')}</td>
+          <td>${ufrProgressCell(v.aggUfr.pct, v.aggUfr.status)}</td>
+          <td>${statusCounts(v.team)}</td>
+        </tr>`;
+      }).join('')}</tbody></table></div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEEP DIVE — SHARED HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const DIVE_TABS = [
+  { level: 'dive-ar', label: 'AR / Day', dot: 'var(--green)' },
+  { level: 'dive-call', label: 'Call Quality', dot: 'var(--amber)' },
+  { level: 'dive-sla', label: 'Retention SLA', dot: '#2563EB' },
+  { level: 'dive-ufr', label: 'UFR Coverage', dot: 'var(--red)' },
+];
+
+function diveTabBar() {
+  return ''; // Navigation handled by sticky nav bar (row 2)
+}
+
+let pillarCharts = {};
+
+let trendHorizon = '1d'; // '1d' | '7d' | '30d'
+
+// Compute period-over-period delta
+// Point-to-point comparison: today's value vs N days ago
+// Used for UFR where period averaging is misleading due to cohort resets
+function computeOrgPointDelta(pillarKey, daysBack) {
+  const dateMap = {};
+  const filtered = getFiltered();
+  filtered.forEach(d => {
+    (sparklines[d.csm] || []).forEach(p => {
+      if (p[pillarKey] == null) return;
+      if (!dateMap[p.date]) dateMap[p.date] = [];
+      dateMap[p.date].push(p[pillarKey]);
+    });
+  });
+  const allDates = Object.keys(dateMap).sort();
+  if (allDates.length < 2) return null;
+  const latestDate = allDates[allDates.length - 1];
+  const latestAvg = dateMap[latestDate].reduce((a, b) => a + b, 0) / dateMap[latestDate].length;
+  const target = new Date(latestDate);
+  target.setDate(target.getDate() - daysBack);
+  const targetStr = target.toISOString().slice(0, 10);
+  // Find closest date at or before the target
+  let compDate = null;
+  for (const d of allDates) {
+    if (d <= targetStr) compDate = d;
+  }
+  if (!compDate || compDate === latestDate) return null;
+  const priorAvg = dateMap[compDate].reduce((a, b) => a + b, 0) / dateMap[compDate].length;
+  return { delta: latestAvg - priorAvg, current: Math.round(latestAvg * 10) / 10, prior: Math.round(priorAvg * 10) / 10 };
+}
+
+// For 1d: compare latest date vs previous date (DoD)
+// For 7d: compare avg of last 7 days vs avg of prior 7 days (WoW)
+// For 30d: compare avg of last 30 days vs avg of prior 30 days (MoM)
+function computeOrgPeriodDelta(pillarKey, periodDays) {
+  const dateMap = {};
+  const filtered = getFiltered();
+  filtered.forEach(d => {
+    (sparklines[d.csm] || []).forEach(p => {
+      if (p[pillarKey] == null) return;
+      if (!dateMap[p.date]) dateMap[p.date] = [];
+      dateMap[p.date].push(p[pillarKey]);
+    });
+  });
+  const allDates = Object.keys(dateMap).sort();
+  if (allDates.length < 2) return null;
+
+  if (periodDays === 1) {
+    // DoD: compare two most recent dates
+    const latest = allDates[allDates.length - 1];
+    const prev = allDates[allDates.length - 2];
+    const currentAvg = dateMap[latest].reduce((a, b) => a + b, 0) / dateMap[latest].length;
+    const priorAvg = dateMap[prev].reduce((a, b) => a + b, 0) / dateMap[prev].length;
+    return { delta: currentAvg - priorAvg, current: Math.round(currentAvg * 10) / 10, prior: Math.round(priorAvg * 10) / 10 };
+  }
+
+  // For 7d/30d: proper period-over-period
+  const latest = new Date(allDates[allDates.length - 1]);
+  const periodStart = new Date(latest); periodStart.setDate(periodStart.getDate() - periodDays);
+  const priorStart = new Date(periodStart); priorStart.setDate(priorStart.getDate() - periodDays);
+  const periodStartStr = periodStart.toISOString().slice(0, 10);
+  const priorStartStr = priorStart.toISOString().slice(0, 10);
+
+  const currentDates = allDates.filter(d => d > periodStartStr);
+  const priorDates = allDates.filter(d => d > priorStartStr && d <= periodStartStr);
+
+  if (!currentDates.length || !priorDates.length) return null;
+
+  const currentVals = currentDates.flatMap(d => dateMap[d]);
+  const priorVals = priorDates.flatMap(d => dateMap[d]);
+  const currentAvg = currentVals.reduce((a, b) => a + b, 0) / currentVals.length;
+  const priorAvg = priorVals.reduce((a, b) => a + b, 0) / priorVals.length;
+
+  return { delta: currentAvg - priorAvg, current: Math.round(currentAvg * 10) / 10, prior: Math.round(priorAvg * 10) / 10 };
+}
+
+function computeOrgWoWDelta(pillarKey) {
+  const r = computeOrgPeriodDelta(pillarKey, 7);
+  return r ? r.delta : null;
+}
+
+// Proper rollup for ratio metrics (Ret SLA): sum(done)/sum(total) instead of avg(pct)
+function computeRatioRollupDelta(doneKey, totalKey, periodDays) {
+  const dateMap = {};
+  const filtered = getFiltered();
+  filtered.forEach(d => {
+    (sparklines[d.csm] || []).forEach(p => {
+      if (!dateMap[p.date]) dateMap[p.date] = { done: 0, total: 0 };
+      dateMap[p.date].done += (p[doneKey] || 0);
+      dateMap[p.date].total += (p[totalKey] || 0);
+    });
+  });
+  const allDates = Object.keys(dateMap).sort().filter(d => dateMap[d].total > 0);
+  if (allDates.length < 2) return null;
+
+  if (periodDays === 1) {
+    const cur = dateMap[allDates[allDates.length - 1]];
+    const prev = dateMap[allDates[allDates.length - 2]];
+    const curPct = cur.total > 0 ? Math.round(cur.done / cur.total * 100) : 0;
+    const prevPct = prev.total > 0 ? Math.round(prev.done / prev.total * 100) : 0;
+    return { delta: curPct - prevPct, current: curPct, prior: prevPct };
+  }
+
+  const latest = new Date(allDates[allDates.length - 1]);
+  const ps = new Date(latest); ps.setDate(ps.getDate() - periodDays);
+  const pp = new Date(ps); pp.setDate(pp.getDate() - periodDays);
+  const psStr = ps.toISOString().slice(0, 10);
+  const ppStr = pp.toISOString().slice(0, 10);
+  const curDates = allDates.filter(d => d > psStr);
+  const priDates = allDates.filter(d => d > ppStr && d <= psStr);
+  if (!curDates.length || !priDates.length) return null;
+
+  const curSum = curDates.reduce((s, d) => ({ done: s.done + dateMap[d].done, total: s.total + dateMap[d].total }), { done: 0, total: 0 });
+  const priSum = priDates.reduce((s, d) => ({ done: s.done + dateMap[d].done, total: s.total + dateMap[d].total }), { done: 0, total: 0 });
+  const curPct = curSum.total > 0 ? Math.round(curSum.done / curSum.total * 100) : 0;
+  const priPct = priSum.total > 0 ? Math.round(priSum.done / priSum.total * 100) : 0;
+  return { delta: curPct - priPct, current: curPct, prior: priPct };
+}
+
+// Proper rollup for UFR point-to-point: sum(called)/sum(total) for specific dates
+function computeUfrRollupDelta(calledKey, totalKey, pctKey, daysBack) {
+  const dateMap = {};
+  const filtered = getFiltered();
+  filtered.forEach(d => {
+    (sparklines[d.csm] || []).forEach(p => {
+      if (p[pctKey] == null) return;
+      if (!dateMap[p.date]) dateMap[p.date] = { called: 0, total: 0 };
+      dateMap[p.date].called += (p[calledKey] || 0);
+      dateMap[p.date].total += (p[totalKey] || 0);
+    });
+  });
+  const allDates = Object.keys(dateMap).sort().filter(d => dateMap[d].total > 0);
+  if (allDates.length < 2) return null;
+
+  const latestDate = allDates[allDates.length - 1];
+  const cur = dateMap[latestDate];
+  const curPct = cur.total > 0 ? Math.round(cur.called / cur.total * 1000) / 10 : 0;
+
+  const target = new Date(latestDate);
+  target.setDate(target.getDate() - daysBack);
+  const targetStr = target.toISOString().slice(0, 10);
+  let compDate = null;
+  for (const d of allDates) { if (d <= targetStr) compDate = d; }
+  if (!compDate || compDate === latestDate) return null;
+
+  const prev = dateMap[compDate];
+  const prevPct = prev.total > 0 ? Math.round(prev.called / prev.total * 1000) / 10 : 0;
+  return { delta: curPct - prevPct, current: curPct, prior: prevPct };
+}
+
+// usePoints: true for metrics already expressed as % (composite, sla, ufr) — shows "+10pp"
+// usePoints: false for raw values (ar) — shows "+12%"
+function trendLabel(result, usePoints) {
+  if (result == null) return '<span style="color:var(--muted);font-size:13px">Accumulating</span>';
+  const r = typeof result === 'number' ? { delta: result, prior: null } : result;
+  let display;
+  if (usePoints) {
+    // Point change for percentage metrics
+    const pts = Math.round(r.delta);
+    display = `${pts > 0 ? '+' : ''}${pts}pp`;
+    var isStable = pts === 0;
+  } else {
+    // Percentage change for raw metrics
+    const pctChange = r.prior && r.prior !== 0 ? Math.round((r.delta / r.prior) * 100) : null;
+    display = pctChange != null ? `${pctChange > 0 ? '+' : ''}${pctChange}%` : (r.delta > 0 ? '+' : '') + Math.round(r.delta);
+    var isStable = pctChange != null ? pctChange === 0 : Math.abs(r.delta) < 0.5;
+  }
+  const word = isStable ? 'Stable' : r.delta > 0 ? 'Improving' : 'Declining';
+  const arrow = isStable ? '→' : r.delta > 0 ? '▲' : '▼';
+  const color = isStable ? 'var(--muted)' : r.delta > 0 ? 'var(--green)' : 'var(--red)';
+  return `<span style="color:${color};font-size:13px;font-weight:600">${arrow} ${display} ${word}</span>`;
+}
+
+let trendExpanded = false;
+
+function renderTrendBar() {
+  const el = document.getElementById('trendBar');
+  if (!el) return;
+  const days = trendHorizon === '1d' ? 1 : trendHorizon === '7d' ? 7 : 30;
+  const compLabel = trendHorizon === '1d' ? 'Day-over-Day' : trendHorizon === '7d' ? 'Week-over-Week' : 'Month-over-Month';
+
+  const ufrIdx = renewalMonthLabels.indexOf(selectedRenewalMonth);
+  const ufrSuffix = ufrIdx === 0 ? '1' : ufrIdx === 2 ? '3' : '2';
+  const ufrPctKey = 'ufr_m' + ufrSuffix;
+  const ufrCalledKey = 'm' + ufrSuffix + 'Called';
+  const ufrTotalKey = 'm' + ufrSuffix + 'Total';
+
+  const metrics = [
+    { key: 'composite', label: 'Composite', points: true },
+    { key: 'ar', label: 'AR/Day', points: false },
+    { key: 'call', label: 'Call Score', points: true },
+    { key: 'sla', label: 'Ret SLA', points: true, rollup: true },
+    { key: ufrPctKey, label: 'UFR', points: true, pointToPoint: true },
+  ];
+  const results = metrics.map(m => {
+    let result;
+    if (m.rollup) {
+      result = computeRatioRollupDelta('slaDone', 'slaTotal', days);
+    } else if (m.pointToPoint) {
+      // Use proper rollup if counts available, fall back to avg
+      result = computeUfrRollupDelta(ufrCalledKey, ufrTotalKey, ufrPctKey, days) || computeOrgPointDelta(m.key, days);
+    } else {
+      result = computeOrgPeriodDelta(m.key, days);
+    }
+    return { ...m, result };
+  });
+
+  const summaryItems = results.map(m => {
+    return `<div style="display:flex;flex-direction:column;gap:2px">
+      <span style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">${m.label}</span>
+      ${trendLabel(m.result, m.points)}
+    </div>`;
+  }).join('<div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>');
+
+  const detailRows = !trendExpanded ? '' : `
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+      ${results.map(m => {
+        if (!m.result) return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;text-align:center">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">${m.label}</div>
+          <div style="font-size:11px;color:var(--muted)">Needs history</div>
+        </div>`;
+        const r = m.result;
+        const color = r.delta === 0 ? 'var(--muted)' : r.delta > 0 ? 'var(--green)' : 'var(--red)';
+        const arrow = r.delta === 0 ? '→' : r.delta > 0 ? '▲' : '▼';
+        return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">${m.label}</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:13px;color:var(--text2)">${r.prior}</span>
+            <span style="font-size:11px;color:var(--muted)">→</span>
+            <span style="font-size:16px;font-weight:800;color:var(--text)">${r.current}</span>
+          </div>
+          <div style="text-align:center;font-size:12px;font-weight:700;color:${color}">${arrow} ${m.points ? (Math.round(r.delta) > 0 ? '+' : '') + Math.round(r.delta) + 'pp' : (r.prior && r.prior !== 0 ? (Math.round((r.delta / r.prior) * 100) > 0 ? '+' : '') + Math.round((r.delta / r.prior) * 100) + '%' : (r.delta > 0 ? '+' : '') + Math.round(r.delta))}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        ${summaryItems}
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button style="font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;background:none;border:none;font-family:inherit;transition:color 0.12s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'" onclick="trendExpanded=!trendExpanded;renderTrendBar()">${trendExpanded ? '▴ Collapse' : '▾ Details'}</button>
+        <span style="width:1px;height:14px;background:var(--border)"></span>
+        <span style="font-size:10px;color:var(--muted);font-weight:500">${compLabel}</span>
+        <div class="view-toggle">
+          <button class="toggle-btn${trendHorizon === '1d' ? ' active' : ''}" onclick="trendHorizon='1d';renderTrendBar()">1d</button>
+          <button class="toggle-btn${trendHorizon === '7d' ? ' active' : ''}" onclick="trendHorizon='7d';renderTrendBar()">7d</button>
+          <button class="toggle-btn${trendHorizon === '30d' ? ' active' : ''}" onclick="trendHorizon='30d';renderTrendBar()">30d</button>
+        </div>
+      </div>
+    </div>
+    ${detailRows}`;
+}
+
+function wowBadge(delta, unit) {
+  if (delta == null) return '';
+  const d = Math.round(delta);
+  if (d === 0) return '';
+  const cls = d >= 0 ? 'delta-up' : 'delta-down';
+  const arrow = d >= 0 ? '&#9650;' : '&#9660;';
+  return `<span class="${cls}" style="font-size:11px;font-weight:600">${arrow} ${d >= 0 ? '+' : ''}${d}${unit || 'pp'} WoW</span>`;
+}
+
+function renderPillarRace(containerId, data, config) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const medals = ['', '&#127942;', '&#129352;', '&#129353;'];
+
+  el.innerHTML = data.map((r, i) => {
+    const rank = i + 1;
+    const color = config.colorFn(r);
+    const value = config.valueFn(r);
+    const pct = config.pctFn(r);
+    const rankClass = rank <= 3 ? ` rank-${rank}` : '';
+    const medalHtml = rank <= 3 ? `<span class="race-medal">${medals[rank]}</span>` : '';
+    const divider = rank === 3 && data.length > 3 ? '<div class="race-divider"></div>' : '';
+
+    return `
+    <div class="race-row${rankClass}" onclick="${config.clickFn ? config.clickFn(r) : ''}">
+      <div class="race-rank${rankClass}">${medalHtml || '#' + rank}</div>
+      <div class="race-vert-name">
+        <span class="race-vert-accent" style="background:${vertColor(r.vertical)}"></span>
+        ${r.vertical}
+      </div>
+      <div class="race-pacing-bar">
+        <div class="race-pacing-fill" style="width:${Math.min(pct, 100)}%;background:${color}"></div>
+      </div>
+      <div class="race-pct" style="color:${color}">${value}</div>
+      <div class="race-orgs">${config.subFn(r)}</div>
+      <div class="race-meta">${config.metaFn ? config.metaFn(r) : ''}</div>
+    </div>${divider}`;
+  }).join('');
+}
+
+function renderPillarTrendChart(containerId, pillarKey, options = {}) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const verts = getUfrVerticals();
+  const vertTrends = {};
+  const allDates = new Set();
+  const filtered = getFiltered();
+
+  filtered.forEach(d => {
+    if (d.segment === 'Phones + Platform' && pillarKey === 'ufr') return;
+    (sparklines[d.csm] || []).forEach(p => {
+      if (p[pillarKey] == null) return;
+      if (!vertTrends[d.vertical]) vertTrends[d.vertical] = {};
+      if (!vertTrends[d.vertical][p.date]) vertTrends[d.vertical][p.date] = [];
+      vertTrends[d.vertical][p.date].push(p[pillarKey]);
+      allDates.add(p.date);
+    });
+  });
+
+  const dates = [...allDates].sort();
+  if (dates.length < 2) {
+    container.innerHTML = '<div class="trend-placeholder">Trend data will appear as daily snapshots accumulate.</div>';
+    return;
+  }
+
+  container.innerHTML = '<div class="chart-container"><canvas id="' + containerId + 'Canvas"></canvas></div>';
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  const textColor = isDark ? '#C0BFB8' : '#4A4A46';
+
+  const datasets = verts.filter(v => vertTrends[v]).map(v => ({
+    label: v,
+    data: dates.map(d => {
+      const vals = vertTrends[v]?.[d];
+      return vals ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10 : null;
+    }),
+    borderColor: vertColor(v), backgroundColor: vertColor(v) + '15',
+    borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, tension: 0.3, spanGaps: true, fill: true,
+  }));
+
+  if (pillarCharts[containerId]) pillarCharts[containerId].destroy();
+  pillarCharts[containerId] = new Chart(document.getElementById(containerId + 'Canvas').getContext('2d'), {
+    type: 'line',
+    data: { labels: dates.map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', padding: 14, font: { family: 'Inter', size: 11, weight: 600 }, color: textColor } },
+        tooltip: { mode: 'index', intersect: false, backgroundColor: isDark ? '#1C1C1A' : '#1A1A19', titleFont: { family: 'Inter', size: 12, weight: 700 }, bodyFont: { family: 'Inter', size: 12 }, padding: 10, cornerRadius: 8 },
+      },
+      scales: {
+        y: { min: options.yMin || 0, suggestedMax: options.yMax || 100, grid: { color: gridColor }, ticks: { font: { family: 'Inter', size: 11 }, color: textColor, callback: v => v + (options.ySuffix || '') } },
+        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: textColor } },
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CADENCE SVG — mini 7-bar histogram for AR activity
+// ═══════════════════════════════════════════════════════════════════════════
+function cadenceSVG(csmName) {
+  const sp = sparklines[csmName] || [];
+  const vals = sp.map(p => p.ar).slice(-7);
+  const hasData = vals.some(v => v != null && v > 0);
+  if (!hasData) return `<svg width="50" height="16" viewBox="0 0 50 16"><rect x="0" y="13" width="50" height="1" rx="0.5" fill="var(--border2)"/></svg>`;
+  const max = Math.max(...vals.map(v => v || 0)) || 1;
+  const barW = 5, gap = 2, n = vals.length;
+  const totalW = n * barW + (n - 1) * gap;
+  const oX = (50 - totalW) / 2;
+  const bars = vals.map((v, i) => {
+    const h = v != null && v > 0 ? Math.max(2, (v / max) * 14) : 1;
+    const x = oX + i * (barW + gap);
+    const fill = v != null && v > 0 ? 'var(--green)' : 'var(--border2)';
+    const opacity = v != null && v > 0 ? '0.8' : '0.4';
+    return `<rect x="${x}" y="${16 - h}" width="${barW}" height="${h}" rx="1" fill="${fill}" opacity="${opacity}"/>`;
+  }).join('');
+  return `<svg width="50" height="16" viewBox="0 0 50 16">${bars}</svg>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEEP DIVE — AR/DAY
+// ═══════════════════════════════════════════════════════════════════════════
+function renderArDeepDive(container) {
+  const filtered = getFiltered();
+  const arVals = filtered.map(d => d.arsPerDay).filter(v => v != null);
+  const avgAr = arVals.length ? arVals.reduce((a, b) => a + b, 0) / arVals.length : null;
+  const wowDelta = computeOrgWoWDelta('ar');
+  const totalArs = filtered.reduce((s, d) => s + (d.totalArs || 0), 0);
+  const greenCount = filtered.filter(d => metricStatus(d.arsPerDay, 'arsPerDay', d.segment) === 'green').length;
+  const amberCount = filtered.filter(d => metricStatus(d.arsPerDay, 'arsPerDay', d.segment) === 'yellow').length;
+  const redCount = filtered.filter(d => metricStatus(d.arsPerDay, 'arsPerDay', d.segment) === 'red').length;
+  const topCsm = [...filtered].filter(d => d.arsPerDay != null).sort((a, b) => b.arsPerDay - a.arsPerDay)[0];
+
+  container.innerHTML = `
+    ${diveTabBar()}
+    <div class="overview-section">
+      <div class="section-label">AR / Day Overview ${defTip('arDay')}</div>
+      <div class="pacing-kpis">
+        <div class="pacing-kpi">
+          <div class="pacing-kpi-label">Avg AR / Day</div>
+          <div class="pacing-kpi-value" style="color:${arColor(avgAr, null)}">${avgAr != null ? avgAr.toFixed(1) : '—'}</div>
+          <div class="pacing-kpi-sub">${arVals.length} CSMs</div>
+          <div class="pacing-kpi-bottom">${wowBadge(wowDelta)}</div>
+        </div>
+        <div class="pacing-kpi">
+          <div class="pacing-kpi-label">Total ARs (L30)</div>
+          <div class="pacing-kpi-value">${totalArs.toLocaleString()}</div>
+          <div class="pacing-kpi-sub">across all CSMs</div>
+        </div>
+        <div class="pacing-kpi">
+          <div class="pacing-kpi-label">Distribution</div>
+          <div style="display:flex;gap:12px;margin-bottom:6px">
+            <span style="font-size:20px;font-weight:700;color:var(--green)">${greenCount}</span>
+            <span style="font-size:20px;font-weight:700;color:var(--amber)">${amberCount}</span>
+            <span style="font-size:20px;font-weight:700;color:var(--red)">${redCount}</span>
+          </div>
+          <div class="pacing-kpi-sub">green / amber / red</div>
+        </div>
+        <div class="pacing-kpi">
+          <div class="pacing-kpi-label">Top CSM</div>
+          <div class="pacing-kpi-value" style="font-size:22px">${topCsm ? topCsm.arsPerDay.toFixed(1) : '—'}</div>
+          <div class="pacing-kpi-sub">${topCsm ? topCsm.csm : ''}</div>
+          <div class="pacing-kpi-bottom" style="font-size:11px;color:var(--muted)">${topCsm ? topCsm.vertical + ' · ' + topCsm.segment : ''}</div>
+        </div>
+      </div>
+    </div>
+    <div class="overview-section">
+      <div class="section-label">CSM Activity & Cadence</div>
+      <div class="table-scroll" style="max-height:480px" id="arCadenceTable"></div>
+    </div>`;
+
+  const sorted = [...filtered].filter(d => d.arsPerDay != null).sort((a, b) => b.arsPerDay - a.arsPerDay);
+  document.getElementById('arCadenceTable').innerHTML = `<table>
+    <thead><tr><th>#</th><th>CSM</th><th>AR/Day</th><th>Total ARs</th><th style="width:60px;text-align:center">Cadence</th><th>Segment</th><th>7d</th></tr></thead>
+    <tbody>${sorted.map((d, i) => {
+      const compD = d.compositeDelta7d;
+      const dBadge = compD != null ? `<span class="${compD > 0 ? 'delta-pos' : compD < 0 ? 'delta-neg' : 'delta-neu'}">${compD > 0 ? '+' : ''}${compD.toFixed(1)}</span>` : '<span class="delta-neu">—</span>';
+      return `<tr onclick="openPanel('${d.csm.replace(/'/g, "\\'")}')" style="cursor:pointer">
+        <td style="color:var(--muted);font-size:12px">${i + 1}</td>
+        <td><span class="csm-name-link" style="font-weight:600">${d.csm}</span><div style="font-size:11px;color:var(--muted)">${d.manager || ''}</div></td>
+        <td>${metricPill(d.arsPerDay, 'arsPerDay', d.segment)}</td>
+        <td style="text-align:center;font-size:12px;color:var(--text2)">${d.totalArs || 0}</td>
+        <td style="text-align:center;padding:4px 6px">${cadenceSVG(d.csm)}</td>
+        <td style="font-size:11px;color:var(--muted)">${d.segment || '—'}</td>
+        <td>${dBadge}</td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEEP DIVE — CALL QUALITY
+// ═══════════════════════════════════════════════════════════════════════════
+function renderCallDeepDive(container) {
+  const filtered = getFiltered();
+  const cbt = window.callsByType || {};
+  const classOptions = ['all', 'Implementation', 'Value Optimization', 'Problem Resolution', 'Technical Support', 'Retention', 'Onboarding', 'Relationship Building', 'Other'];
+
+  // When filtering by classification, overlay scores from callsByType
+  let scored;
+  if (callClassFilter !== 'all') {
+    scored = filtered.filter(d => {
+      const ct = cbt[d.csm];
+      return ct && ct[callClassFilter];
+    }).map(d => {
+      const ct = cbt[d.csm][callClassFilter];
+      return { ...d, callScore: ct.score, callCount: ct.count, valueCreation: ct.value, relationship: ct.relate, adaptiveness: ct.adapt, ownership: ct.own };
+    });
+  } else {
+    scored = filtered.filter(d => d.callScore != null);
+  }
+
+  const avgCall = scored.length ? scored.reduce((s, d) => s + d.callScore, 0) / scored.length : null;
+  const wowDelta = computeOrgWoWDelta('call');
+  const totalCalls = scored.reduce((s, d) => s + (d.callCount || 0), 0);
+
+  const subkeys = [
+    { key: 'valueCreation', label: 'Value Creation' },
+    { key: 'relationship', label: 'Relationship' },
+    { key: 'adaptiveness', label: 'Adaptiveness' },
+    { key: 'ownership', label: 'Ownership' },
+  ];
+  const subAvgs = subkeys.map(s => {
+    const vals = scored.filter(d => d[s.key] != null).map(d => d[s.key]);
+    return { ...s, avg: vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null };
+  });
+  const topCsm = [...scored].sort((a, b) => b.callScore - a.callScore)[0];
+
+  // Sentiment distribution
+  const withSent = filtered.filter(d => d.avgSentimentScore != null);
+  const sentConcerning = withSent.filter(d => d.avgSentimentScore < 3.0).length;
+  const sentNeutral = withSent.filter(d => d.avgSentimentScore >= 3.0 && d.avgSentimentScore < 3.5).length;
+  const sentPositive = withSent.filter(d => d.avgSentimentScore >= 3.5).length;
+  const cancelCount = filtered.reduce((s, d) => s + (d.cancellationIntentCount || 0), 0);
+  const cancelRate = totalCalls > 0 ? (cancelCount / totalCalls * 100).toFixed(1) : 0;
+  const totalOrgsAnalyzed = filtered.reduce((s, d) => {
+    const r = riskDetail[d.csm];
+    return s + (r ? r.totalOrgsAnalyzed : 0);
+  }, 0);
+  const cancelPctOrgs = totalOrgsAnalyzed > 0 ? (cancelCount / totalOrgsAnalyzed * 100).toFixed(1) : 0;
+  const topCancelCsm = [...filtered].sort((a,b) => (b.cancellationIntentCount||0) - (a.cancellationIntentCount||0))[0];
+
+  // Score distribution
+  const greenCount = scored.filter(d => d.callScore >= 80).length;
+  const amberCount = scored.filter(d => d.callScore >= 70 && d.callScore < 80).length;
+  const redCount = scored.filter(d => d.callScore < 70).length;
+
+  // Call quality trend bar metrics
+  const days = trendHorizon === '1d' ? 1 : trendHorizon === '7d' ? 7 : 30;
+  const compLabel = trendHorizon === '1d' ? 'Day-over-Day' : trendHorizon === '7d' ? 'Week-over-Week' : 'Month-over-Month';
+  const callScoreDelta = computeOrgPeriodDelta('call', days);
+
+  // Compute historical distribution from sparklines
+  function computeDistDelta(metricFn, periodDays) {
+    const dateMap = {};
+    filtered.forEach(d => {
+      (sparklines[d.csm] || []).forEach(p => {
+        if (p.call == null) return;
+        if (!dateMap[p.date]) dateMap[p.date] = { count: 0, total: 0 };
+        dateMap[p.date].total++;
+        if (metricFn(p)) dateMap[p.date].count++;
+      });
+    });
+    const allDates = Object.keys(dateMap).sort();
+    if (allDates.length < 2) return null;
+    if (periodDays === 1) {
+      const cur = dateMap[allDates[allDates.length - 1]];
+      const prev = dateMap[allDates[allDates.length - 2]];
+      const curPct = cur.total > 0 ? Math.round(cur.count / cur.total * 100) : 0;
+      const prevPct = prev.total > 0 ? Math.round(prev.count / prev.total * 100) : 0;
+      return { delta: curPct - prevPct, current: curPct, prior: prevPct };
+    }
+    const latest = new Date(allDates[allDates.length - 1]);
+    const ps = new Date(latest); ps.setDate(ps.getDate() - periodDays);
+    const pp = new Date(ps); pp.setDate(pp.getDate() - periodDays);
+    const psStr = ps.toISOString().slice(0, 10);
+    const ppStr = pp.toISOString().slice(0, 10);
+    const curDates = allDates.filter(d => d > psStr);
+    const priDates = allDates.filter(d => d > ppStr && d <= psStr);
+    if (!curDates.length || !priDates.length) return null;
+    const curSum = curDates.reduce((s, d) => ({ c: s.c + dateMap[d].count, t: s.t + dateMap[d].total }), { c: 0, t: 0 });
+    const priSum = priDates.reduce((s, d) => ({ c: s.c + dateMap[d].count, t: s.t + dateMap[d].total }), { c: 0, t: 0 });
+    const curPct = curSum.t > 0 ? Math.round(curSum.c / curSum.t * 100) : 0;
+    const priPct = priSum.t > 0 ? Math.round(priSum.c / priSum.t * 100) : 0;
+    return { delta: curPct - priPct, current: curPct, prior: priPct };
+  }
+
+  const score80Delta = computeDistDelta(p => p.call >= 80, days);
+
+  // Risk distribution (current snapshot — no historical trend available for risk)
+  let rLow=0, rElev=0, rHigh=0, rCrit=0, rTotal=0;
+  filtered.forEach(d => { const r = riskDetail[d.csm]; if (r) { rLow += r.lowRisk||0; rElev += r.elevatedRisk||0; rHigh += r.highRisk||0; rCrit += r.criticalRisk||0; rTotal += r.totalOrgsAnalyzed||0; }});
+  const atRisk = rHigh + rCrit;
+  const atRiskPct = rTotal > 0 ? Math.round(atRisk / rTotal * 100) : 0;
+
+  container.innerHTML = `
+    <div class="overview-section" style="margin-bottom:0">
+      <div class="section-label">Performance Trend</div>
+      <div class="trend-bar" onclick="if(!event.target.closest('.view-toggle,.toggle-btn')){trendExpanded=!trendExpanded;renderAll()}">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">Call Score</span>
+            ${trendLabel(callScoreDelta, true)}
+          </div>
+          <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">Scoring 80+</span>
+            ${trendLabel(score80Delta, true)}
+          </div>
+          <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">Org Risk</span>
+            ${(() => {
+              const riskDelta = computeDistDelta(p => {
+                const csm = filtered.find(c => sparklines[c.csm] && sparklines[c.csm].some(sp => sp.date === p.date && sp.call === p.call));
+                return csm && (csm.highRiskOrgCount || 0) > 0;
+              }, days);
+              // Try sparkline-based risk tracking
+              const riskDateMap = {};
+              filtered.forEach(d => {
+                (sparklines[d.csm] || []).forEach(sp => {
+                  if (sp.riskOrgs == null) return;
+                  if (!riskDateMap[sp.date]) riskDateMap[sp.date] = { risk: 0, total: 0 };
+                  riskDateMap[sp.date].risk += sp.riskOrgs;
+                  riskDateMap[sp.date].total++;
+                });
+              });
+              const rDates = Object.keys(riskDateMap).sort();
+              if (rDates.length >= 2) {
+                const curR = riskDateMap[rDates[rDates.length-1]];
+                const prevR = riskDateMap[rDates[rDates.length-2]];
+                const curRisk = curR.total > 0 ? curR.risk : 0;
+                const prevRisk = prevR.total > 0 ? prevR.risk : 0;
+                const delta = curRisk - prevRisk;
+                const color = delta === 0 ? 'var(--muted)' : delta > 0 ? 'var(--red)' : 'var(--green)';
+                const arrow = delta === 0 ? '→' : delta > 0 ? '▲' : '▼';
+                return `<span style="font-size:13px;font-weight:600;color:${color}">${arrow} ${atRiskPct}% (${delta > 0 ? '+' : ''}${delta} orgs)</span>`;
+              }
+              return `<span style="font-size:13px;font-weight:600;color:${atRiskPct > 15 ? 'var(--red)' : 'var(--text2)'}">${atRiskPct}% high/critical</span>`;
+            })()}
+          </div>
+          <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">Cancel Intent</span>
+            ${(() => {
+              const cDateMap = {};
+              filtered.forEach(d => {
+                (sparklines[d.csm] || []).forEach(sp => {
+                  if (sp.cancelSignals == null) return;
+                  if (!cDateMap[sp.date]) cDateMap[sp.date] = { signals: 0, total: 0 };
+                  cDateMap[sp.date].signals += sp.cancelSignals;
+                  cDateMap[sp.date].total++;
+                });
+              });
+              const cDates = Object.keys(cDateMap).sort();
+              if (cDates.length >= 2) {
+                const curC = cDateMap[cDates[cDates.length-1]].signals;
+                const prevC = cDateMap[cDates[cDates.length-2]].signals;
+                const delta = curC - prevC;
+                const color = delta === 0 ? 'var(--muted)' : delta > 0 ? 'var(--red)' : 'var(--green)';
+                const arrow = delta === 0 ? '→' : delta > 0 ? '▲' : '▼';
+                return `<span style="font-size:13px;font-weight:600;color:${color}">${arrow} ${cancelPctOrgs}% (${delta > 0 ? '+' : ''}${delta} signals)</span>`;
+              }
+              return `<span style="font-size:13px;font-weight:600;color:${parseFloat(cancelPctOrgs) > 5 ? 'var(--red)' : 'var(--text2)'}">${cancelPctOrgs}% of orgs</span>`;
+            })()}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button style="font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;background:none;border:none;font-family:inherit" onclick="trendExpanded=!trendExpanded;renderAll()">${trendExpanded ? '▴ Collapse' : '▾ Details'}</button>
+          <span style="width:1px;height:14px;background:var(--border)"></span>
+          <span style="font-size:10px;color:var(--muted);font-weight:500">${compLabel}</span>
+          <div class="view-toggle">
+            <button class="toggle-btn${trendHorizon === '1d' ? ' active' : ''}" onclick="trendHorizon='1d';renderAll()">1d</button>
+            <button class="toggle-btn${trendHorizon === '7d' ? ' active' : ''}" onclick="trendHorizon='7d';renderAll()">7d</button>
+            <button class="toggle-btn${trendHorizon === '30d' ? ' active' : ''}" onclick="trendHorizon='30d';renderAll()">30d</button>
+          </div>
+        </div>
+      </div>
+      ${trendExpanded ? `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Call Score</div>
+          ${callScoreDelta ? `<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:13px;color:var(--text2)">${callScoreDelta.prior}</span>
+            <span style="font-size:11px;color:var(--muted)">→</span>
+            <span style="font-size:16px;font-weight:800;color:var(--text)">${callScoreDelta.current}</span>
+          </div>
+          <div style="text-align:center;font-size:12px;font-weight:700;color:${callScoreDelta.delta >= 0 ? 'var(--green)' : 'var(--red)'}">${Math.round(callScoreDelta.delta) >= 0 ? '+' : ''}${Math.round(callScoreDelta.delta)}pp</div>` : '<div style="text-align:center;color:var(--muted);font-size:11px">Accumulating</div>'}
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Scoring 80+</div>
+          ${score80Delta ? `<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:13px;color:var(--text2)">${score80Delta.prior}%</span>
+            <span style="font-size:11px;color:var(--muted)">→</span>
+            <span style="font-size:16px;font-weight:800;color:var(--text)">${score80Delta.current}%</span>
+          </div>
+          <div style="text-align:center;font-size:12px;font-weight:700;color:${score80Delta.delta >= 0 ? 'var(--green)' : 'var(--red)'}">${score80Delta.delta >= 0 ? '+' : ''}${score80Delta.delta}pp</div>` : '<div style="text-align:center;color:var(--muted);font-size:11px">Accumulating</div>'}
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Org Risk</div>
+          <div style="font-size:16px;font-weight:800;color:var(--text);text-align:center;margin-bottom:4px">${atRiskPct}%</div>
+          <div style="text-align:center;font-size:10px;color:var(--muted)">${atRisk.toLocaleString()} high/critical of ${rTotal.toLocaleString()}</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Cancel Intent</div>
+          <div style="font-size:16px;font-weight:800;color:var(--text);text-align:center;margin-bottom:4px">${cancelPctOrgs}%</div>
+          <div style="text-align:center;font-size:10px;color:var(--muted)">${cancelCount} signals / ${totalOrgsAnalyzed} orgs</div>
+        </div>
+      </div>` : ''}
+    </div>
+    </div>
+    <div class="overview-section" style="margin-top:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="section-label" style="margin-bottom:0">Call Quality ${defTip('callScore')}</div>
+        <select style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer" onchange="setCallClassFilter(this.value)">
+          ${classOptions.map(c => `<option value="${c}"${callClassFilter === c ? ' selected' : ''}>${c === 'all' ? 'All Call Types' : c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="hero-kpis">
+        <div class="hero-kpi" onclick="openMetricRanking('callScore')">
+          <div class="hero-kpi-label">Avg Call Score</div>
+          <div class="hero-kpi-value" style="color:${metricColor(avgCall, 'callScore')}">${avgCall != null ? Math.round(avgCall) : '—'}</div>
+          <div class="hero-kpi-sub" style="font-size:12px;font-weight:500;color:var(--text2)">${totalCalls.toLocaleString()} calls scored</div>
+          <div class="hero-kpi-bottom">
+            ${wowBadge(wowDelta)}
+            <div class="hero-kpi-click">Click to view rankings &#8594;</div>
+          </div>
+        </div>
+        <div class="hero-kpi">
+          <div class="hero-kpi-label">Score Distribution</div>
+          <div class="hero-kpi-value">${scored.length ? Math.round(greenCount/scored.length*100) : 0}<span style="font-size:18px;font-weight:700;letter-spacing:0">%</span></div>
+          <div class="hero-kpi-sub" style="font-size:12px;font-weight:500;color:var(--text2)">of ${scored.length} CSMs scoring 80+</div>
+          <div class="hero-kpi-bottom">
+            <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--surface3);margin-bottom:8px">
+              <div style="width:${scored.length ? greenCount/scored.length*100 : 0}%;background:var(--green);border-radius:4px 0 0 4px"></div>
+              <div style="width:${scored.length ? amberCount/scored.length*100 : 0}%;background:var(--amber)"></div>
+              <div style="width:${scored.length ? redCount/scored.length*100 : 0}%;background:var(--red);border-radius:0 4px 4px 0"></div>
+            </div>
+            <div style="display:flex;gap:12px;font-size:11px">
+              <span style="color:var(--green-t);font-weight:600">${greenCount} green</span>
+              <span style="color:var(--amber-t);font-weight:600">${amberCount} amber</span>
+              <span style="color:var(--red-t);font-weight:600">${redCount} red</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-kpi">
+          <div class="hero-kpi-label">Org Risk Distribution</div>
+          ${(() => {
+            let rLow=0, rElev=0, rHigh=0, rCrit=0, rTotal=0;
+            filtered.forEach(d => { const r = riskDetail[d.csm]; if (r) { rLow += r.lowRisk||0; rElev += r.elevatedRisk||0; rHigh += r.highRisk||0; rCrit += r.criticalRisk||0; rTotal += r.totalOrgsAnalyzed||0; }});
+            const atRisk = rHigh + rCrit;
+            const atRiskPct = rTotal > 0 ? Math.round(atRisk / rTotal * 100) : 0;
+            return `
+          <div class="hero-kpi-value" style="color:${atRiskPct > 15 ? 'var(--red)' : atRiskPct > 8 ? 'var(--amber)' : 'var(--text)'}">${atRiskPct}<span style="font-size:18px;font-weight:700;letter-spacing:0">%</span></div>
+          <div class="hero-kpi-sub" style="font-size:12px;font-weight:500;color:var(--text2)">${atRisk.toLocaleString()} high/critical of ${rTotal.toLocaleString()} orgs</div>
+          <div class="hero-kpi-bottom">
+            <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--surface3);margin-bottom:8px">
+              <div style="width:${rTotal ? rLow/rTotal*100 : 0}%;background:var(--green);border-radius:4px 0 0 4px"></div>
+              <div style="width:${rTotal ? rElev/rTotal*100 : 0}%;background:var(--amber)"></div>
+              <div style="width:${rTotal ? rHigh/rTotal*100 : 0}%;background:var(--red)"></div>
+              <div style="width:${rTotal ? rCrit/rTotal*100 : 0}%;background:#991B1B;border-radius:0 4px 4px 0"></div>
+            </div>
+            <div style="display:flex;gap:10px;font-size:11px">
+              <span style="color:var(--green-t);font-weight:600">${rLow.toLocaleString()} low</span>
+              <span style="color:var(--amber-t);font-weight:600">${rElev.toLocaleString()} elevated</span>
+              <span style="color:var(--red-t);font-weight:600">${rHigh.toLocaleString()} high</span>
+              <span style="color:#991B1B;font-weight:600">${rCrit.toLocaleString()} critical</span>
+            </div>
+          </div>`;
+          })()}
+        </div>
+        <div class="hero-kpi">
+          <div class="hero-kpi-label">Cancellation Intent</div>
+          <div class="hero-kpi-value" style="color:${parseFloat(cancelPctOrgs) > 10 ? 'var(--red)' : parseFloat(cancelPctOrgs) > 5 ? 'var(--amber)' : 'var(--text)'}">${cancelPctOrgs}<span style="font-size:18px;font-weight:700;letter-spacing:0">%</span></div>
+          <div class="hero-kpi-sub" style="font-size:12px;font-weight:500;color:var(--text2)">${cancelCount} signals across ${totalOrgsAnalyzed.toLocaleString()} orgs</div>
+          <div class="hero-kpi-bottom">
+            <div style="font-size:11px;color:var(--muted)">Highest: ${topCancelCsm?.csm || '—'} (${topCancelCsm?.cancellationIntentCount || 0} signals)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="overview-section">
+      <div class="section-label">Subscore Performance &amp; Coaching Leverage</div>
+      <div class="card" style="padding:16px 20px">
+        ${subAvgs.map((s, idx) => {
+          const pct = s.avg || 0;
+          const avgColor = pct >= 80 ? 'var(--green)' : pct >= 70 ? 'var(--amber)' : 'var(--red)';
+          const vals = scored.filter(d => d[s.key] != null).map(d => d[s.key]);
+          const minVal = vals.length ? Math.min(...vals) : 0;
+          const maxVal = vals.length ? Math.max(...vals) : 0;
+          const spread = maxVal - minVal;
+          const spreadColor = spread > 25 ? 'var(--red)' : spread > 15 ? 'var(--amber)' : 'var(--green)';
+          return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;${idx < subAvgs.length - 1 ? 'border-bottom:1px solid var(--border)' : ''}">
+            <span style="width:140px;font-size:13px;font-weight:600;color:var(--text);flex-shrink:0">${s.label}</span>
+            <span style="width:36px;font-size:15px;font-weight:800;color:${avgColor};text-align:center;flex-shrink:0">${s.avg != null ? Math.round(s.avg) : '—'}</span>
+            <div style="flex:1;position:relative;height:10px;background:var(--surface3);border-radius:5px;overflow:hidden">
+              <div style="position:absolute;left:${minVal}%;width:${maxVal - minVal}%;height:100%;background:${spreadColor};opacity:0.25;border-radius:5px"></div>
+              <div style="position:absolute;left:${pct}%;width:3px;height:100%;background:${avgColor};border-radius:2px;transform:translateX(-1px)"></div>
+            </div>
+            <span style="width:60px;font-size:12px;font-weight:600;color:${spreadColor};text-align:right">${Math.round(minVal)}&ndash;${Math.round(maxVal)}</span>
+          </div>`;
+        }).join('')}
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          <span>Avg score shown as bold number + marker</span>
+          <span>Range bar = min&ndash;max spread. Wider = more coaching leverage</span>
+        </div>
+      </div>
+    </div>
+    <div class="overview-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="section-label" style="margin-bottom:0">Call Quality Rankings</div>
+        <div class="view-toggle" id="callRankingsToggle">
+          <button class="toggle-btn${callRankingsView === 'csm' ? ' active' : ''}" onclick="setCallRankingsView('csm')">CSMs</button>
+          <button class="toggle-btn${callRankingsView === 'manager' ? ' active' : ''}" onclick="setCallRankingsView('manager')">Managers</button>
+          <button class="toggle-btn${callRankingsView === 'vertical' ? ' active' : ''}" onclick="setCallRankingsView('vertical')">Verticals</button>
+        </div>
+      </div>
+      <div id="callRankingTable" style="min-height:660px"></div>
+    </div>`;
+
+  window._callScored = scored;
+  window._callFiltered = filtered;
+  renderCallRankings();
+}
+
+let callRankingsView = 'csm';
+let callClassFilter = 'all'; // 'all' or a classification name
+
+function setCallClassFilter(val) {
+  callClassFilter = val;
+  // Re-render the call quality deep dive
+  if (nav.level === 'dive-call') renderAll();
+}
+function setCallRankingsView(view) {
+  callRankingsView = view;
+  document.querySelectorAll('#callRankingsToggle .toggle-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['csm', 'manager', 'vertical'][i] === view);
+  });
+  renderCallRankings();
+}
+
+function renderCallRankings() {
+  const el = document.getElementById('callRankingTable');
+  if (!el) return;
+  const scored = window._callScored || [];
+  const filtered = window._callFiltered || [];
+
+  function teamSpreadCellFn(team) {
+    if (!team.length) return '<td style="text-align:center"><span style="color:var(--muted)">—</span></td>';
+    const scores = team.map(d => d.callScore).filter(v => v != null);
+    if (scores.length < 2) return '<td style="text-align:center"><span style="color:var(--muted)">—</span></td>';
+    const mn = Math.min(...scores), mx = Math.max(...scores);
+    const spread = mx - mn;
+    const color = spread > 20 ? 'var(--red)' : spread > 10 ? 'var(--amber)' : 'var(--green)';
+    const barW = Math.min(spread / 40 * 100, 100);
+    return `<td style="text-align:center;padding:9px 8px;min-width:80px">
+      <div style="display:flex;align-items:center;gap:5px;justify-content:center">
+        <div style="width:36px;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden"><div style="width:${barW}%;height:100%;background:${color};border-radius:3px;opacity:0.6"></div></div>
+        <span style="font-size:10px;font-weight:600;color:${color}">${Math.round(spread)}</span>
+      </div></td>`;
+  }
+
+  if (callRankingsView === 'csm') {
+    const csf = callRankingsSort.field;
+    const sorted = [...scored].sort((a, b) => {
+      if (csf) {
+        const av = a[csf] || 0, bv = b[csf] || 0;
+        return callRankingsSort.asc ? av - bv : bv - av;
+      }
+      return b.callScore - a.callScore;
+    });
+
+    function consistencyCell(d) {
+      const spreads = [
+        { mn: d.callScoreMin, mx: d.callScoreMax },
+        { mn: d.valueCreationMin, mx: d.valueCreationMax },
+        { mn: d.relationshipMin, mx: d.relationshipMax },
+        { mn: d.adaptivenessMin, mx: d.adaptivenessMax },
+        { mn: d.ownershipMin, mx: d.ownershipMax },
+      ].filter(s => s.mn != null && s.mx != null).map(s => ({ ...s, spread: s.mx - s.mn }));
+      if (!spreads.length) return '<td style="text-align:center"><span style="color:var(--muted);font-size:11px">—</span></td>';
+      const widest = Math.max(...spreads.map(s => s.spread));
+      const color = widest > 25 ? 'var(--red)' : widest > 15 ? 'var(--amber)' : 'var(--green)';
+      const barW = Math.min(widest / 60 * 100, 100);
+      return `<td style="text-align:center;padding:9px 8px;min-width:90px">
+        <div style="display:flex;align-items:center;gap:6px;justify-content:center">
+          <div style="width:40px;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden"><div style="width:${barW}%;height:100%;background:${color};border-radius:3px;opacity:0.6"></div></div>
+          <span style="font-size:10px;font-weight:600;color:${color}">${Math.round(widest)}</span>
+        </div></td>`;
+    }
+
+    function spreadDetailRow(d) {
+      return [
+        { key: 'callScore', label: 'Overall' }, { key: 'valueCreation', label: 'Value Creation' },
+        { key: 'relationship', label: 'Relationship' }, { key: 'adaptiveness', label: 'Adaptiveness' },
+        { key: 'ownership', label: 'Ownership' },
+      ].map(k => {
+        const avg = d[k.key], mn = d[k.key + 'Min'], mx = d[k.key + 'Max'];
+        if (avg == null || mn == null || mx == null) return '';
+        const sp = mx - mn, sc = sp > 25 ? 'var(--red)' : sp > 15 ? 'var(--amber)' : 'var(--green)';
+        const ac = avg >= 80 ? 'var(--green)' : avg >= 70 ? 'var(--amber)' : 'var(--red)';
+        return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+          <span style="width:100px;font-size:11px;font-weight:600;color:var(--text2);flex-shrink:0">${k.label}</span>
+          <span style="width:28px;font-size:12px;font-weight:700;color:${ac};text-align:center;flex-shrink:0">${Math.round(avg)}</span>
+          <div style="flex:1;height:6px;background:var(--surface3);border-radius:3px;position:relative">
+            <div style="position:absolute;left:${mn}%;width:${Math.max(sp,1)}%;height:100%;background:${sc};opacity:0.3;border-radius:3px"></div>
+            <div style="position:absolute;left:${avg}%;top:-1px;width:3px;height:8px;background:${sc};border-radius:1px;transform:translateX(-1px)"></div>
+          </div>
+          <span style="width:44px;font-size:10px;font-weight:600;color:${sc};text-align:right;flex-shrink:0">${Math.round(mn)}–${Math.round(mx)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    el.innerHTML = `<div class="table-scroll" style="max-height:640px"><table>
+      <thead><tr><th>#</th><th>CSM</th>
+        ${sortHeader('Calls', 'callCount', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Score', 'callScore', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Value', 'valueCreation', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Relate', 'relationship', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Adapt', 'adaptiveness', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Own', 'ownership', callRankingsSort, 'sortCallRankingsBy')}
+        <th style="text-align:center">Spread &#9662;</th>
+        ${sortHeader('7d', 'compositeDelta7d', callRankingsSort, 'sortCallRankingsBy')}
+      </tr></thead>
+      <tbody>${sorted.map((d, i) => {
+        const compD = d.compositeDelta7d;
+        const dBadge = compD != null ? `<span class="${compD > 0 ? 'delta-pos' : compD < 0 ? 'delta-neg' : 'delta-neu'}">${compD > 0 ? '+' : ''}${Math.round(compD)}%</span>` : '<span class="delta-neu">—</span>';
+        const rowId = 'cq-detail-' + i;
+        return `<tr style="cursor:pointer" onclick="event.stopPropagation();const el=document.getElementById('${rowId}');el.style.display=el.style.display==='none'?'table-row':'none'">
+          <td style="color:var(--muted);font-weight:600">${i + 1}</td>
+          <td><span class="csm-name-link" style="font-weight:600" onclick="event.stopPropagation();openPanel('${d.csm.replace(/'/g, "\\'")}')">${d.csm}</span><div style="font-size:11px;color:var(--muted)">${d.manager || ''} · ${d.vertical}</div></td>
+          <td style="text-align:center;color:var(--text2);font-weight:600;font-size:12px">${d.callCount || '—'}</td>
+          <td style="text-align:center">${d.callScore != null ? metricPill(d.callScore, 'callScore') : '<span class="metric-pill mp-muted">—</span>'}</td>
+          <td style="text-align:center">${d.valueCreation != null ? metricPill(d.valueCreation, 'callScore') : '<span class="metric-pill mp-muted">—</span>'}</td>
+          <td style="text-align:center">${d.relationship != null ? metricPill(d.relationship, 'callScore') : '<span class="metric-pill mp-muted">—</span>'}</td>
+          <td style="text-align:center">${d.adaptiveness != null ? metricPill(d.adaptiveness, 'callScore') : '<span class="metric-pill mp-muted">—</span>'}</td>
+          <td style="text-align:center">${d.ownership != null ? metricPill(d.ownership, 'callScore') : '<span class="metric-pill mp-muted">—</span>'}</td>
+          ${consistencyCell(d)}
+          <td>${dBadge}</td>
+        </tr>
+        <tr id="${rowId}" style="display:none"><td></td>
+          <td colspan="9" style="padding:8px 14px 12px;background:var(--surface2);border-bottom:1px solid var(--border)">
+            <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Score Spread (${d.callCount || 0} calls)</div>
+            ${spreadDetailRow(d)}
+          </td></tr>`;
+      }).join('')}</tbody></table></div>`;
+
+  } else if (callRankingsView === 'manager') {
+    const managers = [...new Set(scored.map(d => d.manager))].filter(Boolean);
+    const mgrData = managers.map(m => {
+      const team = scored.filter(d => d.manager === m);
+      const avgScore = team.reduce((s, d) => s + d.callScore, 0) / team.length;
+      const avgVal = team.filter(d => d.valueCreation != null).reduce((s, d) => s + d.valueCreation, 0) / (team.filter(d => d.valueCreation != null).length || 1);
+      const avgRel = team.filter(d => d.relationship != null).reduce((s, d) => s + d.relationship, 0) / (team.filter(d => d.relationship != null).length || 1);
+      const avgAdp = team.filter(d => d.adaptiveness != null).reduce((s, d) => s + d.adaptiveness, 0) / (team.filter(d => d.adaptiveness != null).length || 1);
+      const avgOwn = team.filter(d => d.ownership != null).reduce((s, d) => s + d.ownership, 0) / (team.filter(d => d.ownership != null).length || 1);
+      const totalCalls = team.reduce((s, d) => s + (d.callCount || 0), 0);
+      return { manager: m, size: team.length, avgScore, avgVal, avgRel, avgAdp, avgOwn, totalCalls };
+    });
+    if (callRankingsSort.field) {
+      const cf = callRankingsSort.field;
+      mgrData.sort((a, b) => { const av = a[cf] || 0, bv = b[cf] || 0; return callRankingsSort.asc ? av - bv : bv - av; });
+    } else { mgrData.sort((a, b) => (b.avgScore || 0) - (a.avgScore || 0)); }
+
+    el.innerHTML = `<div class="table-scroll" style="max-height:640px"><table>
+      <thead><tr><th>#</th><th>Manager</th>
+        ${sortHeader('CSMs', 'size', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Calls', 'totalCalls', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Score', 'avgScore', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Value', 'avgVal', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Relate', 'avgRel', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Adapt', 'avgAdp', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Own', 'avgOwn', callRankingsSort, 'sortCallRankingsBy')}
+        <th style="text-align:center">Spread</th>
+      </tr></thead>
+      <tbody>${mgrData.map((m, i) => {
+        const team = scored.filter(d => d.manager === m.manager);
+        const detailId = 'cq-mgr-' + i;
+        const csmRows = [...team].sort((a,b) => b.callScore - a.callScore).map((d,j) => `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;${j < team.length-1 ? 'border-bottom:1px solid var(--border)' : ''}">
+          <span style="width:120px;font-size:11px;font-weight:600;color:var(--text);flex-shrink:0;cursor:pointer" onclick="event.stopPropagation();openPanel('${d.csm.replace(/'/g, "\\'")}')">${d.csm}</span>
+          <span style="width:28px;font-size:12px;font-weight:700;color:${d.callScore >= 80 ? 'var(--green)' : d.callScore >= 70 ? 'var(--amber)' : 'var(--red)'};text-align:center;flex-shrink:0">${Math.round(d.callScore)}</span>
+          <div style="flex:1;height:6px;background:var(--surface3);border-radius:3px;position:relative">
+            ${d.callScoreMin != null ? `<div style="position:absolute;left:${d.callScoreMin}%;width:${Math.max(d.callScoreMax-d.callScoreMin,1)}%;height:100%;background:${(d.callScoreMax-d.callScoreMin) > 25 ? 'var(--red)' : (d.callScoreMax-d.callScoreMin) > 15 ? 'var(--amber)' : 'var(--green)'};opacity:0.3;border-radius:3px"></div>
+            <div style="position:absolute;left:${d.callScore}%;top:-1px;width:3px;height:8px;background:${(d.callScoreMax-d.callScoreMin) > 25 ? 'var(--red)' : (d.callScoreMax-d.callScoreMin) > 15 ? 'var(--amber)' : 'var(--green)'};border-radius:1px;transform:translateX(-1px)"></div>` : ''}
+          </div>
+          <span style="width:44px;font-size:10px;color:var(--muted);text-align:right;flex-shrink:0">${d.callScoreMin != null ? Math.round(d.callScoreMin) + '–' + Math.round(d.callScoreMax) : '—'}</span>
+        </div>`).join('');
+        return `<tr style="cursor:pointer" onclick="const el=document.getElementById('${detailId}');el.style.display=el.style.display==='none'?'table-row':'none'">
+        <td style="color:var(--muted);font-weight:600">${i + 1}</td>
+        <td style="font-weight:600">${m.manager}</td>
+        <td style="text-align:center;color:var(--text2)">${m.size}</td>
+        <td style="text-align:center;color:var(--text2)">${m.totalCalls}</td>
+        <td style="text-align:center">${metricPill(m.avgScore, 'callScore')}</td>
+        <td style="text-align:center">${metricPill(m.avgVal, 'callScore')}</td>
+        <td style="text-align:center">${metricPill(m.avgRel, 'callScore')}</td>
+        <td style="text-align:center">${metricPill(m.avgAdp, 'callScore')}</td>
+        <td style="text-align:center">${metricPill(m.avgOwn, 'callScore')}</td>
+        ${teamSpreadCellFn(team)}
+      </tr>
+      <tr id="${detailId}" style="display:none"><td></td>
+        <td colspan="9" style="padding:8px 14px 12px;background:var(--surface2);border-bottom:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">CSM Score Spread — ${m.manager} (${team.length} CSMs)</div>
+          ${csmRows}
+        </td></tr>`; }).join('')}</tbody></table></div>`;
+
+  } else {
+    const verts = [...new Set(scored.map(d => d.vertical))].filter(Boolean);
+    const vertData = verts.map(v => {
+      const team = scored.filter(d => d.vertical === v);
+      const avgScore = team.reduce((s, d) => s + d.callScore, 0) / team.length;
+      const avgVal = team.filter(d => d.valueCreation != null).reduce((s, d) => s + d.valueCreation, 0) / (team.filter(d => d.valueCreation != null).length || 1);
+      const avgRel = team.filter(d => d.relationship != null).reduce((s, d) => s + d.relationship, 0) / (team.filter(d => d.relationship != null).length || 1);
+      const avgAdp = team.filter(d => d.adaptiveness != null).reduce((s, d) => s + d.adaptiveness, 0) / (team.filter(d => d.adaptiveness != null).length || 1);
+      const avgOwn = team.filter(d => d.ownership != null).reduce((s, d) => s + d.ownership, 0) / (team.filter(d => d.ownership != null).length || 1);
+      const totalCalls = team.reduce((s, d) => s + (d.callCount || 0), 0);
+      return { vertical: v, size: team.length, avgScore, avgVal, avgRel, avgAdp, avgOwn, totalCalls };
+    });
+    if (callRankingsSort.field) {
+      const cf = callRankingsSort.field;
+      mgrData.sort((a, b) => { const av = a[cf] || 0, bv = b[cf] || 0; return callRankingsSort.asc ? av - bv : bv - av; });
+    } else { mgrData.sort((a, b) => (b.avgScore || 0) - (a.avgScore || 0)); }
+
+    el.innerHTML = `<div class="table-scroll" style="max-height:640px"><table>
+      <thead><tr><th>#</th><th>Vertical</th>
+        ${sortHeader('CSMs', 'size', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Calls', 'totalCalls', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Score', 'avgScore', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Value', 'avgVal', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Relate', 'avgRel', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Adapt', 'avgAdp', callRankingsSort, 'sortCallRankingsBy')}
+        ${sortHeader('Own', 'avgOwn', callRankingsSort, 'sortCallRankingsBy')}
+        <th style="text-align:center">Spread</th>
+      </tr></thead>
+      <tbody>${vertData.map((v, i) => {
+        const team = scored.filter(d => d.vertical === v.vertical);
+        const detailId = 'cq-vert-' + i;
+        const csmRows = [...team].sort((a,b) => b.callScore - a.callScore).map((d,j) => `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;${j < team.length-1 ? 'border-bottom:1px solid var(--border)' : ''}">
+          <span style="width:120px;font-size:11px;font-weight:600;color:var(--text);flex-shrink:0;cursor:pointer" onclick="event.stopPropagation();openPanel('${d.csm.replace(/'/g, "\\'")}')">${d.csm}</span>
+          <span style="width:28px;font-size:12px;font-weight:700;color:${d.callScore >= 80 ? 'var(--green)' : d.callScore >= 70 ? 'var(--amber)' : 'var(--red)'};text-align:center;flex-shrink:0">${Math.round(d.callScore)}</span>
+          <div style="flex:1;height:6px;background:var(--surface3);border-radius:3px;position:relative">
+            ${d.callScoreMin != null ? `<div style="position:absolute;left:${d.callScoreMin}%;width:${Math.max(d.callScoreMax-d.callScoreMin,1)}%;height:100%;background:${(d.callScoreMax-d.callScoreMin) > 25 ? 'var(--red)' : (d.callScoreMax-d.callScoreMin) > 15 ? 'var(--amber)' : 'var(--green)'};opacity:0.3;border-radius:3px"></div>
+            <div style="position:absolute;left:${d.callScore}%;top:-1px;width:3px;height:8px;background:${(d.callScoreMax-d.callScoreMin) > 25 ? 'var(--red)' : (d.callScoreMax-d.callScoreMin) > 15 ? 'var(--amber)' : 'var(--green)'};border-radius:1px;transform:translateX(-1px)"></div>` : ''}
+          </div>
+          <span style="width:44px;font-size:10px;color:var(--muted);text-align:right;flex-shrink:0">${d.callScoreMin != null ? Math.round(d.callScoreMin) + '–' + Math.round(d.callScoreMax) : '—'}</span>
+        </div>`).join('');
+        return `<tr style="cursor:pointer" onclick="const el=document.getElementById('${detailId}');el.style.display=el.style.display==='none'?'table-row':'none'">
+        <td style="color:var(--muted);font-weight:600">${i + 1}</td>
+        <td style="font-weight:600"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:3px;height:14px;border-radius:2px;background:${vertColor(v.vertical)};flex-shrink:0"></span>${v.vertical}</span></td>
+        <td style="text-align:center;color:var(--text2)">${v.size}</td>
+        <td style="text-align:center;color:var(--text2)">${v.totalCalls}</td>
+        <td style="text-align:center">${metricPill(v.avgScore, 'callScore')}</td>
+        <td style="text-align:center">${metricPill(v.avgVal, 'callScore')}</td>
+        <td style="text-align:center">${metricPill(v.avgRel, 'callScore')}</td>
+        <td style="text-align:center">${metricPill(v.avgAdp, 'callScore')}</td>
+        <td style="text-align:center">${metricPill(v.avgOwn, 'callScore')}</td>
+        ${teamSpreadCellFn(team)}
+      </tr>
+      <tr id="${detailId}" style="display:none"><td></td>
+        <td colspan="9" style="padding:8px 14px 12px;background:var(--surface2);border-bottom:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">CSM Score Spread — ${v.vertical} (${team.length} CSMs)</div>
+          ${csmRows}
+        </td></tr>`; }).join('')}</tbody></table></div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEEP DIVE — RETENTION SLA
+// ═══════════════════════════════════════════════════════════════════════════
+function renderSlaDeepDive(container) {
+  const filtered = getFiltered();
+  const totalCases = filtered.reduce((s, d) => s + (d.retCases || 0), 0);
+  const totalDone = filtered.reduce((s, d) => s + (d.retSLADone || 0), 0);
+  const teamSla = totalCases > 0 ? Math.round(totalDone / totalCases * 100) : null;
+  const wowDelta = computeOrgWoWDelta('sla');
+  const totalOpen = filtered.reduce((s, d) => s + (d.openRetentionCases || 0), 0);
+  const missedCount = totalCases - totalDone;
+  const highRiskOpen = filtered.filter(d => (d.openRetentionCases || 0) > 0 && (d.highRiskOrgCount || 0) > 0).length;
+
+  container.innerHTML = `
+    ${diveTabBar()}
+    <div class="overview-section">
+      <div class="section-label">Retention SLA Overview ${defTip('retSla')}</div>
+      <div class="pacing-kpis">
+        <div class="pacing-kpi">
+          <div class="pacing-kpi-label">Org-wide SLA</div>
+          <div class="pacing-kpi-value" style="color:${metricColor(teamSla, 'retSLA')}">${teamSla != null ? teamSla + '%' : '—'}</div>
+          <div class="pacing-kpi-sub">${totalDone} / ${totalCases} cases</div>
+          <div class="pacing-kpi-bottom">${wowBadge(wowDelta, '%')}</div>
+        </div>
+        <div class="pacing-kpi">
+          <div class="pacing-kpi-label">Open Cases</div>
+          <div class="pacing-kpi-value" style="color:${totalOpen > 10 ? 'var(--red)' : 'var(--text)'}">${totalOpen}</div>
+          <div class="pacing-kpi-sub">active retention cases</div>
+        </div>
+        <div class="pacing-kpi">
+          <div class="pacing-kpi-label">Missed Outreach</div>
+          <div class="pacing-kpi-value" style="font-size:22px;color:${missedCount > 0 ? 'var(--red)' : 'var(--green)'}">${missedCount}</div>
+          <div class="pacing-kpi-sub">cases without CSM contact</div>
+        </div>
+        <div class="pacing-kpi">
+          <div class="pacing-kpi-label">At-Risk + Open</div>
+          <div class="pacing-kpi-value" style="font-size:22px;color:${highRiskOpen > 0 ? 'var(--red)' : 'var(--green)'}">${highRiskOpen}</div>
+          <div class="pacing-kpi-sub">CSMs with open cases & high-risk orgs</div>
+        </div>
+      </div>
+    </div>
+    <div class="overview-section">
+      <div class="section-label">Open Case Urgency</div>
+      <div class="table-scroll" style="max-height:480px" id="slaOpenTable"></div>
+    </div>`;
+
+  const csmsAll = [...filtered].filter(d => d.retCases > 0 || d.openRetentionCases > 0)
+    .sort((a, b) => (b.openRetentionCases || 0) - (a.openRetentionCases || 0) || (a.retSLA || 0) - (b.retSLA || 0));
+  const el = document.getElementById('slaOpenTable');
+  if (csmsAll.length === 0) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">No retention cases</div>';
+  } else {
+    el.innerHTML = `<table>
+      <thead><tr><th>#</th><th>CSM</th><th>SLA %</th><th>Done/Total</th><th style="text-align:center">Open</th><th style="text-align:center">Risk Orgs</th><th>7d</th></tr></thead>
+      <tbody>${csmsAll.map((d, i) => {
+        const compD = d.compositeDelta7d;
+        const dBadge = compD != null ? `<span class="${compD > 0 ? 'delta-pos' : compD < 0 ? 'delta-neg' : 'delta-neu'}">${compD > 0 ? '+' : ''}${compD.toFixed(1)}</span>` : '<span class="delta-neu">—</span>';
+        const openColor = (d.openRetentionCases || 0) > 3 ? 'var(--red)' : (d.openRetentionCases || 0) > 0 ? 'var(--amber)' : 'var(--muted)';
+        return `<tr onclick="openPanel('${d.csm.replace(/'/g, "\\'")}')" style="cursor:pointer">
+          <td style="color:var(--muted);font-size:12px">${i + 1}</td>
+          <td><span class="csm-name-link" style="font-weight:600">${d.csm}</span><div style="font-size:11px;color:var(--muted)">${d.manager || ''}</div></td>
+          <td>${metricPill(d.retSLA, 'retSLA')}</td>
+          <td style="text-align:center;font-size:12px;color:var(--text2)">${d.retSLADone || 0}/${d.retCases || 0}</td>
+          <td style="text-align:center;font-weight:700;color:${openColor}">${d.openRetentionCases || 0}</td>
+          <td style="text-align:center">${(d.highRiskOrgCount || 0) > 0 ? `<span class="pill pill-red">${d.highRiskOrgCount}</span>` : '<span style="color:var(--muted)">0</span>'}</td>
+          <td>${dBadge}</td>
+        </tr>`;
+      }).join('')}</tbody></table>`;
+  }
+}
+
+// ── Generic Vertical Popup for Pillar Deep Dives ─────────────────────
+function openPillarVertPopup(vertical, metricKey, metricLabel) {
+  const csms = getFiltered().filter(d => d.vertical === vertical);
+  const sorted = [...csms].filter(d => d[metricKey] != null).sort((a, b) => (b[metricKey] || 0) - (a[metricKey] || 0));
+  const fmt = metricKey === 'arsPerDay' ? v => v.toFixed(1) : v => Math.round(v) + (metricKey === 'retSLA' ? '%' : '');
+
+  const rows = sorted.map((d, i) => `<tr onclick="closeModal();openPanel('${d.csm.replace(/'/g, "\\'")}')" style="cursor:pointer">
+    <td style="color:var(--muted);font-weight:600;width:28px">${i + 1}</td>
+    <td style="font-weight:600">${d.csm}</td>
+    <td style="color:var(--muted);font-size:12px">${d.manager || ''}</td>
+    <td class="${metricStatus(d[metricKey], metricKey, d.segment) === 'green' ? 'sc-green' : metricStatus(d[metricKey], metricKey, d.segment) === 'yellow' ? 'sc-amber' : 'sc-red'}">${fmt(d[metricKey])}</td>
+  </tr>`).join('');
+
+  const modal = document.getElementById('modalBackdrop');
+  modal.innerHTML = `
+    <div class="modal" style="max-width:560px" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" style="display:flex;align-items:center;gap:8px">
+            <span style="width:4px;height:20px;border-radius:2px;background:${vertColor(vertical)}"></span>
+            ${vertical} — ${metricLabel}
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="table-scroll" style="max-height:420px">
+        <table><thead><tr><th>#</th><th>CSM</th><th>Manager</th><th style="text-align:center">${metricLabel}</th></tr></thead>
+        <tbody>${rows}</tbody></table>
+      </div>
+    </div>`;
+  modal.classList.add('open');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UFR DEEP DIVE VIEW
+// ═══════════════════════════════════════════════════════════════════════════
+const DEFINITIONS = {
+  ufr: 'Up for Renewal — CSMs proactively contact customers before contract renewal to assess health and resolve blockers.',
+  ufrCoverage: 'Percentage of renewal cohort orgs that have been contacted. Target: 100% within the active outreach window.',
+  pacing: 'Are we on track? Compares actual contacts vs. expected contacts based on how far through the outreach window we are.',
+  pacingWindow: 'Active outreach: 120 to 60 days before renewal month. Contacts after 60 days still count, but pacing targets use the active window.',
+  retSla: 'Percentage of retention cases where a CSM made outreach on or after the case was created, within the last 30 days.',
+  arDay: 'Account Reviews per business day — measures CSM outreach velocity across SFDC ARs, Gong calls, and Podium calls (L30).',
+  callScore: 'AI-scored call quality (0-100) based on value creation, relationship impact, situational adaptiveness, and ownership.',
+  composite: 'Weighted average of AR velocity, call quality, retention SLA, and UFR pacing. Dynamic denominator — only active pillars count.',
+};
+
+const DEF_KEY_TO_SECTION = {
+  arDay: 'def-arDay', callScore: 'def-callScore', retSla: 'def-retSla',
+  ufr: 'def-ufr', ufrCoverage: 'def-ufr', pacing: 'def-ufr', pacingWindow: 'def-ufr',
+  composite: 'def-composite',
+};
+
+function defTip(key) {
+  const section = DEF_KEY_TO_SECTION[key] || '';
+  if (!section) return '';
+  return `<span class="def-tip" onclick="event.stopPropagation();openDefs('${section}')">?</span>`;
+}
+
+function showTip(e, key) {
+  const tip = document.getElementById('globalTip');
+  if (!tip || !DEFINITIONS[key]) return;
+  tip.textContent = DEFINITIONS[key];
+  tip.classList.add('show');
+  const rect = e.target.getBoundingClientRect();
+  const tipW = tip.offsetWidth;
+  const tipH = tip.offsetHeight;
+  let left = rect.left + rect.width / 2 - tipW / 2;
+  if (left < 8) left = 8;
+  if (left + tipW > window.innerWidth - 8) left = window.innerWidth - tipW - 8;
+  let top = rect.top - tipH - 6;
+  if (top < 8) top = rect.bottom + 6;
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+}
+
+function hideTip() {
+  const tip = document.getElementById('globalTip');
+  if (tip) tip.classList.remove('show');
+}
+
+function getUfrVerticals() {
+  return [...new Set(allData.filter(d => d.segment !== 'Phones + Platform').map(d => d.vertical))].filter(Boolean).sort();
+}
+
+function getUfrCsmsForVert(vert) {
+  return allData.filter(d => d.vertical === vert && d.segment !== 'Phones + Platform');
+}
+
+function computeVertWoWDelta(vertical) {
+  const csms = getUfrCsmsForVert(vertical);
+  const dateMap = {};
+  csms.forEach(d => {
+    (sparklines[d.csm] || []).forEach(p => {
+      if (p.ufr == null) return;
+      if (!dateMap[p.date]) dateMap[p.date] = [];
+      dateMap[p.date].push(p.ufr);
+    });
+  });
+  const dates = Object.keys(dateMap).sort();
+  if (dates.length < 2) return null;
+  const latest = dates[dates.length - 1];
+  const latestAvg = dateMap[latest].reduce((a, b) => a + b, 0) / dateMap[latest].length;
+  const target = new Date(latest);
+  target.setDate(target.getDate() - 7);
+  const targetStr = target.toISOString().slice(0, 10);
+  let closest = dates[0];
+  dates.forEach(d => { if (d <= targetStr && d > closest) closest = d; });
+  if (closest === latest) return null;
+  const prevAvg = dateMap[closest].reduce((a, b) => a + b, 0) / dateMap[closest].length;
+  return Math.round((latestAvg - prevAvg) * 10) / 10;
+}
+
+function renderUfrDeepDive(container) {
+  const filtered = getFiltered();
+  const verts = getUfrVerticals();
+  const win = getPacingWindow(selectedRenewalMonth);
+  const overall = aggregatePacingStatus(filtered);
+
+  // Race data — per vertical
+  const raceData = verts.map(v => {
+    const csms = getUfrCsmsForVert(v).filter(d => {
+      if (filters.manager.length && !filters.manager.includes(d.manager)) return false;
+      if (filters.vertical.length && !filters.vertical.includes(d.vertical)) return false;
+      if (filters.segment.length && !filters.segment.includes(d.segment)) return false;
+      return true;
+    });
+    const agg = aggregatePacingStatus(csms);
+    return { vertical: v, csms, ...agg };
+  }).filter(r => r.pct != null).sort((a, b) => (b.ratio || 0) - (a.ratio || 0));
+
+  // Multi-month summary
+  const monthSummaries = renewalMonthLabels.map(lbl => {
+    const saved = selectedRenewalMonth;
+    selectedRenewalMonth = lbl;
+    const agg = aggregatePacingStatus(filtered);
+    const mWin = getPacingWindow(lbl);
+    const topVert = verts.map(v => {
+      const csms = getUfrCsmsForVert(v);
+      const va = aggregatePacingStatus(csms);
+      return { v, ...va };
+    }).filter(r => r.pct != null).sort((a, b) => (b.ratio || 0) - (a.ratio || 0))[0];
+    selectedRenewalMonth = saved;
+    const pastWindow = mWin && new Date() > mWin.activeEnd;
+    const daysLeft = mWin ? Math.max(0, mWin.totalActiveBizDays - mWin.elapsedBizDays) : 0;
+    return { label: lbl, ...agg, topVert: topVert?.v || '—', topPct: topVert?.pct, pastWindow, daysLeft, win: mWin };
+  });
+
+  const expectedPct = win ? Math.round(win.progressRatio * 100) : 0;
+  const paceAheadAll = overall.ratio ? Math.round((overall.ratio - 1) * 100) : 0;
+  const paceColor = paceAheadAll >= 0 ? 'var(--green)' : 'var(--red)';
+  const remainingBiz = win ? Math.max(0, win.totalActiveBizDays - win.elapsedBizDays) : 0;
+  const pastWindow = win && new Date() > win.activeEnd;
+  const vertsOnPace = raceData.filter(r => r.status === 'green').length;
+  const vertsBehind = raceData.filter(r => r.status === 'red').length;
+  const topVert = raceData[0];
+
+  // Orgs behind pace
+  const orgsBehind = overall.expected && overall.totalCalled < overall.expected ? (overall.expected - overall.totalCalled) : 0;
+
+  // UFR trend bar — compute deltas for all 3 months
+  const ufrTrendDays = trendHorizon === '1d' ? 1 : trendHorizon === '7d' ? 7 : 30;
+  const ufrCompLabel = trendHorizon === '1d' ? 'Day-over-Day' : trendHorizon === '7d' ? 'Week-over-Week' : 'Month-over-Month';
+  const ufrM1Delta = computeUfrRollupDelta('m1Called', 'm1Total', 'ufr_m1', ufrTrendDays) || computeOrgPointDelta('ufr_m1', ufrTrendDays);
+  const ufrM2Delta = computeUfrRollupDelta('m2Called', 'm2Total', 'ufr_m2', ufrTrendDays) || computeOrgPointDelta('ufr_m2', ufrTrendDays);
+  const ufrM3Delta = computeUfrRollupDelta('m3Called', 'm3Total', 'ufr_m3', ufrTrendDays) || computeOrgPointDelta('ufr_m3', ufrTrendDays);
+
+  container.innerHTML = `
+    <div class="overview-section" style="margin-bottom:0">
+      <div class="section-label">Performance Trend</div>
+      <div class="trend-bar" onclick="if(!event.target.closest('.view-toggle,.toggle-btn')){trendExpanded=!trendExpanded;renderAll()}">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          ${renewalMonthLabels.map((lbl, idx) => {
+            const delta = [ufrM1Delta, ufrM2Delta, ufrM3Delta][idx];
+            const isSelected = lbl === selectedRenewalMonth;
+            return `<div style="display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:10px;font-weight:600;color:${isSelected ? 'var(--text)' : 'var(--muted)'};text-transform:uppercase;letter-spacing:0.4px">${lbl}</span>
+              ${trendLabel(delta, true)}
+            </div>`;
+          }).join('<div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>')}
+          <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">Pacing</span>
+            <span style="font-size:12px;font-weight:600;color:${paceColor}">${paceAheadAll >= 0 ? '+' + paceAheadAll : paceAheadAll}% ${paceAheadAll >= 0 ? 'ahead' : 'behind'}</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button style="font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;background:none;border:none;font-family:inherit" onclick="trendExpanded=!trendExpanded;renderAll()">${trendExpanded ? '▴ Collapse' : '▾ Details'}</button>
+          <span style="width:1px;height:14px;background:var(--border)"></span>
+          <span style="font-size:10px;color:var(--muted);font-weight:500">${ufrCompLabel}</span>
+          <div class="view-toggle">
+            <button class="toggle-btn${trendHorizon === '1d' ? ' active' : ''}" onclick="trendHorizon='1d';renderAll()">1d</button>
+            <button class="toggle-btn${trendHorizon === '7d' ? ' active' : ''}" onclick="trendHorizon='7d';renderAll()">7d</button>
+            <button class="toggle-btn${trendHorizon === '30d' ? ' active' : ''}" onclick="trendHorizon='30d';renderAll()">30d</button>
+          </div>
+        </div>
+      </div>
+      ${trendExpanded ? `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        ${renewalMonthLabels.map((lbl, idx) => {
+          const delta = [ufrM1Delta, ufrM2Delta, ufrM3Delta][idx];
+          return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
+            <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">${lbl} Coverage</div>
+            ${delta ? `<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px">
+              <span style="font-size:13px;color:var(--text2)">${delta.prior}%</span>
+              <span style="font-size:11px;color:var(--muted)">→</span>
+              <span style="font-size:16px;font-weight:800;color:var(--text)">${delta.current}%</span>
+            </div>
+            <div style="text-align:center;font-size:12px;font-weight:700;color:${delta.delta >= 0 ? 'var(--green)' : 'var(--red)'}">${Math.round(delta.delta) >= 0 ? '+' : ''}${Math.round(delta.delta)}pp</div>` : '<div style="text-align:center;color:var(--muted);font-size:11px">Accumulating</div>'}
+          </div>`;
+        }).join('')}
+      </div>` : ''}
+    </div>
+    </div>
+
+    <div class="overview-section" style="margin-top:24px">
+      <div class="section-label">Renewal Months ${defTip('ufr')}</div>
+      <div class="hero-kpis">
+        ${monthSummaries.map(m => `
+          <div class="hero-kpi" onclick="setRenewalMonth('${m.label}')" style="cursor:pointer;${m.label === selectedRenewalMonth ? 'border-color:var(--text);box-shadow:var(--shadow-md)' : ''}">
+            <div class="hero-kpi-label">${m.label}</div>
+            <div class="hero-kpi-value" style="color:${m.color || 'var(--muted)'}">${m.pct != null ? m.pct + '%' : '—'}</div>
+            <div class="hero-kpi-sub" style="font-size:12px;font-weight:500;color:var(--text2)">${m.totalCalled || 0} / ${m.totalCohort || 0} orgs</div>
+            <div class="hero-kpi-bottom">
+              <div style="font-size:11px;color:var(--muted)">${m.pastWindow ? 'Window closed' : m.daysLeft + ' biz days left'}</div>
+              <div style="font-size:10px;color:var(--muted2);margin-top:2px">Click to filter &#8594;</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="overview-section">
+      <div class="section-label">${selectedRenewalMonth} Pacing ${defTip('pacingWindow')}</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <div class="card" style="flex:1;min-width:200px;padding:14px 18px">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Outreach Window</div>
+          <div style="font-size:20px;font-weight:800">${pastWindow ? 'Closed' : remainingBiz + ' days'}</div>
+          <div style="font-size:11px;color:var(--text2)">${win ? fmtDateShort(win.windowStart) + ' → ' + fmtDateShort(win.activeEnd) : ''}</div>
+          <div class="pacing-kpi-bar" style="margin-top:6px"><div class="pacing-kpi-bar-fill" style="width:${win ? Math.min(Math.round(win.progressRatio * 100), 100) : 0}%;background:var(--accent-subtle)"></div></div>
+        </div>
+        <div class="card" style="flex:1;min-width:200px;padding:14px 18px">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Pacing Status</div>
+          <div style="font-size:20px;font-weight:800;color:${paceColor}">${paceAheadAll >= 0 ? 'Ahead' : 'Behind'}</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:4px">Expected: <strong>${overall.expected || 0}</strong> · Actual: <strong>${overall.totalCalled || 0}</strong></div>
+          ${orgsBehind > 0 ? `<div style="font-size:13px;font-weight:700;color:var(--red);margin-top:4px">${orgsBehind} orgs behind</div>` : ''}
+        </div>
+        <div class="card" style="flex:1;min-width:200px;padding:14px 18px" id="ufrLeaderCard"></div>
+      </div>
+    </div>
+
+    <div class="overview-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="section-label" style="margin-bottom:0">UFR Competition ${defTip('pacing')}</div>
+        <div class="view-toggle" id="ufrRaceToggle">
+          <button class="toggle-btn active" onclick="setUfrRaceView('manager')">Managers</button>
+          <button class="toggle-btn" onclick="setUfrRaceView('vertical')">Verticals</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:36px 140px 1fr 50px 90px 90px 70px;gap:10px;padding:6px 20px;font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">
+        <div></div><div id="raceGroupLabel">Manager</div><div>Coverage</div><div style="text-align:right">Pct</div><div style="text-align:right">Orgs</div><div style="text-align:right">Pace</div><div style="text-align:right">DoD</div>
+      </div>
+      <div class="race-list" id="raceList"></div>
+    </div>
+  `;
+
+  window._ufrRaceData = raceData;
+  window._ufrExpectedPct = expectedPct;
+  window._ufrFiltered = filtered;
+  renderUfrRaceView();
+}
+
+function fmtDateShort(d) {
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+let ufrRaceView = 'manager';
+
+function setUfrRaceView(view) {
+  ufrRaceView = view;
+  document.querySelectorAll('#ufrRaceToggle .toggle-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['manager', 'vertical'][i] === view);
+  });
+  const label = document.getElementById('raceGroupLabel');
+  if (label) label.textContent = view === 'manager' ? 'Manager' : 'Vertical';
+  renderUfrRaceView();
+}
+
+function renderUfrRaceView() {
+  const filtered = window._ufrFiltered || getFiltered();
+  const expectedPct = window._ufrExpectedPct || 0;
+
+  let leader = null;
+  if (ufrRaceView === 'manager') {
+    const managers = [...new Set(filtered.map(d => d.manager))].filter(Boolean);
+    const mgrData = managers.map(m => {
+      const csms = filtered.filter(d => d.manager === m && d.segment !== 'Phones + Platform');
+      const agg = aggregatePacingStatus(csms);
+      return { name: m, csms, ...agg };
+    }).filter(r => r.pct != null).sort((a, b) => (b.ratio || 0) - (a.ratio || 0));
+    renderUfrRaceRows(mgrData, expectedPct, 'manager');
+    leader = mgrData[0];
+  } else {
+    const raceData = window._ufrRaceData || [];
+    const mapped = raceData.map(r => ({ ...r, name: r.vertical }));
+    renderUfrRaceRows(mapped, expectedPct, 'vertical');
+    leader = mapped[0];
+  }
+
+  // Update leader card
+  const leaderCard = document.getElementById('ufrLeaderCard');
+  if (leaderCard && leader) {
+    const label = ufrRaceView === 'manager' ? 'Leading Manager' : 'Leading Vertical';
+    const accent = ufrRaceView === 'vertical' ? `<span style="width:3px;height:16px;border-radius:2px;background:${vertColor(leader.name)};flex-shrink:0"></span>` : '';
+    leaderCard.innerHTML = `
+      <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">${label}</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        ${accent}
+        <span style="font-size:18px;font-weight:800">${leader.name}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text2)">${leader.pct}% · ${leader.totalCalled}/${leader.totalCohort} orgs</div>`;
+  }
+}
+
+function renderUfrRaceRows(data, expectedPct, type) {
+  const el = document.getElementById('raceList');
+  if (!el) return;
+  const medals = ['', '&#127942;', '&#129352;', '&#129353;'];
+
+  el.innerHTML = data.map((r, i) => {
+    const rank = i + 1;
+    const color = r.status === 'green' ? 'var(--green)' : r.status === 'yellow' ? 'var(--amber)' : 'var(--red)';
+    const paceAhead = r.ratio ? Math.round((r.ratio - 1) * 100) : 0;
+    const pacePillClass = r.status === 'green' ? 'pill-green' : r.status === 'yellow' ? 'pill-amber' : 'pill-red';
+    const rankClass = rank <= 3 ? ` rank-${rank}` : '';
+    const medalHtml = rank <= 3 ? `<span class="race-medal">${medals[rank]}</span>` : '';
+    const divider = rank === 3 && data.length > 3 ? '<div class="race-divider"></div>' : '';
+
+    // DoD change
+    const dodKey = type === 'vertical' ? null : null; // compute from sparkline if available
+    const dodHtml = '<span style="color:var(--muted);font-size:11px">—</span>';
+
+    const clickFn = type === 'vertical' ? `openUfrVertPopup('${r.name}','vertical')` : `openUfrVertPopup('${r.name}','manager')`;
+
+    return `
+    <div class="race-row${rankClass}" style="grid-template-columns:36px 140px 1fr 50px 90px 90px 70px" onclick="${clickFn}">
+      <div class="race-rank${rankClass}">${medalHtml || '#' + rank}</div>
+      <div class="race-vert-name">
+        ${type === 'vertical' ? `<span class="race-vert-accent" style="background:${vertColor(r.name)}"></span>` : ''}
+        ${r.name}
+      </div>
+      <div class="race-pacing-bar">
+        <div class="race-pacing-fill" style="width:${Math.min(r.pct, 100)}%;background:${color}"></div>
+        <div class="race-pacing-expected" style="left:${Math.min(expectedPct, 100)}%" title="Expected: ${expectedPct}%"></div>
+      </div>
+      <div class="race-pct" style="color:${color}">${r.pct}%</div>
+      <div class="race-orgs">${r.totalCalled} / ${r.totalCohort}</div>
+      <div style="text-align:right"><span class="pill ${pacePillClass}" style="font-size:10px;padding:2px 8px">${paceAhead >= 0 ? '+' : ''}${paceAhead}%</span></div>
+      <div style="text-align:right">${dodHtml}</div>
+    </div>${divider}`;
+  }).join('');
+}
+
+// Keep old function for backward compatibility
+function renderUfrRace(raceData, expectedPct) {
+  const el = document.getElementById('raceList');
+  if (!el) return;
+
+  const medals = ['', '&#127942;', '&#129352;', '&#129353;']; // gold, silver, bronze
+
+  el.innerHTML = raceData.map((r, i) => {
+    const rank = i + 1;
+    const color = r.status === 'green' ? 'var(--green)' : r.status === 'yellow' ? 'var(--amber)' : 'var(--red)';
+    const paceAhead = r.ratio ? Math.round((r.ratio - 1) * 100) : 0;
+    const pacePillClass = r.status === 'green' ? 'pill-green' : r.status === 'yellow' ? 'pill-amber' : 'pill-red';
+    const wowDelta = computeVertWoWDelta(r.vertical);
+    const wowHtml = wowDelta != null
+      ? `<span class="race-wow ${wowDelta >= 0 ? 'delta-up' : 'delta-down'}">${wowDelta >= 0 ? '&#9650;' : '&#9660;'}${wowDelta >= 0 ? '+' : ''}${wowDelta.toFixed(1)}pp</span>`
+      : '';
+
+    const rankClass = rank <= 3 ? ` rank-${rank}` : '';
+    const medalHtml = rank <= 3 ? `<span class="race-medal">${medals[rank]}</span>` : '';
+    const divider = rank === 3 && raceData.length > 3 ? '<div class="race-divider"></div>' : '';
+
+    return `
+    <div class="race-row${rankClass}" onclick="openUfrVertPopup('${r.vertical}')">
+      <div class="race-rank${rankClass}">${medalHtml || '#' + rank}</div>
+      <div class="race-vert-name">
+        <span class="race-vert-accent" style="background:${vertColor(r.vertical)}"></span>
+        ${r.vertical}
+      </div>
+      <div class="race-pacing-bar">
+        <div class="race-pacing-fill" style="width:${Math.min(r.pct, 100)}%;background:${color}"></div>
+        <div class="race-pacing-expected" style="left:${Math.min(expectedPct, 100)}%" title="Expected: ${expectedPct}%"></div>
+      </div>
+      <div class="race-pct" style="color:${color}">${r.pct}%</div>
+      <div class="race-orgs">${r.totalCalled} / ${r.totalCohort}</div>
+      <div class="race-meta">
+        <span class="pill ${pacePillClass}" style="font-size:10px;padding:2px 8px">${paceAhead >= 0 ? '+' : ''}${paceAhead}%</span>
+        ${wowHtml}
+      </div>
+    </div>${divider}`;
+  }).join('');
+}
+
+// ── UFR Vertical Popup (like hero metric ranking popups) ──────────────
+function openUfrVertPopup(name, type) {
+  const filterType = type || 'vertical';
+  const allCsms = getFiltered().filter(d => d.segment !== 'Phones + Platform');
+  const csms = filterType === 'manager'
+    ? allCsms.filter(d => d.manager === name)
+    : allCsms.filter(d => d.vertical === name);
+  const agg = aggregatePacingStatus(csms);
+  const total = agg.totalCohort || 0;
+  const called = agg.totalCalled || 0;
+  const pct = agg.pct || 0;
+  const color = agg.color || 'var(--muted)';
+
+  const csmData = csms.map(d => {
+    const ren = getRenewal(d.csm);
+    const p = calcPacing(d);
+    return {
+      name: d.csm,
+      manager: d.manager,
+      called: ren ? ren.called : (d.renewalCohortCalled || 0),
+      total: ren ? ren.total : (d.renewalCohortTotal || 0),
+      pct: ren ? (ren.pct || 0) : (d.renewalCoveragePct || 0),
+      pacing: p,
+    };
+  }).filter(c => c.total > 0).sort((a, b) => b.pct - a.pct);
+
+  const rows = csmData.map((c, i) => {
+    const pColor = c.pacing ? (c.pacing.status === 'green' ? 'var(--green)' : c.pacing.status === 'yellow' ? 'var(--amber)' : 'var(--red)') : 'var(--muted)';
+    const pLabel = c.pacing
+      ? (c.pacing.ratio >= 1.0 ? 'On pace' : `${Math.round(c.pacing.ratio * 100)}%`)
+      : '—';
+    return `<tr onclick="closeModal();openPanel('${c.name.replace(/'/g, "\\'")}')" style="cursor:pointer">
+      <td style="color:var(--muted);font-weight:600;width:28px">${i + 1}</td>
+      <td style="font-weight:600">${c.name}</td>
+      <td style="color:var(--muted);font-size:12px">${c.manager || ''}</td>
+      <td style="text-align:center;font-weight:700">${c.called} / ${c.total}</td>
+      <td style="text-align:center;font-weight:700;color:${pColor}">${Math.round(c.pct)}%</td>
+      <td style="text-align:right;font-weight:600;font-size:12px;color:${pColor}" title="Called ${c.pacing?.called || 0} of ${c.pacing?.expected || 0} expected">${pLabel}</td>
+    </tr>`;
+  }).join('');
+
+  const modal = document.getElementById('modalBackdrop');
+  modal.innerHTML = `
+    <div class="modal" style="max-width:1000px;width:95vw" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" style="display:flex;align-items:center;gap:8px">
+            ${filterType === 'vertical' ? `<span style="width:4px;height:20px;border-radius:2px;background:${vertColor(name)}"></span>` : ''}
+            ${name} — UFR Breakdown
+          </div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px">${selectedRenewalMonth} · <span style="color:${color};font-weight:700">${pct}%</span> coverage · ${called} / ${total} orgs</div>
+        </div>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="table-scroll" style="max-height:420px">
+        <table>
+          <thead><tr>
+            <th>#</th><th>CSM</th><th>Manager</th>
+            <th style="text-align:center">Called</th>
+            <th style="text-align:center">Pct</th>
+            <th style="text-align:right">Pace ${defTip('pacing')}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  modal.classList.add('open');
+}
+
+function closeModal() {
+  const modal = document.getElementById('modalBackdrop');
+  if (modal) modal.classList.remove('open');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2244,9 +4435,18 @@ fetch('cs_perf_data.json?v=' + Date.now())
     return r.json();
   })
   .then(json => {
-    allData = json.csms.map(d => ({ ...d }));
+    // Group small verticals together and trim whitespace
+    const VERT_GROUP = {};  // No grouping — show all verticals separately
+    allData = json.csms.map(d => {
+      const v = (d.vertical || '').trim();
+      // Recalculate status with 50 threshold (procedure uses 45)
+      const comp = d.composite;
+      const status = comp == null ? 'muted' : comp >= 80 ? 'green' : comp >= 50 ? 'yellow' : 'red';
+      return { ...d, vertical: VERT_GROUP[v] || v, overallStatus: status };
+    });
     sparklines  = json.sparklines  || {};
     riskDetail  = json.riskDetail  || {};
+    window.callsByType = json.callsByType || {};
     console.log('CS Perf Hub loaded:', {
       csms: allData.length,
       sparklines: Object.keys(sparklines).length,
@@ -2286,6 +4486,13 @@ fetch('cs_perf_data.json?v=' + Date.now())
     populateFilters(allData);
     renderContextBar();
     renderAll();
+
+    // Handle ?csm= deep link from UFR page
+    const params = new URLSearchParams(window.location.search);
+    const csmParam = params.get('csm');
+    if (csmParam && allData.find(d => d.csm === csmParam)) {
+      setTimeout(() => openPanel(csmParam), 300);
+    }
   })
   .catch(err => {
     document.getElementById('mainContent').innerHTML = `
