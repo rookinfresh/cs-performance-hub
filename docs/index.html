@@ -3069,7 +3069,7 @@ function computeRatioRollupDelta(doneKey, totalKey, periodDays) {
 // Respects M2M exclusion toggle — subtracts M2M orgs/called when active.
 function computeUfrRollupDelta(monthLabel, daysBack) {
   const dateMap = {};
-  const filtered = getFiltered();
+  const filtered = getFiltered().filter(d => d.segment !== 'Phones + Platform');
   filtered.forEach(d => {
     (sparklines[d.csm] || []).forEach(p => {
       const m = (p.ufrByMonth || {})[monthLabel];
@@ -3107,7 +3107,7 @@ function computeUfrRollupDelta(monthLabel, daysBack) {
 // Fallback UFR point delta using percentage averages from ufrByMonth
 function computeUfrPointDelta(monthLabel, daysBack) {
   const dateMap = {};
-  const filtered = getFiltered();
+  const filtered = getFiltered().filter(d => d.segment !== 'Phones + Platform');
   filtered.forEach(d => {
     (sparklines[d.csm] || []).forEach(p => {
       const m = (p.ufrByMonth || {})[monthLabel];
