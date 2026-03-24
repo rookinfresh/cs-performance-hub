@@ -304,15 +304,28 @@ call_metrics_prev AS (
 ),
 
 -- ── Retention SLA: 48-hour constraint + 2-day grace period ───────────────────
+-- Helper: add 2 business days to a date (skips weekends)
+-- Mon→Wed(+2), Tue→Thu(+2), Wed→Fri(+2), Thu→Mon(+4), Fri→Tue(+4), Sat→Tue(+3), Sun→Tue(+2)
 retention_tasks AS (
-    SELECT c.CASE_ID AS TASK_UID, c.ORGANIZATION_UID, c.CASE_OWNER_FULL_NAME AS CSM_NAME, c.CASE_CREATED_AT::DATE AS TASK_DATE
+    SELECT c.CASE_ID AS TASK_UID, c.ORGANIZATION_UID, c.CASE_OWNER_FULL_NAME AS CSM_NAME,
+           c.CASE_CREATED_AT::DATE AS TASK_DATE,
+           DATEADD(''day'', CASE DAYOFWEEK(c.CASE_CREATED_AT::DATE)
+               WHEN 0 THEN 2  -- Sun → Tue
+               WHEN 4 THEN 4  -- Thu → Mon
+               WHEN 5 THEN 4  -- Fri → Tue
+               WHEN 6 THEN 3  -- Sat → Tue
+               ELSE 2          -- Mon/Tue/Wed → +2
+           END, c.CASE_CREATED_AT::DATE) AS SLA_DEADLINE
     FROM BUILD.SALESFORCE.CORE_CASES c
     INNER JOIN csm_allowlist al ON c.CASE_OWNER_FULL_NAME = al.CSM_NAME
     WHERE c.CASE_RECORD_TYPE_NAME = ''Retention''
       AND c.CASE_CREATED_AT >= DATEADD(''day'', -30, CURRENT_DATE)
-      AND c.CASE_CREATED_AT < DATEADD(''day'', -2, CURRENT_DATE)  -- 48-hour grace: don''t count cases < 2 days old
       AND c.ORGANIZATION_UID IS NOT NULL
       AND (c.CASE_CREATED_BY_ID IS NULL OR c.CASE_CREATED_BY_ID != c.CASE_OWNER_ID)
+),
+-- Only measure cases where the 2 business day window has passed
+retention_tasks_eligible AS (
+    SELECT * FROM retention_tasks WHERE SLA_DEADLINE < CURRENT_DATE
 ),
 ret_sla AS (
     SELECT rt.CSM_NAME,
@@ -320,11 +333,11 @@ ret_sla AS (
            COUNT(DISTINCT CASE WHEN oe.ORGANIZATION_UID IS NOT NULL THEN rt.TASK_UID END) AS SLA_MET_COUNT,
            ROUND(COUNT(DISTINCT CASE WHEN oe.ORGANIZATION_UID IS NOT NULL THEN rt.TASK_UID END)::FLOAT
                  / NULLIF(COUNT(DISTINCT rt.TASK_UID), 0), 3) AS RET_SLA_PCT
-    FROM retention_tasks rt
+    FROM retention_tasks_eligible rt
     LEFT JOIN outreach_events_l30 oe
         ON rt.ORGANIZATION_UID = oe.ORGANIZATION_UID
         AND oe.EVENT_DATE >= rt.TASK_DATE
-        AND oe.EVENT_DATE <= DATEADD(''day'', 2, rt.TASK_DATE)  -- within 48 hours
+        AND oe.EVENT_DATE <= rt.SLA_DEADLINE  -- within 2 business days
     GROUP BY rt.CSM_NAME
 ),
 
