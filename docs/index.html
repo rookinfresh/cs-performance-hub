@@ -2988,8 +2988,8 @@ function computeOrgWoWDelta(pillarKey) {
   return r ? r.delta : null;
 }
 
-// Proper rollup for ratio metrics (Ret SLA): sum(done)/sum(total) instead of avg(pct)
-function computeRatioRollupDelta(doneKey, totalKey, periodDays) {
+// Point-to-point rollup for ratio metrics (Ret SLA): sum(done)/sum(total) for specific dates
+function computeRatioRollupDelta(doneKey, totalKey, daysBack) {
   const dateMap = {};
   const filtered = getFiltered();
   filtered.forEach(d => {
@@ -3002,28 +3002,26 @@ function computeRatioRollupDelta(doneKey, totalKey, periodDays) {
   const allDates = Object.keys(dateMap).sort().filter(d => dateMap[d].total > 0);
   if (allDates.length < 2) return null;
 
-  if (periodDays === 1) {
-    const cur = dateMap[allDates[allDates.length - 1]];
+  const latestDate = allDates[allDates.length - 1];
+  const cur = dateMap[latestDate];
+  const curPct = cur.total > 0 ? Math.round(cur.done / cur.total * 100) : 0;
+
+  if (daysBack === 1) {
     const prev = dateMap[allDates[allDates.length - 2]];
-    const curPct = cur.total > 0 ? Math.round(cur.done / cur.total * 100) : 0;
     const prevPct = prev.total > 0 ? Math.round(prev.done / prev.total * 100) : 0;
     return { delta: curPct - prevPct, current: curPct, prior: prevPct };
   }
 
-  const latest = new Date(allDates[allDates.length - 1]);
-  const ps = new Date(latest); ps.setDate(ps.getDate() - periodDays);
-  const pp = new Date(ps); pp.setDate(pp.getDate() - periodDays);
-  const psStr = ps.toISOString().slice(0, 10);
-  const ppStr = pp.toISOString().slice(0, 10);
-  const curDates = allDates.filter(d => d > psStr);
-  const priDates = allDates.filter(d => d > ppStr && d <= psStr);
-  if (!curDates.length || !priDates.length) return null;
+  const target = new Date(latestDate);
+  target.setDate(target.getDate() - daysBack);
+  const targetStr = target.toISOString().slice(0, 10);
+  let compDate = null;
+  for (const d of allDates) { if (d <= targetStr) compDate = d; }
+  if (!compDate || compDate === latestDate) return null;
 
-  const curSum = curDates.reduce((s, d) => ({ done: s.done + dateMap[d].done, total: s.total + dateMap[d].total }), { done: 0, total: 0 });
-  const priSum = priDates.reduce((s, d) => ({ done: s.done + dateMap[d].done, total: s.total + dateMap[d].total }), { done: 0, total: 0 });
-  const curPct = curSum.total > 0 ? Math.round(curSum.done / curSum.total * 100) : 0;
-  const priPct = priSum.total > 0 ? Math.round(priSum.done / priSum.total * 100) : 0;
-  return { delta: curPct - priPct, current: curPct, prior: priPct };
+  const prev = dateMap[compDate];
+  const prevPct = prev.total > 0 ? Math.round(prev.done / prev.total * 100) : 0;
+  return { delta: curPct - prevPct, current: curPct, prior: prevPct };
 }
 
 // Proper rollup for UFR point-to-point using absolute month labels.
