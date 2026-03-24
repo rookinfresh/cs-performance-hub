@@ -807,9 +807,7 @@ LEFT JOIN open_retention_cases  rtc ON al.CSM_NAME = rtc.CSM_NAME
 LEFT JOIN interaction_intelligence ii ON al.CSM_NAME = ii.CSM_NAME
 LEFT JOIN csm_location_count    lc  ON al.CSM_NAME = lc.CSM_NAME;
 
-  -- Step 3: Prune snapshots older than 65 days (need 60+ for MoM trend comparisons)
-  DELETE FROM ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_SNAPSHOTS
-  WHERE SNAPSHOT_DATE < DATEADD(''day'', -65, CURRENT_DATE);
+  -- Step 3: No pruning — keep all historical snapshots for reference
 
   RETURN ''CS Performance Hub refreshed at '' || TO_VARCHAR(CURRENT_TIMESTAMP());
 END;
