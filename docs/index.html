@@ -3482,7 +3482,7 @@ function renderCallDeepDive(container) {
                 const d = riskTrend.cur - riskTrend.prev;
                 const color = pp === 0 ? 'var(--muted)' : pp > 0 ? 'var(--red)' : 'var(--green)';
                 const arrow = pp === 0 ? '→' : pp > 0 ? '▲' : '▼';
-                const word = pp === 0 ? 'Stable' : pp > 0 ? 'Worsening' : 'Improving';
+                const word = pp === 0 ? 'Stable' : pp > 0 ? 'Rising' : 'Improving';
                 return `<span style="font-size:13px;font-weight:600;color:${color}">${arrow} ${pp > 0 ? '+' : ''}${pp}pp ${word}</span>`;
               }
               return `<span style="font-size:13px;font-weight:600;color:${atRiskPct > 15 ? 'var(--red)' : 'var(--text2)'}">${atRiskPct}% high/critical</span>`;
@@ -3498,7 +3498,7 @@ function renderCallDeepDive(container) {
                 const pp = curPct - prevPct;
                 const color = pp === 0 ? 'var(--muted)' : pp > 0 ? 'var(--red)' : 'var(--green)';
                 const arrow = pp === 0 ? '→' : pp > 0 ? '▲' : '▼';
-                const word = pp === 0 ? 'Stable' : pp > 0 ? 'Worsening' : 'Improving';
+                const word = pp === 0 ? 'Stable' : pp > 0 ? 'Rising' : 'Improving';
                 return `<span style="font-size:13px;font-weight:600;color:${color}">${arrow} ${pp > 0 ? '+' : ''}${pp}pp ${word}</span>`;
               }
               return `<span style="font-size:13px;font-weight:600;color:${parseFloat(cancelPctOrgs) > 5 ? 'var(--red)' : 'var(--text2)'}">${cancelPctOrgs}% of orgs</span>`;
