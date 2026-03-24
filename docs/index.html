@@ -2988,8 +2988,46 @@ function computeOrgWoWDelta(pillarKey) {
   return r ? r.delta : null;
 }
 
-// Period-averaging rollup for ratio metrics (Ret SLA): sum(done)/sum(total) per period
-// DoD: yesterday vs day before. WoW: L7 vs prior L7. MoM: L30 vs prior L30.
+// Daily rollup: uses per-day numerator/denominator for true period comparison
+// DoD: yesterday vs day before. WoW: last 7 days vs prior 7. MoM: last 30 vs prior 30.
+function computeDailyRollupDelta(numKey, denomKey, periodDays, formatFn) {
+  const dateMap = {};
+  const filtered = getFiltered();
+  filtered.forEach(d => {
+    (sparklines[d.csm] || []).forEach(p => {
+      if (!dateMap[p.date]) dateMap[p.date] = { num: 0, denom: 0 };
+      dateMap[p.date].num += (p[numKey] || 0);
+      dateMap[p.date].denom += (p[denomKey] || 0);
+    });
+  });
+  const allDates = Object.keys(dateMap).sort().filter(d => dateMap[d].denom > 0);
+  if (allDates.length < 2) return null;
+
+  if (periodDays === 1) {
+    const cur = dateMap[allDates[allDates.length - 1]];
+    const prev = dateMap[allDates[allDates.length - 2]];
+    const curVal = formatFn(cur.num, cur.denom);
+    const prevVal = formatFn(prev.num, prev.denom);
+    return { delta: curVal - prevVal, current: Math.round(curVal * 10) / 10, prior: Math.round(prevVal * 10) / 10 };
+  }
+
+  const latest = new Date(allDates[allDates.length - 1]);
+  const ps = new Date(latest); ps.setDate(ps.getDate() - periodDays);
+  const pp = new Date(ps); pp.setDate(pp.getDate() - periodDays);
+  const psStr = ps.toISOString().slice(0, 10);
+  const ppStr = pp.toISOString().slice(0, 10);
+  const curDates = allDates.filter(d => d > psStr);
+  const priDates = allDates.filter(d => d > ppStr && d <= psStr);
+  if (!curDates.length || !priDates.length) return null;
+
+  const curSum = curDates.reduce((s, d) => ({ num: s.num + dateMap[d].num, denom: s.denom + dateMap[d].denom }), { num: 0, denom: 0 });
+  const priSum = priDates.reduce((s, d) => ({ num: s.num + dateMap[d].num, denom: s.denom + dateMap[d].denom }), { num: 0, denom: 0 });
+  const curVal = formatFn(curSum.num, curSum.denom);
+  const priVal = formatFn(priSum.num, priSum.denom);
+  return { delta: curVal - priVal, current: Math.round(curVal * 10) / 10, prior: Math.round(priVal * 10) / 10 };
+}
+
+// Ratio rollup for Ret SLA L30 counts (used as fallback when daily columns not available)
 function computeRatioRollupDelta(doneKey, totalKey, periodDays) {
   const dateMap = {};
   const filtered = getFiltered();
@@ -3124,15 +3162,19 @@ function renderTrendBar() {
 
   const metrics = [
     { key: 'composite', label: 'Composite', points: true },
-    { key: 'ar', label: 'AR/Day', points: false },
-    { key: 'call', label: 'Call Score', points: true },
-    { key: 'sla', label: 'Ret SLA', points: true, rollup: true },
+    { key: 'ar', label: 'AR/Day', points: false, daily: true, numKey: 'dAr', denomKey: 'dActive', fmt: (n, d) => d > 0 ? n / d : 0 },
+    { key: 'call', label: 'Call Score', points: true, daily: true, numKey: 'dCallSum', denomKey: 'dCallCnt', fmt: (n, d) => d > 0 ? n / d : 0 },
+    { key: 'sla', label: 'Ret SLA', points: true, daily: true, numKey: 'dRetMet', denomKey: 'dRetCreated', fmt: (n, d) => d > 0 ? Math.round(n / d * 100) : 0 },
     { key: 'ufr', label: 'UFR', points: true, ufrMonth: ufrMonth },
   ];
   const results = metrics.map(m => {
     let result;
-    if (m.rollup) {
-      result = computeRatioRollupDelta('slaDone', 'slaTotal', days);
+    if (m.daily) {
+      // Use daily columns if available, fall back to L30 rolling
+      result = computeDailyRollupDelta(m.numKey, m.denomKey, days, m.fmt);
+      if (!result) {
+        result = m.key === 'sla' ? computeRatioRollupDelta('slaDone', 'slaTotal', days) : computeOrgPeriodDelta(m.key, days);
+      }
     } else if (m.ufrMonth) {
       result = computeUfrRollupDelta(m.ufrMonth, days) || computeUfrPointDelta(m.ufrMonth, days);
     } else {
