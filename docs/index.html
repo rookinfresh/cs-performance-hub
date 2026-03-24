@@ -3066,8 +3066,7 @@ function computeRatioRollupDelta(doneKey, totalKey, periodDays) {
 }
 
 // Proper rollup for UFR point-to-point using absolute month labels.
-// Sparkline data stores ufrByMonth: { "Apr 2026": { pct, called, total }, ... }
-// so we can track a specific cohort across calendar month boundaries.
+// Respects M2M exclusion toggle — subtracts M2M orgs/called when active.
 function computeUfrRollupDelta(monthLabel, daysBack) {
   const dateMap = {};
   const filtered = getFiltered();
@@ -3076,8 +3075,14 @@ function computeUfrRollupDelta(monthLabel, daysBack) {
       const m = (p.ufrByMonth || {})[monthLabel];
       if (!m || m.total == null) return;
       if (!dateMap[p.date]) dateMap[p.date] = { called: 0, total: 0 };
-      dateMap[p.date].called += (m.called || 0);
-      dateMap[p.date].total += (m.total || 0);
+      let called = m.called || 0;
+      let total = m.total || 0;
+      if (excludeM2M) {
+        called = called - (m.m2mCalled || 0);
+        total = total - (m.m2m || 0);
+      }
+      dateMap[p.date].called += Math.max(0, called);
+      dateMap[p.date].total += Math.max(0, total);
     });
   });
   const allDates = Object.keys(dateMap).sort().filter(d => dateMap[d].total > 0);
