@@ -1861,13 +1861,22 @@ function renderVerticalComparison(filtered) {
     // WoW trends per vertical for back side
     const trendRows = sorted.map(s => {
       const sk = sparkKey[key] || key;
+      const isUfr = key === 'renewal';
+      const ufrMonth = selectedRenewalMonth;
       const vcsms = vertMap[s.v] || [];
       const dateMap = {};
       vcsms.forEach(d => {
         (sparklines[d.csm] || []).forEach(p => {
-          if (p[sk] == null) return;
-          if (!dateMap[p.date]) dateMap[p.date] = [];
-          dateMap[p.date].push(p[sk]);
+          if (isUfr) {
+            const m = (p.ufrByMonth || {})[ufrMonth];
+            if (!m || m.pct == null) return;
+            if (!dateMap[p.date]) dateMap[p.date] = [];
+            dateMap[p.date].push(m.pct);
+          } else {
+            if (p[sk] == null) return;
+            if (!dateMap[p.date]) dateMap[p.date] = [];
+            dateMap[p.date].push(p[sk]);
+          }
         });
       });
       const allDates = Object.keys(dateMap).sort();
