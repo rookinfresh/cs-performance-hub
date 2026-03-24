@@ -568,8 +568,8 @@ td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; color: var(
   z-index: 300;
   opacity: 0; pointer-events: none;
   transition: opacity 0.2s;
-  display: flex; align-items: flex-start; justify-content: center;
-  padding: 48px 24px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
 }
 .modal-backdrop.open { opacity: 1; pointer-events: auto; }
 .modal {
@@ -4358,9 +4358,33 @@ function renderUfrRaceRows(data, expectedPct, type) {
     const medalHtml = rank <= 3 ? `<span class="race-medal">${medals[rank]}</span>` : '';
     const divider = rank === 3 && data.length > 3 ? '<div class="race-divider"></div>' : '';
 
-    // DoD change
-    const dodKey = type === 'vertical' ? null : null; // compute from sparkline if available
-    const dodHtml = '<span style="color:var(--muted);font-size:11px">—</span>';
+    // DoD change — compute from ufrByMonth sparklines
+    const dodCsms = type === 'vertical'
+      ? getFiltered().filter(d => d.vertical === r.name && d.segment !== 'Phones + Platform')
+      : getFiltered().filter(d => d.manager === r.name && d.segment !== 'Phones + Platform');
+    const dodDateMap = {};
+    const mLabel = selectedRenewalMonth;
+    dodCsms.forEach(d => {
+      (sparklines[d.csm] || []).forEach(p => {
+        const m = (p.ufrByMonth || {})[mLabel];
+        if (!m || m.total == null || m.total === 0) return;
+        if (!dodDateMap[p.date]) dodDateMap[p.date] = { called: 0, total: 0 };
+        dodDateMap[p.date].called += (m.called || 0);
+        dodDateMap[p.date].total += (m.total || 0);
+      });
+    });
+    const dodDates = Object.keys(dodDateMap).sort().filter(d => dodDateMap[d].total > 0);
+    let dodHtml = '<span style="color:var(--muted);font-size:11px">—</span>';
+    if (dodDates.length >= 2) {
+      const cur = dodDateMap[dodDates[dodDates.length - 1]];
+      const prev = dodDateMap[dodDates[dodDates.length - 2]];
+      const curPct = Math.round(cur.called / cur.total * 100);
+      const prevPct = Math.round(prev.called / prev.total * 100);
+      const pp = curPct - prevPct;
+      const dodColor = pp === 0 ? 'var(--muted)' : pp > 0 ? 'var(--green)' : 'var(--red)';
+      const dodArrow = pp === 0 ? '→' : pp > 0 ? '▲' : '▼';
+      dodHtml = `<span style="color:${dodColor};font-size:11px;font-weight:600">${dodArrow}${pp > 0 ? '+' : ''}${pp}pp</span>`;
+    }
 
     const clickFn = type === 'vertical' ? `openUfrVertPopup('${r.name}','vertical')` : `openUfrVertPopup('${r.name}','manager')`;
 
