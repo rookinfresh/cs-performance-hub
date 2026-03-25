@@ -2954,33 +2954,29 @@ function computeOrgPeriodDelta(pillarKey, periodDays) {
   const allDates = Object.keys(dateMap).sort();
   if (allDates.length < 2) return null;
 
+  const fmtD = d => d.slice(5);
   if (periodDays === 1) {
-    // DoD: compare two most recent dates
     const latest = allDates[allDates.length - 1];
     const prev = allDates[allDates.length - 2];
     const currentAvg = dateMap[latest].reduce((a, b) => a + b, 0) / dateMap[latest].length;
     const priorAvg = dateMap[prev].reduce((a, b) => a + b, 0) / dateMap[prev].length;
-    return { delta: currentAvg - priorAvg, current: Math.round(currentAvg * 10) / 10, prior: Math.round(priorAvg * 10) / 10 };
+    return { delta: currentAvg - priorAvg, current: Math.round(currentAvg * 10) / 10, prior: Math.round(priorAvg * 10) / 10, dateLabel: `${fmtD(prev)} → ${fmtD(latest)}` };
   }
 
-  // For 7d/30d: proper period-over-period
   const latest = new Date(allDates[allDates.length - 1]);
   const periodStart = new Date(latest); periodStart.setDate(periodStart.getDate() - periodDays);
   const priorStart = new Date(periodStart); priorStart.setDate(priorStart.getDate() - periodDays);
   const periodStartStr = periodStart.toISOString().slice(0, 10);
   const priorStartStr = priorStart.toISOString().slice(0, 10);
-
   const currentDates = allDates.filter(d => d > periodStartStr);
   const priorDates = allDates.filter(d => d > priorStartStr && d <= periodStartStr);
-
   if (!currentDates.length || !priorDates.length) return null;
 
   const currentVals = currentDates.flatMap(d => dateMap[d]);
   const priorVals = priorDates.flatMap(d => dateMap[d]);
   const currentAvg = currentVals.reduce((a, b) => a + b, 0) / currentVals.length;
   const priorAvg = priorVals.reduce((a, b) => a + b, 0) / priorVals.length;
-
-  return { delta: currentAvg - priorAvg, current: Math.round(currentAvg * 10) / 10, prior: Math.round(priorAvg * 10) / 10 };
+  return { delta: currentAvg - priorAvg, current: Math.round(currentAvg * 10) / 10, prior: Math.round(priorAvg * 10) / 10, dateLabel: `${fmtD(priorDates[0])}–${fmtD(priorDates[priorDates.length-1])} → ${fmtD(currentDates[0])}–${fmtD(currentDates[currentDates.length-1])}` };
 }
 
 function computeOrgWoWDelta(pillarKey) {
@@ -3003,12 +2999,15 @@ function computeDailyRollupDelta(numKey, denomKey, periodDays, formatFn) {
   const allDates = Object.keys(dateMap).sort().filter(d => dateMap[d].denom > 0);
   if (allDates.length < 2) return null;
 
+  const fmtD = d => d.slice(5); // "03-24"
   if (periodDays === 1) {
-    const cur = dateMap[allDates[allDates.length - 1]];
-    const prev = dateMap[allDates[allDates.length - 2]];
+    const curDate = allDates[allDates.length - 1];
+    const prevDate = allDates[allDates.length - 2];
+    const cur = dateMap[curDate];
+    const prev = dateMap[prevDate];
     const curVal = formatFn(cur.num, cur.denom);
     const prevVal = formatFn(prev.num, prev.denom);
-    return { delta: curVal - prevVal, current: Math.round(curVal * 10) / 10, prior: Math.round(prevVal * 10) / 10 };
+    return { delta: curVal - prevVal, current: Math.round(curVal * 10) / 10, prior: Math.round(prevVal * 10) / 10, dateLabel: `${fmtD(prevDate)} → ${fmtD(curDate)}` };
   }
 
   const latest = new Date(allDates[allDates.length - 1]);
@@ -3024,7 +3023,7 @@ function computeDailyRollupDelta(numKey, denomKey, periodDays, formatFn) {
   const priSum = priDates.reduce((s, d) => ({ num: s.num + dateMap[d].num, denom: s.denom + dateMap[d].denom }), { num: 0, denom: 0 });
   const curVal = formatFn(curSum.num, curSum.denom);
   const priVal = formatFn(priSum.num, priSum.denom);
-  return { delta: curVal - priVal, current: Math.round(curVal * 10) / 10, prior: Math.round(priVal * 10) / 10 };
+  return { delta: curVal - priVal, current: Math.round(curVal * 10) / 10, prior: Math.round(priVal * 10) / 10, dateLabel: `${fmtD(priDates[0])}–${fmtD(priDates[priDates.length-1])} → ${fmtD(curDates[0])}–${fmtD(curDates[curDates.length-1])}` };
 }
 
 // Ratio rollup for Ret SLA L30 counts (used as fallback when daily columns not available)
@@ -3101,7 +3100,7 @@ function computeUfrRollupDelta(monthLabel, daysBack) {
 
   const prev = dateMap[compDate];
   const prevPct = prev.total > 0 ? Math.round(prev.called / prev.total * 1000) / 10 : 0;
-  return { delta: curPct - prevPct, current: curPct, prior: prevPct };
+  return { delta: curPct - prevPct, current: curPct, prior: prevPct, dateLabel: `${compDate.slice(5)} → ${latestDate.slice(5)}` };
 }
 
 // Fallback UFR point delta using percentage averages from ufrByMonth
@@ -3213,6 +3212,7 @@ function renderTrendBar() {
             <span style="font-size:16px;font-weight:800;color:var(--text)">${r.current}</span>
           </div>
           <div style="text-align:center;font-size:12px;font-weight:700;color:${color}">${arrow} ${m.points ? (Math.round(r.delta) > 0 ? '+' : '') + Math.round(r.delta) + 'pp' : (r.prior && r.prior !== 0 ? (Math.round((r.delta / r.prior) * 100) > 0 ? '+' : '') + Math.round((r.delta / r.prior) * 100) + '%' : (r.delta > 0 ? '+' : '') + Math.round(r.delta))}</div>
+          ${r.dateLabel ? `<div style="text-align:center;font-size:9px;color:var(--muted);margin-top:3px">${r.dateLabel}</div>` : ''}
         </div>`;
       }).join('')}
     </div>`;
