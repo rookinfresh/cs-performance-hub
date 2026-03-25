@@ -3577,11 +3577,13 @@ function renderCallDeepDive(container) {
     const allDates = Object.keys(dateMap).sort();
     if (allDates.length < 2) return null;
     if (periodDays === 1) {
-      const cur = dateMap[allDates[allDates.length - 1]];
-      const prev = dateMap[allDates[allDates.length - 2]];
+      const curD = allDates[allDates.length - 1];
+      const prevD = allDates[allDates.length - 2];
+      const cur = dateMap[curD];
+      const prev = dateMap[prevD];
       const curPct = cur.total > 0 ? Math.round(cur.count / cur.total * 100) : 0;
       const prevPct = prev.total > 0 ? Math.round(prev.count / prev.total * 100) : 0;
-      return { delta: curPct - prevPct, current: curPct, prior: prevPct };
+      return { delta: curPct - prevPct, current: curPct, prior: prevPct, dateLabel: `${fmtDate(prevD)} → ${fmtDate(curD)}` };
     }
     const latest = new Date(allDates[allDates.length - 1]);
     const ps = new Date(latest); ps.setDate(ps.getDate() - periodDays);
@@ -3595,7 +3597,7 @@ function renderCallDeepDive(container) {
     const priSum = priDates.reduce((s, d) => ({ c: s.c + dateMap[d].count, t: s.t + dateMap[d].total }), { c: 0, t: 0 });
     const curPct = curSum.t > 0 ? Math.round(curSum.c / curSum.t * 100) : 0;
     const priPct = priSum.t > 0 ? Math.round(priSum.c / priSum.t * 100) : 0;
-    return { delta: curPct - priPct, current: curPct, prior: priPct };
+    return { delta: curPct - priPct, current: curPct, prior: priPct, dateLabel: `${fmtRange(priDates[0], priDates[priDates.length-1])} → ${fmtRange(curDates[0], curDates[curDates.length-1])}` };
   }
 
   const score80Delta = computeDistDelta(p => p.call >= 80, days);
@@ -3710,7 +3712,8 @@ function renderCallDeepDive(container) {
             <span style="font-size:11px;color:var(--muted)">→</span>
             <span style="font-size:16px;font-weight:800;color:var(--text)">${score80Delta.current}%</span>
           </div>
-          <div style="text-align:center;font-size:12px;font-weight:700;color:${score80Delta.delta >= 0 ? 'var(--green)' : 'var(--red)'}">${score80Delta.delta >= 0 ? '+' : ''}${score80Delta.delta}pp</div>` : '<div style="text-align:center;color:var(--muted);font-size:11px">Accumulating</div>'}
+          <div style="text-align:center;font-size:12px;font-weight:700;color:${score80Delta.delta >= 0 ? 'var(--green)' : 'var(--red)'}">${score80Delta.delta >= 0 ? '+' : ''}${score80Delta.delta}pp</div>
+          ${score80Delta.dateLabel ? `<div style="text-align:center;font-size:9px;color:var(--muted);margin-top:3px">${score80Delta.dateLabel}</div>` : ''}` : '<div style="text-align:center;color:var(--muted);font-size:11px">Accumulating</div>'}
         </div>
         ${(() => {
           if (riskTrend && rTotal > 0) {
