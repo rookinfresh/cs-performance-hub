@@ -1310,11 +1310,9 @@ function getRenewal(csmName) {
   if (!raw) return null;
   if (excludeM2M && raw.m2m > 0) {
     const adjTotal = Math.max(0, (raw.total || 0) - (raw.m2m || 0));
-    // Estimate annual calls proportionally
-    const annualRatio = raw.total > 0 ? adjTotal / raw.total : 0;
-    const annualCalled = Math.round((raw.called || 0) * annualRatio);
-    const pct = adjTotal > 0 ? Math.round(annualCalled / adjTotal * 100) : null;
-    return { total: adjTotal, called: annualCalled, pct, m2mExcluded: raw.m2m };
+    const adjCalled = Math.max(0, (raw.called || 0) - (raw.m2mCalled || 0));
+    const pct = adjTotal > 0 ? Math.round(adjCalled / adjTotal * 100) : null;
+    return { total: adjTotal, called: adjCalled, pct, m2mExcluded: raw.m2m };
   }
   return raw;
 }
@@ -3190,12 +3188,15 @@ function renderTrendBar() {
   ];
   const results = metrics.map(m => {
     let result;
-    if (m.daily) {
-      // Use daily columns if available, fall back to L30 rolling
+    if (m.daily && days <= 7) {
+      // DoD and WoW: use actual daily columns
       result = computeDailyRollupDelta(m.numKey, m.denomKey, days, m.fmt);
       if (!result) {
         result = m.key === 'sla' ? computeRatioRollupDelta('slaDone', 'slaTotal', days) : computeOrgPeriodDelta(m.key, days);
       }
+    } else if (m.daily && days === 30) {
+      // MoM: use L30 rolling from snapshots (matches hero card methodology)
+      result = m.key === 'sla' ? computeRatioRollupDelta('slaDone', 'slaTotal', days) : computeOrgPeriodDelta(m.key, days);
     } else if (m.ufrMonth) {
       result = computeUfrRollupDelta(m.ufrMonth, days) || computeUfrPointDelta(m.ufrMonth, days);
     } else {
