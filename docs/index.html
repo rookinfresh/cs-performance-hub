@@ -1911,15 +1911,16 @@ function renderVerticalComparison(filtered) {
       const dateMap = {};
       vcsms.forEach(d => {
         (sparklines[d.csm] || []).forEach(p => {
+          const aod = asOfDate(p.date);
           if (isUfr) {
             const m = (p.ufrByMonth || {})[ufrMonth];
             if (!m || m.pct == null) return;
-            if (!dateMap[p.date]) dateMap[p.date] = [];
-            dateMap[p.date].push(m.pct);
+            if (!dateMap[aod]) dateMap[aod] = [];
+            dateMap[aod].push(m.pct);
           } else {
             if (p[sk] == null) return;
-            if (!dateMap[p.date]) dateMap[p.date] = [];
-            dateMap[p.date].push(p[sk]);
+            if (!dateMap[aod]) dateMap[aod] = [];
+            dateMap[aod].push(p[sk]);
           }
         });
       });
@@ -2918,8 +2919,9 @@ function computeOrgPointDelta(pillarKey, daysBack) {
   filtered.forEach(d => {
     (sparklines[d.csm] || []).forEach(p => {
       if (p[pillarKey] == null) return;
-      if (!dateMap[p.date]) dateMap[p.date] = [];
-      dateMap[p.date].push(p[pillarKey]);
+      const aod = asOfDate(p.date);
+      if (!dateMap[aod]) dateMap[aod] = [];
+      dateMap[aod].push(p[pillarKey]);
     });
   });
   const allDates = Object.keys(dateMap).sort();
@@ -2938,6 +2940,13 @@ function computeOrgPointDelta(pillarKey, daysBack) {
   return { delta: latestAvg - priorAvg, current: Math.round(latestAvg * 10) / 10, prior: Math.round(priorAvg * 10) / 10 };
 }
 
+// Snapshot date → activity date (snapshot captures prior day's state)
+function asOfDate(snapDate) {
+  const d = new Date(snapDate + 'T12:00:00');
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 // For 1d: compare latest date vs previous date (DoD)
 // For 7d: compare avg of last 7 days vs avg of prior 7 days (WoW)
 // For 30d: compare avg of last 30 days vs avg of prior 30 days (MoM)
@@ -2947,8 +2956,9 @@ function computeOrgPeriodDelta(pillarKey, periodDays) {
   filtered.forEach(d => {
     (sparklines[d.csm] || []).forEach(p => {
       if (p[pillarKey] == null) return;
-      if (!dateMap[p.date]) dateMap[p.date] = [];
-      dateMap[p.date].push(p[pillarKey]);
+      const aod = asOfDate(p.date);
+      if (!dateMap[aod]) dateMap[aod] = [];
+      dateMap[aod].push(p[pillarKey]);
     });
   });
   let allDates = Object.keys(dateMap).sort();
@@ -2994,9 +3004,10 @@ function computeDailyRollupDelta(numKey, denomKey, periodDays, formatFn) {
   const filtered = getFiltered();
   filtered.forEach(d => {
     (sparklines[d.csm] || []).forEach(p => {
-      if (!dateMap[p.date]) dateMap[p.date] = { num: 0, denom: 0 };
-      dateMap[p.date].num += (p[numKey] || 0);
-      dateMap[p.date].denom += (p[denomKey] || 0);
+      const aod = asOfDate(p.date);
+      if (!dateMap[aod]) dateMap[aod] = { num: 0, denom: 0 };
+      dateMap[aod].num += (p[numKey] || 0);
+      dateMap[aod].denom += (p[denomKey] || 0);
     });
   });
   const allDates = Object.keys(dateMap).sort().filter(d => dateMap[d].denom > 0);
@@ -3035,9 +3046,10 @@ function computeRatioRollupDelta(doneKey, totalKey, periodDays) {
   const filtered = getFiltered();
   filtered.forEach(d => {
     (sparklines[d.csm] || []).forEach(p => {
-      if (!dateMap[p.date]) dateMap[p.date] = { done: 0, total: 0 };
-      dateMap[p.date].done += (p[doneKey] || 0);
-      dateMap[p.date].total += (p[totalKey] || 0);
+      const aod = asOfDate(p.date);
+      if (!dateMap[aod]) dateMap[aod] = { done: 0, total: 0 };
+      dateMap[aod].done += (p[doneKey] || 0);
+      dateMap[aod].total += (p[totalKey] || 0);
     });
   });
   const allDates = Object.keys(dateMap).sort().filter(d => dateMap[d].total > 0);
@@ -3076,15 +3088,16 @@ function computeUfrRollupDelta(monthLabel, daysBack) {
     (sparklines[d.csm] || []).forEach(p => {
       const m = (p.ufrByMonth || {})[monthLabel];
       if (!m || m.total == null) return;
-      if (!dateMap[p.date]) dateMap[p.date] = { called: 0, total: 0 };
+      const aod = asOfDate(p.date);
+      if (!dateMap[aod]) dateMap[aod] = { called: 0, total: 0 };
       let called = m.called || 0;
       let total = m.total || 0;
       if (excludeM2M) {
         called = called - (m.m2mCalled || 0);
         total = total - (m.m2m || 0);
       }
-      dateMap[p.date].called += Math.max(0, called);
-      dateMap[p.date].total += Math.max(0, total);
+      dateMap[aod].called += Math.max(0, called);
+      dateMap[aod].total += Math.max(0, total);
     });
   });
   const allDates = Object.keys(dateMap).sort().filter(d => dateMap[d].total > 0);
@@ -3114,8 +3127,9 @@ function computeUfrPointDelta(monthLabel, daysBack) {
     (sparklines[d.csm] || []).forEach(p => {
       const m = (p.ufrByMonth || {})[monthLabel];
       if (!m || m.pct == null) return;
-      if (!dateMap[p.date]) dateMap[p.date] = [];
-      dateMap[p.date].push(m.pct);
+      const aod = asOfDate(p.date);
+      if (!dateMap[aod]) dateMap[aod] = [];
+      dateMap[aod].push(m.pct);
     });
   });
   const allDates = Object.keys(dateMap).sort();
@@ -3499,9 +3513,10 @@ function renderCallDeepDive(container) {
     filtered.forEach(d => {
       (sparklines[d.csm] || []).forEach(p => {
         if (p.call == null) return;
-        if (!dateMap[p.date]) dateMap[p.date] = { count: 0, total: 0 };
-        dateMap[p.date].total++;
-        if (metricFn(p)) dateMap[p.date].count++;
+        const aod = asOfDate(p.date);
+        if (!dateMap[aod]) dateMap[aod] = { count: 0, total: 0 };
+        dateMap[aod].total++;
+        if (metricFn(p)) dateMap[aod].count++;
       });
     });
     const allDates = Object.keys(dateMap).sort();
@@ -3541,8 +3556,9 @@ function renderCallDeepDive(container) {
     const dateMap = {};
     filtered.forEach(d => { (sparklines[d.csm] || []).forEach(sp => {
       if (sp[key] == null) return;
-      if (!dateMap[sp.date]) dateMap[sp.date] = 0;
-      dateMap[sp.date] += sp[key];
+      const aod = asOfDate(sp.date);
+      if (!dateMap[aod]) dateMap[aod] = 0;
+      dateMap[aod] += sp[key];
     }); });
     const allDates = Object.keys(dateMap).sort();
     if (allDates.length < 2) return null;
@@ -4209,8 +4225,9 @@ function computeVertWoWDelta(vertical) {
     (sparklines[d.csm] || []).forEach(p => {
       const m = (p.ufrByMonth || {})[mLabel];
       if (!m || m.pct == null) return;
-      if (!dateMap[p.date]) dateMap[p.date] = [];
-      dateMap[p.date].push(m.pct);
+      const aod = asOfDate(p.date);
+      if (!dateMap[aod]) dateMap[aod] = [];
+      dateMap[aod].push(m.pct);
     });
   });
   const dates = Object.keys(dateMap).sort();
