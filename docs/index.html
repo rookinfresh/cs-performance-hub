@@ -3186,6 +3186,30 @@ function renderTrendBar() {
     { key: 'sla', label: 'Ret SLA', points: true, daily: true, numKey: 'dRetMet', denomKey: 'dRetCreated', fmt: (n, d) => d > 0 ? Math.round(n / d * 100) : 0 },
     { key: 'ufr', label: 'UFR', points: true, ufrMonth: ufrMonth },
   ];
+  // For MoM: compute "current" from live MASTER data (matches hero exactly)
+  const filtered = getFiltered();
+  const liveHero = (() => {
+    const arVals = filtered.map(d => d.arsPerDay).filter(v => v != null);
+    const callVals = filtered.map(d => d.callScore).filter(v => v != null);
+    const totalRetDone = filtered.reduce((s, d) => s + (d.retSLADone || 0), 0);
+    const totalRetCases = filtered.reduce((s, d) => s + (d.retCases || 0), 0);
+    const composites = filtered.map(d => calcComposite(d)).filter(v => v != null);
+    // UFR with M2M exclusion + P+P exclusion (same as hero)
+    const ufrCsms = filtered.filter(d => d.segment !== 'Phones + Platform');
+    let ufrCalled = 0, ufrTotal = 0;
+    ufrCsms.forEach(d => {
+      const ren = getRenewal(d.csm);
+      if (ren) { ufrCalled += ren.called; ufrTotal += ren.total; }
+    });
+    return {
+      ar: arVals.length ? Math.round(arVals.reduce((a,b) => a+b, 0) / arVals.length * 10) / 10 : null,
+      call: callVals.length ? Math.round(callVals.reduce((a,b) => a+b, 0) / callVals.length * 10) / 10 : null,
+      sla: totalRetCases > 0 ? Math.round(totalRetDone / totalRetCases * 100) : null,
+      composite: composites.length ? Math.round(composites.reduce((a,b) => a+b, 0) / composites.length) : null,
+      ufr: ufrTotal > 0 ? Math.round(ufrCalled / ufrTotal * 1000) / 10 : null,
+    };
+  })();
+
   const results = metrics.map(m => {
     let result;
     if (m.daily && days <= 7) {
@@ -3194,9 +3218,19 @@ function renderTrendBar() {
       if (!result) {
         result = m.key === 'sla' ? computeRatioRollupDelta('slaDone', 'slaTotal', days) : computeOrgPeriodDelta(m.key, days);
       }
-    } else if (m.daily && days === 30) {
-      // MoM: use L30 rolling from snapshots (matches hero card methodology)
-      result = m.key === 'sla' ? computeRatioRollupDelta('slaDone', 'slaTotal', days) : computeOrgPeriodDelta(m.key, days);
+    } else if (days === 30) {
+      // MoM: current = live MASTER (hero), prior = sparkline 30d ago
+      const heroVal = m.ufrMonth ? liveHero.ufr : liveHero[m.key] ?? liveHero[m.key === 'ar' ? 'ar' : m.key];
+      // Get 30d ago value from sparklines
+      const priorResult = m.ufrMonth
+        ? (computeUfrRollupDelta(m.ufrMonth, 30) || computeUfrPointDelta(m.ufrMonth, 30))
+        : m.key === 'sla' ? computeRatioRollupDelta('slaDone', 'slaTotal', 30) : computeOrgPeriodDelta(m.key, 30);
+      if (heroVal != null && priorResult && priorResult.prior != null) {
+        const fmtD = d => d.slice(5);
+        result = { delta: heroVal - priorResult.prior, current: heroVal, prior: priorResult.prior, dateLabel: priorResult.dateLabel ? priorResult.dateLabel.split(' → ')[0] + ' → today' : 'vs 30d ago' };
+      } else if (priorResult) {
+        result = priorResult;
+      }
     } else if (m.ufrMonth) {
       result = computeUfrRollupDelta(m.ufrMonth, days) || computeUfrPointDelta(m.ufrMonth, days);
     } else {
