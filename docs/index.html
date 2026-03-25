@@ -3218,21 +3218,23 @@ function renderTrendBar() {
       if (!result) {
         result = m.key === 'sla' ? computeRatioRollupDelta('slaDone', 'slaTotal', days) : computeOrgPeriodDelta(m.key, days);
       }
+    } else if (m.ufrMonth) {
+      // UFR: always point-to-point, current = hero, prior = N days ago from sparklines
+      const priorResult = computeUfrRollupDelta(m.ufrMonth, days) || computeUfrPointDelta(m.ufrMonth, days);
+      if (liveHero.ufr != null && priorResult && priorResult.prior != null) {
+        result = { delta: liveHero.ufr - priorResult.prior, current: liveHero.ufr, prior: priorResult.prior, dateLabel: priorResult.dateLabel ? priorResult.dateLabel.split(' → ')[0] + ' → today' : 'vs ' + days + 'd ago' };
+      } else if (priorResult) {
+        result = priorResult;
+      }
     } else if (days === 30) {
-      // MoM: current = live MASTER (hero), prior = sparkline 30d ago
-      const heroVal = m.ufrMonth ? liveHero.ufr : liveHero[m.key] ?? liveHero[m.key === 'ar' ? 'ar' : m.key];
-      // Get 30d ago value from sparklines
-      const priorResult = m.ufrMonth
-        ? (computeUfrRollupDelta(m.ufrMonth, 30) || computeUfrPointDelta(m.ufrMonth, 30))
-        : m.key === 'sla' ? computeRatioRollupDelta('slaDone', 'slaTotal', 30) : computeOrgPeriodDelta(m.key, 30);
+      // MoM for non-UFR: current = live MASTER (hero), prior = sparkline 30d ago
+      const heroVal = liveHero[m.key] ?? liveHero[m.key === 'ar' ? 'ar' : m.key];
+      const priorResult = m.key === 'sla' ? computeRatioRollupDelta('slaDone', 'slaTotal', 30) : computeOrgPeriodDelta(m.key, 30);
       if (heroVal != null && priorResult && priorResult.prior != null) {
-        const fmtD = d => d.slice(5);
         result = { delta: heroVal - priorResult.prior, current: heroVal, prior: priorResult.prior, dateLabel: priorResult.dateLabel ? priorResult.dateLabel.split(' → ')[0] + ' → today' : 'vs 30d ago' };
       } else if (priorResult) {
         result = priorResult;
       }
-    } else if (m.ufrMonth) {
-      result = computeUfrRollupDelta(m.ufrMonth, days) || computeUfrPointDelta(m.ufrMonth, days);
     } else {
       result = computeOrgPeriodDelta(m.key, days);
     }
@@ -3540,7 +3542,17 @@ function renderCallDeepDive(container) {
   // Call quality trend bar metrics
   const days = trendHorizon === '1d' ? 1 : trendHorizon === '7d' ? 7 : 30;
   const compLabel = trendHorizon === '1d' ? 'Day-over-Day' : trendHorizon === '7d' ? 'Week-over-Week' : 'Month-over-Month';
-  const callScoreDelta = computeOrgPeriodDelta('call', days);
+  let callScoreDelta;
+  if (days <= 7) {
+    callScoreDelta = computeDailyRollupDelta('dCallSum', 'dCallCnt', days, (n, d) => d > 0 ? n / d : 0) || computeOrgPeriodDelta('call', days);
+  } else {
+    // MoM: current = live hero, prior = sparkline 30d ago
+    const liveCall = scored.length ? Math.round(scored.reduce((s, d) => s + d.callScore, 0) / scored.length * 10) / 10 : null;
+    const priorResult = computeOrgPeriodDelta('call', 30);
+    if (liveCall != null && priorResult && priorResult.prior != null) {
+      callScoreDelta = { delta: liveCall - priorResult.prior, current: liveCall, prior: priorResult.prior, dateLabel: priorResult.dateLabel ? priorResult.dateLabel.split(' → ')[0] + ' → today' : 'vs 30d ago' };
+    } else { callScoreDelta = priorResult; }
+  }
 
   // Compute historical distribution from sparklines
   function computeDistDelta(metricFn, periodDays) {
@@ -4329,9 +4341,25 @@ function renderUfrDeepDive(container) {
   // UFR trend bar — compute deltas for all 3 months
   const ufrTrendDays = trendHorizon === '1d' ? 1 : trendHorizon === '7d' ? 7 : 30;
   const ufrCompLabel = trendHorizon === '1d' ? 'Day-over-Day' : trendHorizon === '7d' ? 'Week-over-Week' : 'Month-over-Month';
-  const ufrM1Delta = renewalMonthLabels[0] ? (computeUfrRollupDelta(renewalMonthLabels[0], ufrTrendDays) || computeUfrPointDelta(renewalMonthLabels[0], ufrTrendDays)) : null;
-  const ufrM2Delta = renewalMonthLabels[1] ? (computeUfrRollupDelta(renewalMonthLabels[1], ufrTrendDays) || computeUfrPointDelta(renewalMonthLabels[1], ufrTrendDays)) : null;
-  const ufrM3Delta = renewalMonthLabels[2] ? (computeUfrRollupDelta(renewalMonthLabels[2], ufrTrendDays) || computeUfrPointDelta(renewalMonthLabels[2], ufrTrendDays)) : null;
+  // UFR trend: always point-to-point, current = live hero value per month
+  function ufrMonthDelta(monthLabel, daysBack) {
+    if (!monthLabel) return null;
+    // Compute live hero value for this month
+    const ufrCsms = getFiltered().filter(d => d.segment !== 'Phones + Platform');
+    const saved = selectedRenewalMonth; selectedRenewalMonth = monthLabel;
+    let lCalled = 0, lTotal = 0;
+    ufrCsms.forEach(d => { const ren = getRenewal(d.csm); if (ren) { lCalled += ren.called; lTotal += ren.total; } });
+    selectedRenewalMonth = saved;
+    const heroVal = lTotal > 0 ? Math.round(lCalled / lTotal * 1000) / 10 : null;
+    const priorResult = computeUfrRollupDelta(monthLabel, daysBack) || computeUfrPointDelta(monthLabel, daysBack);
+    if (heroVal != null && priorResult && priorResult.prior != null) {
+      return { delta: heroVal - priorResult.prior, current: heroVal, prior: priorResult.prior, dateLabel: priorResult.dateLabel ? priorResult.dateLabel.split(' → ')[0] + ' → today' : null };
+    }
+    return priorResult;
+  }
+  const ufrM1Delta = ufrMonthDelta(renewalMonthLabels[0], ufrTrendDays);
+  const ufrM2Delta = ufrMonthDelta(renewalMonthLabels[1], ufrTrendDays);
+  const ufrM3Delta = ufrMonthDelta(renewalMonthLabels[2], ufrTrendDays);
 
   container.innerHTML = `
     <div class="overview-section" style="margin-bottom:0">
