@@ -1010,7 +1010,7 @@ td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; color: var(
     <div class="def-card" style="cursor:pointer" onclick="const d=this.querySelector('.def-detail');d.style.display=d.style.display==='block'?'none':'block'">
       <div class="def-title" id="def-callScore" style="display:flex;justify-content:space-between;align-items:center">Call Quality <span style="font-size:10px;color:var(--muted);font-weight:500">▾</span></div>
       <div class="def-detail" style="display:none;margin-top:12px">
-        <p class="def-body"><strong>AI-scored</strong> call quality (<strong>0–100</strong>) averaged across scored calls in <strong>L90</strong>. Powered by <strong>Cortex AI</strong> analyzing Gong and SFDC transcripts.</p>
+        <p class="def-body"><strong>AI-scored</strong> call quality (<strong>0–100</strong>) averaged across scored calls in <strong>L30</strong>. Powered by <strong>Cortex AI</strong> analyzing Gong and SFDC transcripts.</p>
         <div class="def-section-label">Color Scale</div>
         <div style="display:flex;gap:12px;font-size:12px;font-weight:600">
           <span class="def-green">● ≥ 80</span>
@@ -4283,24 +4283,31 @@ function computeVertWoWDelta(vertical) {
   csms.forEach(d => {
     (sparklines[d.csm] || []).forEach(p => {
       const m = (p.ufrByMonth || {})[mLabel];
-      if (!m || m.pct == null) return;
+      if (!m || m.total == null) return;
       const aod = asOfDate(p.date);
-      if (!dateMap[aod]) dateMap[aod] = [];
-      dateMap[aod].push(m.pct);
+      if (!dateMap[aod]) dateMap[aod] = { called: 0, total: 0 };
+      let called = m.called || 0;
+      let total = m.total || 0;
+      if (excludeM2M) {
+        called = Math.max(0, called - (m.m2mCalled || 0));
+        total = Math.max(0, total - (m.m2m || 0));
+      }
+      dateMap[aod].called += called;
+      dateMap[aod].total += total;
     });
   });
-  const dates = Object.keys(dateMap).sort();
+  const dates = Object.keys(dateMap).sort().filter(d => dateMap[d].total > 0);
   if (dates.length < 2) return null;
   const latest = dates[dates.length - 1];
-  const latestAvg = dateMap[latest].reduce((a, b) => a + b, 0) / dateMap[latest].length;
+  const latestPct = Math.round(dateMap[latest].called / dateMap[latest].total * 1000) / 10;
   const target = new Date(latest);
   target.setDate(target.getDate() - 7);
   const targetStr = target.toISOString().slice(0, 10);
   let closest = dates[0];
   dates.forEach(d => { if (d <= targetStr && d > closest) closest = d; });
   if (closest === latest) return null;
-  const prevAvg = dateMap[closest].reduce((a, b) => a + b, 0) / dateMap[closest].length;
-  return Math.round((latestAvg - prevAvg) * 10) / 10;
+  const prevPct = Math.round(dateMap[closest].called / dateMap[closest].total * 1000) / 10;
+  return Math.round((latestPct - prevPct) * 10) / 10;
 }
 
 function renderUfrDeepDive(container) {
