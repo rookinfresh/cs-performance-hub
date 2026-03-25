@@ -2951,11 +2951,14 @@ function computeOrgPeriodDelta(pillarKey, periodDays) {
       dateMap[p.date].push(p[pillarKey]);
     });
   });
-  const allDates = Object.keys(dateMap).sort();
+  let allDates = Object.keys(dateMap).sort();
   if (allDates.length < 2) return null;
 
   const fmtD = d => d.slice(5);
+  // For DoD, skip weekend dates to align with daily metrics
   if (periodDays === 1) {
+    const weekdayDates = allDates.filter(d => { const dow = new Date(d + 'T12:00:00').getDay(); return dow !== 0 && dow !== 6; });
+    if (weekdayDates.length >= 2) allDates = weekdayDates;
     const latest = allDates[allDates.length - 1];
     const prev = allDates[allDates.length - 2];
     const currentAvg = dateMap[latest].reduce((a, b) => a + b, 0) / dateMap[latest].length;
