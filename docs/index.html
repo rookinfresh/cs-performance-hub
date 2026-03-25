@@ -2944,6 +2944,14 @@ function asOfDate(snapDate) {
   d.setDate(d.getDate() - 1);
   return d.toISOString().slice(0, 10);
 }
+// Format date for display: "2026-03-24" → "Mar 24"
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDate(d) { return MONTH_SHORT[parseInt(d.slice(5,7))-1] + ' ' + parseInt(d.slice(8,10)); }
+function fmtRange(d1, d2) {
+  const m1 = d1.slice(5,7), m2 = d2.slice(5,7);
+  if (m1 === m2) return fmtDate(d1) + '–' + parseInt(d2.slice(8,10));
+  return fmtDate(d1) + ' – ' + fmtDate(d2);
+}
 
 // For 1d: compare latest date vs previous date (DoD)
 // For 7d: compare avg of last 7 days vs avg of prior 7 days (WoW)
@@ -2962,7 +2970,7 @@ function computeOrgPeriodDelta(pillarKey, periodDays) {
   let allDates = Object.keys(dateMap).sort();
   if (allDates.length < 2) return null;
 
-  const fmtD = d => d.slice(5);
+  // fmtDate defined globally
   // For DoD, skip weekend dates to align with daily metrics
   if (periodDays === 1) {
     const weekdayDates = allDates.filter(d => { const dow = new Date(d + 'T12:00:00').getDay(); return dow !== 0 && dow !== 6; });
@@ -2971,7 +2979,7 @@ function computeOrgPeriodDelta(pillarKey, periodDays) {
     const prev = allDates[allDates.length - 2];
     const currentAvg = dateMap[latest].reduce((a, b) => a + b, 0) / dateMap[latest].length;
     const priorAvg = dateMap[prev].reduce((a, b) => a + b, 0) / dateMap[prev].length;
-    return { delta: currentAvg - priorAvg, current: Math.round(currentAvg * 10) / 10, prior: Math.round(priorAvg * 10) / 10, dateLabel: `${fmtD(prev)} → ${fmtD(latest)}` };
+    return { delta: currentAvg - priorAvg, current: Math.round(currentAvg * 10) / 10, prior: Math.round(priorAvg * 10) / 10, dateLabel: `${fmtDate(prev)} → ${fmtDate(latest)}` };
   }
 
   const latest = new Date(allDates[allDates.length - 1]);
@@ -2987,7 +2995,7 @@ function computeOrgPeriodDelta(pillarKey, periodDays) {
   const priorVals = priorDates.flatMap(d => dateMap[d]);
   const currentAvg = currentVals.reduce((a, b) => a + b, 0) / currentVals.length;
   const priorAvg = priorVals.reduce((a, b) => a + b, 0) / priorVals.length;
-  return { delta: currentAvg - priorAvg, current: Math.round(currentAvg * 10) / 10, prior: Math.round(priorAvg * 10) / 10, dateLabel: `${fmtD(priorDates[0])}–${fmtD(priorDates[priorDates.length-1])} → ${fmtD(currentDates[0])}–${fmtD(currentDates[currentDates.length-1])}` };
+  return { delta: currentAvg - priorAvg, current: Math.round(currentAvg * 10) / 10, prior: Math.round(priorAvg * 10) / 10, dateLabel: `${fmtRange(priorDates[0], priorDates[priorDates.length-1])} → ${fmtRange(currentDates[0], currentDates[currentDates.length-1])}` };
 }
 
 function computeOrgWoWDelta(pillarKey) {
@@ -3011,7 +3019,7 @@ function computeDailyRollupDelta(numKey, denomKey, periodDays, formatFn) {
   const allDates = Object.keys(dateMap).sort().filter(d => dateMap[d].denom > 0);
   if (allDates.length < 2) return null;
 
-  const fmtD = d => d.slice(5); // "03-24"
+  // fmtDate defined globally
   if (periodDays === 1) {
     const curDate = allDates[allDates.length - 1];
     const prevDate = allDates[allDates.length - 2];
@@ -3019,7 +3027,7 @@ function computeDailyRollupDelta(numKey, denomKey, periodDays, formatFn) {
     const prev = dateMap[prevDate];
     const curVal = formatFn(cur.num, cur.denom);
     const prevVal = formatFn(prev.num, prev.denom);
-    return { delta: curVal - prevVal, current: Math.round(curVal * 10) / 10, prior: Math.round(prevVal * 10) / 10, dateLabel: `${fmtD(prevDate)} → ${fmtD(curDate)}` };
+    return { delta: curVal - prevVal, current: Math.round(curVal * 10) / 10, prior: Math.round(prevVal * 10) / 10, dateLabel: `${fmtDate(prevDate)} → ${fmtDate(curDate)}` };
   }
 
   const latest = new Date(allDates[allDates.length - 1]);
@@ -3035,7 +3043,7 @@ function computeDailyRollupDelta(numKey, denomKey, periodDays, formatFn) {
   const priSum = priDates.reduce((s, d) => ({ num: s.num + dateMap[d].num, denom: s.denom + dateMap[d].denom }), { num: 0, denom: 0 });
   const curVal = formatFn(curSum.num, curSum.denom);
   const priVal = formatFn(priSum.num, priSum.denom);
-  return { delta: curVal - priVal, current: Math.round(curVal * 10) / 10, prior: Math.round(priVal * 10) / 10, dateLabel: `${fmtD(priDates[0])}–${fmtD(priDates[priDates.length-1])} → ${fmtD(curDates[0])}–${fmtD(curDates[curDates.length-1])}` };
+  return { delta: curVal - priVal, current: Math.round(curVal * 10) / 10, prior: Math.round(priVal * 10) / 10, dateLabel: `${fmtRange(priDates[0], priDates[priDates.length-1])} → ${fmtRange(curDates[0], curDates[curDates.length-1])}` };
 }
 
 // Ratio rollup for Ret SLA L30 counts (used as fallback when daily columns not available)
@@ -3692,7 +3700,8 @@ function renderCallDeepDive(container) {
             <span style="font-size:11px;color:var(--muted)">→</span>
             <span style="font-size:16px;font-weight:800;color:var(--text)">${callScoreDelta.current}</span>
           </div>
-          <div style="text-align:center;font-size:12px;font-weight:700;color:${callScoreDelta.delta >= 0 ? 'var(--green)' : 'var(--red)'}">${Math.round(callScoreDelta.delta) >= 0 ? '+' : ''}${Math.round(callScoreDelta.delta)}pp</div>` : '<div style="text-align:center;color:var(--muted);font-size:11px">Accumulating</div>'}
+          <div style="text-align:center;font-size:12px;font-weight:700;color:${callScoreDelta.delta >= 0 ? 'var(--green)' : 'var(--red)'}">${Math.round(callScoreDelta.delta) >= 0 ? '+' : ''}${Math.round(callScoreDelta.delta)}pp</div>
+          ${callScoreDelta.dateLabel ? `<div style="text-align:center;font-size:9px;color:var(--muted);margin-top:3px">${callScoreDelta.dateLabel}</div>` : ''}` : '<div style="text-align:center;color:var(--muted);font-size:11px">Accumulating</div>'}
         </div>
         <div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
           <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Scoring 80+</div>
