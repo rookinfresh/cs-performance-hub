@@ -13,11 +13,12 @@ A Customer Success performance dashboard for Podium, inspired by Bill Walsh's "T
 - **Backfill script**: `scripts/backfill_snapshots.py` — reconstructs historical snapshots from source tables
 - **Enrichment script**: `scripts/enrich_snapshots.py` — adds UFR/SLA raw counts to existing snapshots
 - **Recompute script**: `scripts/recompute_snapshots.py` — updates call score, SLA, composite for methodology changes
+- **Daily backfill script**: `scripts/backfill_daily_columns.py` — backfills daily metric columns + M2M data for historical snapshots
 - **Live URLs**: https://rookinfresh.github.io/cs-performance-hub/ (GitHub Pages) + https://cs-performance-hub.podium-tools.com/ (Podium internal)
 
 ## Snowflake Tables
 - `ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_MASTER` — main CSM metrics table, rebuilt daily at 6 AM MST by `REFRESH_CS_PERF_HUB()` procedure via `REFRESH_CS_PERF_HUB_TASK`
-- `ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_SNAPSHOTS` — daily snapshots for sparkline trends (SNAPSHOT_DATE, CSM_NAME, COMPOSITE_SCORE, ARS_PER_DAY, AVG_CALL_SCORE, RET_SLA_PCT, RET_SLA_DONE, RET_SLA_TOTAL, RENEWAL_COVERAGE_PCT, RENEWAL_M1_CALLED, RENEWAL_M1_TOTAL, RENEWAL_M2_CALLED, RENEWAL_M2_TOTAL, RENEWAL_M3_CALLED, RENEWAL_M3_TOTAL, OVERALL_STATUS). No pruning — rows accumulate indefinitely.
+- `ANALYST_SANDBOX.JOSH_ROOKSTOOL.CS_PERF_HUB_SNAPSHOTS` — daily snapshots for sparkline trends. No pruning — rows accumulate indefinitely. Dedup guard: DELETE + INSERT for current day prevents duplicates from multiple procedure runs. Columns: SNAPSHOT_DATE, CSM_NAME, COMPOSITE_SCORE, ARS_PER_DAY, AVG_CALL_SCORE, RET_SLA_PCT, RET_SLA_DONE, RET_SLA_TOTAL, RENEWAL_COVERAGE_PCT, RENEWAL_M1/M2/M3_PCT, RENEWAL_M1/M2/M3_CALLED, RENEWAL_M1/M2/M3_TOTAL, RENEWAL_M1/M2/M3_M2M, RENEWAL_M1/M2/M3_M2M_CALLED, HIGH_RISK_ORG_COUNT, CANCELLATION_INTENT_COUNT, OVERALL_STATUS, DAILY_AR_COUNT, DAILY_ACTIVE, DAILY_CALL_SCORE_SUM, DAILY_CALL_COUNT, DAILY_RET_CREATED, DAILY_RET_MET
 - `BUILD.SALESFORCE.CORE_CASES` — onboarding + retention cases
 - `BUILD.CUSTOMER_SUCCESS.CORE_INTERACTION_INTELLIGENCE_PROCESSED` — AI risk model (Claude Sonnet 4.6 via Cortex), per-org risk/sentiment analysis
 - `BUILD.SALESFORCE.CORE_USERS` — CSM allowlist (title-based, excludes managers/VPs/Australia)
@@ -33,10 +34,14 @@ csms[]: csm, vertical, manager, segment, director, orgCount, bookArr, locationCo
         cancellationIntentCount, avgSentimentScore, arScoreNorm, callScoreNorm, slaScoreNorm,
         overallStatus, gatedBy10in14, hasUnattempted10in14
 
-sparklines: { "CSM Name": [{ date, composite, ar, call, sla, status }] }  (65-day window in JSON export, unlimited in Snowflake)
+sparklines: { "CSM Name": [{
+  date, composite, ar, call, sla, slaDone, slaTotal, status,
+  ufrByMonth: { "May 2026": { pct, called, total, m2m, m2mCalled } },
+  riskOrgs, cancelSignals,
+  dAr, dActive, dCallSum, dCallCnt, dRetCreated, dRetMet  // daily columns for DoD/WoW
+}] }  (65-day window in JSON export, unlimited in Snowflake)
 riskDetail: { "CSM Name": { totalOrgsAnalyzed, lowRisk, elevatedRisk, highRisk, criticalRisk, avgOpenAsks, avgDaysOpen } }
-renewalByMonth: { "May 2026": { "CSM Name": { total, called, pct, m2m, annual } } }
-ufrByMonth: { "CSM Name": { "May 2026": { called, total, pct }, ... } }  (absolute month labels, used for UFR sparklines)
+renewalByMonth: { "May 2026": { "CSM Name": { total, called, pct, m2m, m2mCalled, annual } } }
 meta.ufrPacing: { bizDaysElapsed, totalBizDays, progressRatio }
 ```
 
@@ -100,18 +105,40 @@ AR/Day segment thresholds:
 - **Dark/Light mode**
 
 ## Data Refresh Workflow
-1. Snowflake procedure runs daily at 6 AM MST (snapshots then rebuilds master table)
+1. Snowflake procedure runs daily at 6 AM MST via `REFRESH_CS_PERF_HUB_TASK`
+   - Step 1: DELETE + INSERT today's snapshot (dedup guard) with daily columns computed from source tables
+   - Step 2: CREATE OR REPLACE MASTER table from optimized CTEs (each source table scanned once)
 2. Run `bash scripts/sync-snowflake.sh` to export fresh JSON (requires Snowflake SSO)
-3. OR generate JSON directly via Snowflake MCP queries + Python processing
-4. Commit and push to GitHub for deployment
+3. Commit and push to both repos (GitHub Pages + Podium internal)
+
+## Procedure Optimizations
+- SFDC, Gong, Podium each scanned once with wide date window (base CTEs), then filtered downstream for AR/Day (L30, ≥15min), retention SLA (L30, any duration), and UFR (120-day window, ≥15min)
+- MRR table scanned once — `curr_month_orgs` feeds roster, location count, and renewal cohort
+- Call scoring tables scanned once — single CTE with all columns, filtered to L30 (current) and L30-L60 (prior)
+- Snapshot INSERT computes daily columns inline via lightweight single-day CTEs (no extra source scans)
+
+## Trend Bar Methodology
+- **DoD/WoW for AR/Day, Call Score, Ret SLA**: Uses daily columns (dAr/dActive, dCallSum/dCallCnt, dRetCreated/dRetMet) — actual per-day data, not L30 rolling averages
+- **MoM for AR/Day, Call Score, Ret SLA, Composite**: "Current" = live MASTER data (matches hero card exactly), "Prior" = sparkline value from 30 days ago
+- **UFR (all timeframes)**: Always point-to-point. "Current" = live MASTER data (via getRenewal with M2M exclusion + P+P exclusion), "Prior" = sparkline value from N days ago
+- **Date labels**: All sparkline dates use `asOfDate()` (snapshot_date - 1) to show activity dates, not snapshot capture dates
+- **Weekend skipping**: DoD skips weekends for daily column metrics (zero data on Sat/Sun) and for Composite (filtered to weekdays)
+- **Call scoring lag**: Call scores may have 1-2 day processing delay (Cortex AI scoring), so DoD for call score may show older dates than AR/Day
+
+## M2M Handling
+- M2M exclusion uses actual `m2mCalled` counts (not proportional estimates) everywhere: hero cards, trend bars, UFR deep dive, vertical WoW
+- `getRenewal()` subtracts actual `m2mCalled` from called and `m2m` from total
+- `computeUfrRollupDelta()`, `computeVertWoWDelta()`, and `ufrMonthDelta()` all apply M2M exclusion when toggle is on
+- Sparkline `ufrByMonth` stores `m2m` and `m2mCalled` per month for historical M2M-aware comparisons
 
 ## Known Issues / Future Work
-- M2M contract classification uses `MONTH_START_CONTRACT_TYPE_BUCKET` (correct), but called/uncalled split for M2M vs annual is estimated proportionally
 - No outcome tracking (churn rate correlation with composite)
 - MRR-weighted UFR pacing would be more accurate (high-value renewals should be prioritized)
 - Okta auth integration for podium-tools.com deployment (App Runner service exists, needs auth middleware)
 - OEM UFR is inflated by M2M contracts — Chief of Staff flagged this
 - Holiday calendar not yet implemented for retention SLA business day calculation (weekends only for now)
+- Maria Lam manager reassignment pending in MRR table (SFDC updated, MRR monthly snapshot will reflect in April)
+- Call scoring processing lag means DoD call score may lag 1-2 days behind AR/Day
 
 ## Design Language
 - Anthropic/Claude-inspired: warm neutrals, typography-first, generous whitespace
