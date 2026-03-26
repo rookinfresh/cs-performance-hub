@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book Distribution — CS Performance Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── Design tokens (synced with main dashboard) ───────────────────────── */
+:root {
+  --bg: #FAFAF9;
+  --surface: #FFFFFF;
+  --surface2: #F5F5F3;
+  --surface3: #EEEDE9;
+  --border: #E8E7E3;
+  --border2: #DDDCD6;
+  --text: #1A1A19;
+  --text2: #4A4A46;
+  --muted: #8A8A82;
+  --muted2: #B0AFA8;
+  --accent: #1A1A19;
+  --accent-subtle: #6B6B65;
+  --green: #16A34A;
+  --green-bg: #F0FDF4;
+  --green-t: #166534;
+  --amber: #E8860A;
+  --amber-bg: #FFF4E5;
+  --amber-t: #92400E;
+  --red: #DC2626;
+  --red-bg: #FEF2F2;
+  --red-t: #991B1B;
+  --blue: #2563EB;
+  --blue-bg: #EFF6FF;
+  --blue-t: #1E40AF;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.06);
+}
+[data-theme="dark"] {
+  --bg: #0A0A09;
+  --surface: #141413;
+  --surface2: #1C1C1A;
+  --surface3: #242422;
+  --border: #2A2A27;
+  --border2: #383835;
+  --text: #F0EFEC;
+  --text2: #C0BFB8;
+  --muted: #7A7A72;
+  --muted2: #5A5A54;
+  --accent: #F0EFEC;
+  --accent-subtle: #9A9A92;
+  --green: #22C55E;
+  --green-bg: rgba(34,197,94,0.12);
+  --green-t: #4ADE80;
+  --amber: #F59E0B;
+  --amber-bg: rgba(245,158,11,0.12);
+  --amber-t: #FCD34D;
+  --red: #EF4444;
+  --red-bg: rgba(239,68,68,0.12);
+  --red-t: #FCA5A5;
+  --blue: #3B82F6;
+  --blue-bg: rgba(59,130,246,0.12);
+  --blue-t: #93C5FD;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.2);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.3);
+}
+
+/* ── Reset & base ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { overflow-x: hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.2s, color 0.2s;
+  overflow-x: hidden;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+a { color: inherit; text-decoration: none; }
+
+/* ── Topbar ───────────────────────────────────────────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  height: 48px; padding: 0 24px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  display: flex; align-items: center; gap: 16px;
+}
+.topbar-left { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.topbar-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  padding: 5px 12px; border-radius: 6px;
+  transition: all 0.12s;
+}
+.topbar-back:hover { color: var(--text); background: var(--surface2); }
+.topbar-title { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); white-space: nowrap; }
+.topbar-center { flex: 1; display: flex; justify-content: center; }
+.topbar-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.topbar-btn {
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; border: 1px solid var(--border2); background: var(--surface2);
+  color: var(--text2); cursor: pointer; font-size: 13px; transition: all 0.12s;
+}
+.topbar-btn:hover { border-color: var(--text2); color: var(--text); background: var(--surface3); }
+
+/* ── M2M toggle ───────────────────────────────────────────────────────── */
+.m2m-toggle {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  cursor: pointer; user-select: none; white-space: nowrap;
+}
+.m2m-toggle input { accent-color: var(--green); width: 14px; height: 14px; cursor: pointer; }
+
+/* ── Manager strip ────────────────────────────────────────────────────── */
+.mgr-strip {
+  position: sticky; top: 48px; z-index: 98;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 24px;
+  display: flex; align-items: center; gap: 8px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.mgr-strip::-webkit-scrollbar { height: 0; }
+.mgr-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.6px; color: var(--muted); white-space: nowrap; margin-right: 4px;
+}
+.mgr-pill {
+  padding: 4px 13px; border-radius: 20px;
+  border: 1px solid var(--border2); background: var(--surface2);
+  color: var(--text2); font-size: 12px; font-weight: 500;
+  transition: all 0.15s; white-space: nowrap; flex-shrink: 0;
+}
+.mgr-pill:hover { border-color: var(--text); color: var(--text); }
+.mgr-pill.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+.mgr-count { font-size: 10px; opacity: 0.6; margin-left: 2px; }
+
+/* ── Main content ─────────────────────────────────────────────────────── */
+.main { padding: 28px 24px; max-width: 1400px; margin: 0 auto; }
+
+/* ── Section ──────────────────────────────────────────────────────────── */
+.section { margin-bottom: 32px; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+.section-title { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+.section-sub { font-size: 12px; color: var(--muted); }
+
+/* ── Summary cards ────────────────────────────────────────────────────── */
+.summary-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px; margin-bottom: 32px;
+}
+.summary-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.summary-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.summary-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--muted); margin-bottom: 8px;
+}
+.summary-value { font-size: 26px; font-weight: 800; color: var(--text); line-height: 1; }
+.summary-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* ── Card ─────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface); border-radius: 12px;
+  box-shadow: var(--shadow-sm); border: 1px solid var(--border); padding: 24px;
+}
+.card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
+}
+.card-title { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+.card-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ── Tabs ─────────────────────────────────────────────────────────────── */
+.tab-group { display: flex; gap: 2px; background: var(--surface2); border-radius: 8px; padding: 2px; }
+.tab-btn {
+  padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  color: var(--muted); transition: all 0.12s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--text); background: var(--surface); box-shadow: var(--shadow-sm); }
+
+/* ── Distribution bars ────────────────────────────────────────────────── */
+.dist-container { max-height: 600px; overflow-y: auto; }
+.dist-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 7px 0; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.1s;
+}
+.dist-row:hover { background: var(--surface2); margin: 0 -8px; padding-left: 8px; padding-right: 8px; border-radius: 6px; }
+.dist-row:last-child { border-bottom: none; }
+.dist-rank {
+  width: 24px; text-align: right; font-size: 11px; font-weight: 600;
+  color: var(--muted2); flex-shrink: 0;
+}
+.dist-name {
+  width: 130px; flex-shrink: 0; font-size: 13px; font-weight: 600;
+  color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dist-bar-wrap {
+  flex: 1; height: 22px; background: var(--surface3);
+  border-radius: 6px; overflow: hidden; position: relative; min-width: 80px;
+}
+.dist-bar-fill {
+  height: 100%; border-radius: 6px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 2px; position: relative;
+}
+.dist-value {
+  width: 90px; text-align: right; font-size: 13px; font-weight: 600;
+  color: var(--text2); white-space: nowrap; flex-shrink: 0;
+}
+.dist-pct {
+  width: 44px; text-align: right; font-size: 11px; font-weight: 600;
+  color: var(--muted); flex-shrink: 0;
+}
+.dist-show-all {
+  display: block; text-align: center; padding: 10px;
+  font-size: 12px; font-weight: 600; color: var(--blue);
+  cursor: pointer; border-top: 1px solid var(--border); margin-top: 4px;
+}
+.dist-show-all:hover { color: var(--text); }
+.dist-balance {
+  margin-top: 12px; padding: 10px 14px; background: var(--surface2);
+  border-radius: 8px; font-size: 12px; color: var(--text2);
+  display: flex; align-items: center; gap: 6px;
+}
+.balance-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+
+/* ── Renewal heatmap ──────────────────────────────────────────────────── */
+.heatmap-wrap { overflow-x: auto; }
+.heatmap { width: 100%; border-collapse: separate; border-spacing: 0; }
+.heatmap th {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--muted); padding: 8px 12px;
+  text-align: center; position: sticky; top: 0; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.heatmap th:first-child { text-align: left; }
+.heatmap td {
+  padding: 6px 10px; text-align: center; font-size: 13px; font-weight: 600;
+  border-bottom: 1px solid var(--border); transition: background 0.1s;
+}
+.heatmap tr { cursor: pointer; }
+.heatmap tr:hover td { background: var(--surface2); }
+.heatmap td:first-child {
+  text-align: left; font-size: 13px; font-weight: 600;
+  color: var(--text); white-space: nowrap; max-width: 160px;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.heat-cell {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 36px; padding: 3px 8px; border-radius: 6px;
+  font-size: 12px; font-weight: 700; transition: all 0.15s;
+}
+.heatmap .total-cell { font-weight: 800; color: var(--text); }
+.heatmap .flag-cell { outline: 2px solid var(--amber); outline-offset: -1px; }
+
+/* ── Expand row ───────────────────────────────────────────────────────── */
+.expand-row td { padding: 0; border-bottom: 1px solid var(--border); }
+.expand-row:hover td { background: transparent; }
+.expand-inner {
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), padding 0.35s;
+  padding: 0 16px;
+}
+.expand-inner.open { max-height: 400px; padding: 14px 16px 18px; }
+.expand-month { margin-bottom: 12px; }
+.expand-month:last-child { margin-bottom: 0; }
+.expand-month-label { font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 6px; display: block; }
+.expand-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.expand-bar-track {
+  flex: 1; height: 16px; background: var(--surface3);
+  border-radius: 4px; overflow: hidden; display: flex;
+}
+.expand-bar-annual {
+  height: 100%; background: var(--blue);
+  transition: width 0.4s ease; display: flex; align-items: center;
+  justify-content: center; font-size: 9px; font-weight: 700;
+  color: #fff; min-width: 0;
+}
+.expand-bar-m2m {
+  height: 100%; background: var(--muted2);
+  transition: width 0.4s ease; display: flex; align-items: center;
+  justify-content: center; font-size: 9px; font-weight: 700;
+  color: #fff; min-width: 0;
+}
+.expand-stats {
+  display: flex; gap: 16px; font-size: 11px; color: var(--text2);
+}
+.expand-stats span { white-space: nowrap; }
+
+/* ── Capacity table ───────────────────────────────────────────────────── */
+.table-wrap {
+  overflow-x: auto; max-height: 560px; overflow-y: auto;
+  border-radius: 10px; border: 1px solid var(--border);
+}
+.cap-table { width: 100%; border-collapse: collapse; min-width: 900px; }
+.cap-table thead { position: sticky; top: 0; z-index: 2; }
+.cap-table th {
+  background: var(--surface2); padding: 8px 10px;
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.4px; color: var(--muted);
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+  cursor: pointer; user-select: none; transition: color 0.12s;
+}
+.cap-table th:hover { color: var(--text); }
+.cap-table th.sorted { color: var(--text); }
+.cap-table th .sort-icon { font-size: 9px; margin-left: 2px; }
+.cap-table td {
+  padding: 8px 10px; font-size: 12px; border-bottom: 1px solid var(--border);
+  white-space: nowrap; color: var(--text2);
+}
+.cap-table tr { cursor: pointer; transition: background 0.1s; }
+.cap-table tbody tr:hover td { background: var(--surface2); }
+.cap-table .name-cell { font-weight: 600; color: var(--text); max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.cap-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.sc-green { background: var(--green-bg); color: var(--green-t); font-weight: 700; text-align: center; border-radius: 4px; }
+.sc-amber { background: var(--amber-bg); color: var(--amber-t); font-weight: 700; text-align: center; border-radius: 4px; }
+.sc-red   { background: var(--red-bg);   color: var(--red-t);   font-weight: 700; text-align: center; border-radius: 4px; }
+
+/* ── CSM Panel ────────────────────────────────────────────────────────── */
+.panel-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.25);
+  z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+.panel-backdrop.open { opacity: 1; pointer-events: auto; }
+.panel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 420px;
+  background: var(--surface); border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-xl); z-index: 201;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto; padding: 24px;
+}
+.panel.open { transform: translateX(0); }
+.panel-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 30px; height: 30px; border-radius: 6px;
+  background: var(--surface2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: var(--muted); transition: all 0.12s;
+}
+.panel-close:hover { background: var(--surface3); color: var(--text); }
+.panel-name { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+.panel-meta { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+.panel-section {
+  margin-bottom: 20px; padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.panel-section:last-child { border-bottom: none; margin-bottom: 0; }
+.panel-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--muted); margin-bottom: 10px;
+}
+.panel-stat-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.panel-stat-label { font-size: 10px; color: var(--muted); font-weight: 500; }
+.panel-stat-value { font-size: 16px; font-weight: 700; color: var(--text); }
+.panel-pillar-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.panel-pillar-label { width: 80px; font-size: 11px; font-weight: 600; color: var(--text2); flex-shrink: 0; }
+.panel-pillar-track {
+  flex: 1; height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden;
+}
+.panel-pillar-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+.panel-pillar-val { width: 36px; text-align: right; font-size: 12px; font-weight: 700; }
+.panel-renewal-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 0; border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.panel-renewal-row:last-child { border-bottom: none; }
+
+/* ── Pills ────────────────────────────────────────────────────────────── */
+.pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+.pill-green { background: var(--green-bg); color: var(--green-t); }
+.pill-amber { background: var(--amber-bg); color: var(--amber-t); }
+.pill-red   { background: var(--red-bg);   color: var(--red-t); }
+.pill-muted { background: var(--surface2); color: var(--muted); }
+.pill-blue  { background: var(--blue-bg);  color: var(--blue-t); }
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .main { padding: 16px; }
+  .topbar { padding: 0 16px; }
+  .mgr-strip { padding: 8px 16px; }
+  .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .dist-name { width: 100px; font-size: 12px; }
+  .dist-value { width: 70px; font-size: 12px; }
+  .panel { width: 100%; }
+  .card { padding: 16px; }
+}
+@media (max-width: 480px) {
+  .summary-grid { grid-template-columns: 1fr; }
+  .dist-rank { display: none; }
+  .dist-pct { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── Topbar ──────────────────────────────────────────────────────────── -->
+<header class="topbar">
+  <div class="topbar-left">
+    <a href="index.html" class="topbar-back">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7.5 2L3.5 6l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Dashboard
+    </a>
+  </div>
+  <div class="topbar-center">
+    <span class="topbar-title">Book Distribution</span>
+  </div>
+  <div class="topbar-right">
+    <label class="m2m-toggle">
+      <input type="checkbox" id="m2mToggle" checked onchange="toggleM2M()">
+      Exclude M2M
+    </label>
+    <button class="topbar-btn" onclick="toggleTheme()" title="Toggle theme"><span id="themeIcon">&#9789;</span></button>
+  </div>
+</header>
+
+<!-- ─── Manager picker strip ────────────────────────────────────────────── -->
+<div class="mgr-strip">
+  <span class="mgr-label">Manager</span>
+  <div id="mgrPills" style="display:flex;gap:6px;flex-wrap:nowrap;"></div>
+</div>
+
+<!-- ─── Main content ────────────────────────────────────────────────────── -->
+<main class="main">
+  <!-- Summary cards -->
+  <div id="summaryGrid" class="summary-grid"></div>
+
+  <!-- Book distribution bars -->
+  <div class="section">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Book Distribution</div>
+          <div class="card-sub" id="distSub"></div>
+        </div>
+        <div class="tab-group">
+          <button class="tab-btn active" data-tab="arr" onclick="setDistTab('arr')">ARR</button>
+          <button class="tab-btn" data-tab="orgs" onclick="setDistTab('orgs')">Orgs</button>
+          <button class="tab-btn" data-tab="locs" onclick="setDistTab('locs')">Locations</button>
+        </div>
+      </div>
+      <div id="distContent" class="dist-container"></div>
+      <div id="distBalance"></div>
+    </div>
+  </div>
+
+  <!-- Renewal distribution heatmap -->
+  <div class="section">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Renewal Distribution</div>
+          <div class="card-sub">Click a row to expand M2M vs Annual breakdown</div>
+        </div>
+      </div>
+      <div class="heatmap-wrap">
+        <table class="heatmap" id="renewalTable"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Capacity table -->
+  <div class="section">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Team Capacity</div>
+          <div class="card-sub" id="capSub"></div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="cap-table" id="capTable"></table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ─── CSM Panel ───────────────────────────────────────────────────────── -->
+<div class="panel-backdrop" id="panelBackdrop" onclick="closePanel()"></div>
+<div class="panel" id="panel">
+  <button class="panel-close" onclick="closePanel()">&times;</button>
+  <div id="panelContent"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+let DATA = null;
+const state = {
+  manager: 'all',
+  distTab: 'arr',
+  sortCol: 'bookArr',
+  sortDir: 'desc',
+  excludeM2M: true,
+  showAll: false,
+  expandedCSM: null
+};
+
+const VERT_COLORS = {
+  OEM:'#2563EB', HVAC:'#0284C7', MedSpa:'#7C3AED', Emerging:'#EA580C',
+  Auto:'#059669', FAM:'#D97706', Jewelry:'#DB2777', Retail:'#475569', Specialty:'#8B5CF6'
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+  initTheme();
+  try {
+    const resp = await fetch('cs_perf_data.json');
+    DATA = await resp.json();
+  } catch (e) {
+    document.querySelector('.main').innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">Failed to load data. Make sure cs_perf_data.json is in the same directory.</div>';
+    return;
+  }
+  // Read URL params
+  const params = new URLSearchParams(location.search);
+  if (params.has('manager')) state.manager = params.get('manager');
+  if (params.has('m2m')) state.excludeM2M = params.get('m2m') !== '0';
+  document.getElementById('m2mToggle').checked = state.excludeM2M;
+
+  buildManagerPicker();
+  renderAll();
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+function fmtArr(v) {
+  if (v == null) return '—';
+  if (v >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M';
+  if (v >= 1e3) return '$' + (v / 1e3).toFixed(0) + 'K';
+  return '$' + v.toFixed(0);
+}
+function fmtNum(v) { return v == null ? '—' : v.toLocaleString(); }
+function fmtPct(v, d) { return v == null ? '—' : v.toFixed(d || 0) + '%'; }
+function fmtScore(v) { return v == null ? '—' : v.toFixed(1); }
+
+function statusClass(status) {
+  if (status === 'green') return 'sc-green';
+  if (status === 'yellow') return 'sc-amber';
+  return 'sc-red';
+}
+function compositeStatus(s) {
+  if (s == null) return 'red';
+  if (s >= 80) return 'green';
+  if (s >= 50) return 'yellow';
+  return 'red';
+}
+function vertColor(v) { return VERT_COLORS[v] || '#8A8A82'; }
+
+function getCSMs() {
+  if (!DATA) return [];
+  if (state.manager === 'all') return DATA.csms;
+  return DATA.csms.filter(d => d.manager === state.manager);
+}
+
+function getMonths() {
+  return DATA ? DATA.meta.renewalMonthLabels || [] : [];
+}
+
+function getRenewal(csmName, month) {
+  if (!DATA || !DATA.renewalByMonth[month]) return { total: 0, called: 0, pct: 0, m2m: 0, m2mCalled: 0, annual: 0 };
+  return DATA.renewalByMonth[month][csmName] || { total: 0, called: 0, pct: 0, m2m: 0, m2mCalled: 0, annual: 0 };
+}
+
+function effectiveRenewals(r) {
+  if (state.excludeM2M) return { total: r.total - (r.m2m || 0), called: r.called - (r.m2mCalled || 0) };
+  return { total: r.total, called: r.called };
+}
+
+function sum(arr, fn) { return arr.reduce((a, b) => a + (fn(b) || 0), 0); }
+function avg(arr, fn) {
+  const vals = arr.map(fn).filter(v => v != null);
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MANAGER PICKER
+// ═══════════════════════════════════════════════════════════════════════════
+function buildManagerPicker() {
+  const managers = {};
+  DATA.csms.forEach(d => {
+    if (!managers[d.manager]) managers[d.manager] = 0;
+    managers[d.manager]++;
+  });
+  const sorted = Object.entries(managers).sort((a, b) => a[0].localeCompare(b[0]));
+  const container = document.getElementById('mgrPills');
+  let html = '<button class="mgr-pill' + (state.manager === 'all' ? ' active' : '') + '" onclick="selectManager(\'all\')">All<span class="mgr-count"> (' + DATA.csms.length + ')</span></button>';
+  sorted.forEach(([name, count]) => {
+    const active = state.manager === name ? ' active' : '';
+    html += '<button class="mgr-pill' + active + '" onclick="selectManager(\'' + name.replace(/'/g, "\\'") + '\')">'
+      + name + '<span class="mgr-count"> (' + count + ')</span></button>';
+  });
+  container.innerHTML = html;
+}
+
+function selectManager(mgr) {
+  state.manager = mgr;
+  state.showAll = false;
+  state.expandedCSM = null;
+  // Update URL
+  const url = mgr === 'all' ? location.pathname : location.pathname + '?manager=' + encodeURIComponent(mgr);
+  history.replaceState(null, '', url);
+  // Update active pill
+  document.querySelectorAll('.mgr-pill').forEach(el => {
+    const isAll = el.textContent.startsWith('All');
+    const name = isAll ? 'all' : el.textContent.replace(/\s*\(\d+\)$/, '');
+    el.classList.toggle('active', name === mgr);
+  });
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER ALL
+// ═══════════════════════════════════════════════════════════════════════════
+function renderAll() {
+  renderSummary();
+  renderDistribution();
+  renderRenewalCalendar();
+  renderCapacityTable();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SUMMARY CARDS
+// ═══════════════════════════════════════════════════════════════════════════
+function renderSummary() {
+  const csms = getCSMs();
+  const totalArr = sum(csms, d => d.bookArr);
+  const totalOrgs = sum(csms, d => d.orgCount);
+  const totalLocs = sum(csms, d => d.locationCount);
+
+  // Total renewals across months
+  let totalRenewals = 0;
+  getMonths().forEach(month => {
+    csms.forEach(d => {
+      const r = getRenewal(d.csm, month);
+      totalRenewals += effectiveRenewals(r).total;
+    });
+  });
+
+  const totalCases = sum(csms, d => (d.openOnboardingCases || 0) + (d.openRetentionCases || 0));
+  const avgComp = avg(csms, d => d.composite);
+  const compStatus = compositeStatus(avgComp);
+
+  const cards = [
+    { label: 'Team ARR', value: fmtArr(totalArr), sub: csms.length + ' CSMs' },
+    { label: 'Organizations', value: fmtNum(totalOrgs), sub: fmtNum(Math.round(totalOrgs / Math.max(csms.length, 1))) + ' avg per CSM' },
+    { label: 'Locations', value: fmtNum(totalLocs), sub: fmtNum(Math.round(totalLocs / Math.max(totalOrgs, 1))) + ' avg per org' },
+    { label: 'Renewals', value: fmtNum(totalRenewals), sub: getMonths().length + ' months' + (state.excludeM2M ? ' (excl. M2M)' : '') },
+    { label: 'Open Cases', value: fmtNum(totalCases), sub: sum(csms, d => d.openOnboardingCases || 0) + ' OB · ' + sum(csms, d => d.openRetentionCases || 0) + ' Ret' },
+    { label: 'Avg Composite', value: avgComp != null ? avgComp.toFixed(1) : '—', sub: '<span class="pill pill-' + (compStatus === 'yellow' ? 'amber' : compStatus) + '" style="font-size:10px;padding:2px 8px;">' + (compStatus === 'yellow' ? 'Amber' : compStatus.charAt(0).toUpperCase() + compStatus.slice(1)) + '</span>' },
+  ];
+
+  document.getElementById('summaryGrid').innerHTML = cards.map(c =>
+    '<div class="summary-card">' +
+      '<div class="summary-label">' + c.label + '</div>' +
+      '<div class="summary-value">' + c.value + '</div>' +
+      '<div class="summary-sub">' + c.sub + '</div>' +
+    '</div>'
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DISTRIBUTION BARS
+// ═══════════════════════════════════════════════════════════════════════════
+function setDistTab(tab) {
+  state.distTab = tab;
+  state.showAll = false;
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.toggle('active', el.dataset.tab === tab));
+  renderDistribution();
+}
+
+function renderDistribution() {
+  const csms = getCSMs();
+  const tab = state.distTab;
+  const field = tab === 'arr' ? 'bookArr' : tab === 'orgs' ? 'orgCount' : 'locationCount';
+  const formatter = tab === 'arr' ? fmtArr : fmtNum;
+  const label = tab === 'arr' ? 'ARR' : tab === 'orgs' ? 'organizations' : 'locations';
+
+  const sorted = [...csms].sort((a, b) => (b[field] || 0) - (a[field] || 0));
+  const total = sum(sorted, d => d[field]);
+  const maxVal = sorted.length ? (sorted[0][field] || 0) : 0;
+  const limit = state.showAll ? sorted.length : Math.min(20, sorted.length);
+  const showing = sorted.slice(0, limit);
+
+  // Subtitle
+  document.getElementById('distSub').textContent =
+    (tab === 'arr' ? fmtArr(total) : fmtNum(total)) + ' total ' + label + ' across ' + csms.length + ' CSMs';
+
+  // Bars
+  let html = '';
+  showing.forEach((d, i) => {
+    const val = d[field] || 0;
+    const pct = total > 0 ? (val / total * 100) : 0;
+    const barW = maxVal > 0 ? (val / maxVal * 100) : 0;
+    const color = vertColor(d.vertical);
+    html += '<div class="dist-row" onclick="openPanel(\'' + d.csm.replace(/'/g, "\\'") + '\')">'
+      + '<span class="dist-rank">' + (i + 1) + '</span>'
+      + '<span class="dist-name" title="' + d.csm + '">' + d.csm + '</span>'
+      + '<div class="dist-bar-wrap"><div class="dist-bar-fill" style="width:' + barW.toFixed(1) + '%;background:' + color + ';opacity:0.75"></div></div>'
+      + '<span class="dist-value">' + formatter(val) + '</span>'
+      + '<span class="dist-pct">' + pct.toFixed(1) + '%</span>'
+      + '</div>';
+  });
+
+  const container = document.getElementById('distContent');
+  container.innerHTML = html;
+
+  // Show all toggle
+  if (sorted.length > 20 && !state.showAll) {
+    container.innerHTML += '<a class="dist-show-all" onclick="state.showAll=true;renderDistribution()">Show all ' + sorted.length + ' CSMs</a>';
+  }
+
+  // Balance indicator
+  renderDistBalance(sorted, total, label);
+}
+
+function renderDistBalance(sorted, total, label) {
+  if (!sorted.length) { document.getElementById('distBalance').innerHTML = ''; return; }
+  const topPct = total > 0 ? ((sorted[0][state.distTab === 'arr' ? 'bookArr' : state.distTab === 'orgs' ? 'orgCount' : 'locationCount'] || 0) / total * 100) : 0;
+
+  // Coefficient of variation
+  const vals = sorted.map(d => d[state.distTab === 'arr' ? 'bookArr' : state.distTab === 'orgs' ? 'orgCount' : 'locationCount'] || 0);
+  const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+  const variance = vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / vals.length;
+  const cv = mean > 0 ? Math.sqrt(variance) / mean : 0;
+
+  let balanceLabel, balanceColor;
+  if (cv < 0.35) { balanceLabel = 'Well balanced'; balanceColor = 'var(--green)'; }
+  else if (cv < 0.6) { balanceLabel = 'Moderate spread'; balanceColor = 'var(--amber)'; }
+  else { balanceLabel = 'Concentrated'; balanceColor = 'var(--red)'; }
+
+  document.getElementById('distBalance').innerHTML =
+    '<div class="dist-balance">'
+    + '<span class="balance-dot" style="background:' + balanceColor + '"></span>'
+    + '<strong>' + balanceLabel + '</strong> — largest share: ' + sorted[0].csm + ' (' + topPct.toFixed(1) + '%)'
+    + (sorted.length > 1 ? ' · smallest: ' + sorted[sorted.length - 1].csm + ' (' + (total > 0 ? ((sorted[sorted.length - 1][state.distTab === 'arr' ? 'bookArr' : state.distTab === 'orgs' ? 'orgCount' : 'locationCount'] || 0) / total * 100).toFixed(1) : '0') + '%)' : '')
+    + '</div>';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENEWAL CALENDAR
+// ═══════════════════════════════════════════════════════════════════════════
+function renderRenewalCalendar() {
+  const csms = getCSMs();
+  const months = getMonths();
+  if (!months.length) {
+    document.getElementById('renewalTable').innerHTML = '<tr><td style="padding:24px;color:var(--muted);text-align:center">No renewal month data available</td></tr>';
+    return;
+  }
+
+  // Build per-CSM totals
+  const rows = csms.map(d => {
+    const byMonth = {};
+    let rowTotal = 0;
+    months.forEach(m => {
+      const r = getRenewal(d.csm, m);
+      const eff = effectiveRenewals(r);
+      byMonth[m] = { ...r, effTotal: eff.total, effCalled: eff.called };
+      rowTotal += eff.total;
+    });
+    return { csm: d.csm, vertical: d.vertical, byMonth, total: rowTotal };
+  }).sort((a, b) => b.total - a.total);
+
+  // Compute max for heatmap intensity
+  let maxCount = 0;
+  rows.forEach(r => months.forEach(m => { if (r.byMonth[m].effTotal > maxCount) maxCount = r.byMonth[m].effTotal; }));
+
+  // Compute per-month averages for flagging
+  const monthAvgs = {};
+  months.forEach(m => {
+    const vals = rows.map(r => r.byMonth[m].effTotal).filter(v => v > 0);
+    monthAvgs[m] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  });
+
+  // Header
+  let html = '<thead><tr><th>CSM</th>';
+  months.forEach(m => { html += '<th>' + m.replace(' 20', ' \'') + '</th>'; });
+  html += '<th>Total</th></tr></thead><tbody>';
+
+  // Rows
+  rows.forEach(r => {
+    const isExpanded = state.expandedCSM === r.csm;
+    html += '<tr onclick="toggleExpand(\'' + r.csm.replace(/'/g, "\\'") + '\')">';
+    html += '<td>' + r.csm + '</td>';
+    months.forEach(m => {
+      const count = r.byMonth[m].effTotal;
+      const isFlag = count > 0 && monthAvgs[m] > 0 && count > monthAvgs[m] * 2;
+      html += '<td><span class="heat-cell' + (isFlag ? ' flag-cell' : '') + '" style="' + heatStyle(count, maxCount) + '">'
+        + (count || '—') + '</span></td>';
+    });
+    html += '<td class="total-cell">' + (r.total || '—') + '</td></tr>';
+
+    // Expand row
+    html += '<tr class="expand-row"><td colspan="' + (months.length + 2) + '">'
+      + '<div class="expand-inner' + (isExpanded ? ' open' : '') + '" id="expand-' + r.csm.replace(/\s/g, '-') + '">'
+      + renderExpandContent(r, months)
+      + '</div></td></tr>';
+  });
+
+  html += '</tbody>';
+  document.getElementById('renewalTable').innerHTML = html;
+}
+
+function heatStyle(count, max) {
+  if (!count) return 'background:var(--surface2);color:var(--muted2)';
+  const t = max > 0 ? count / max : 0;
+  const alpha = 0.08 + t * 0.55;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const color = isDark ? '147,197,253' : '37,99,235';
+  const textColor = t > 0.45 ? (isDark ? '#1E3A5F' : '#fff') : 'var(--text)';
+  return 'background:rgba(' + color + ',' + alpha.toFixed(2) + ');color:' + textColor;
+}
+
+function renderExpandContent(row, months) {
+  let html = '';
+  months.forEach(m => {
+    const r = row.byMonth[m];
+    const annual = r.annual || 0;
+    const m2m = r.m2m || 0;
+    const total = r.total || 0;
+    const called = r.called || 0;
+    const m2mCalled = r.m2mCalled || 0;
+    const annualPct = total > 0 ? (annual / total * 100) : 0;
+    const m2mPct = total > 0 ? (m2m / total * 100) : 0;
+
+    html += '<div class="expand-month">'
+      + '<span class="expand-month-label">' + m + '</span>';
+
+    if (total === 0) {
+      html += '<div style="font-size:12px;color:var(--muted)">No renewals</div>';
+    } else {
+      html += '<div class="expand-bar-row">'
+        + '<div class="expand-bar-track">'
+        + (annual > 0 ? '<div class="expand-bar-annual" style="width:' + annualPct.toFixed(1) + '%">' + (annualPct > 12 ? annual : '') + '</div>' : '')
+        + (m2m > 0 ? '<div class="expand-bar-m2m" style="width:' + m2mPct.toFixed(1) + '%">' + (m2mPct > 12 ? m2m : '') + '</div>' : '')
+        + '</div>'
+        + '<span style="font-size:11px;color:var(--text2);white-space:nowrap">' + total + ' total</span>'
+        + '</div>'
+        + '<div class="expand-stats">'
+        + '<span>' + annual + ' Annual · ' + m2m + ' M2M</span>'
+        + '<span>Called: ' + called + '/' + total + ' (' + (total > 0 ? Math.round(called / total * 100) : 0) + '%)</span>'
+        + '</div>';
+    }
+    html += '</div>';
+  });
+  return html;
+}
+
+function toggleExpand(csm) {
+  if (state.expandedCSM === csm) {
+    // Collapse
+    const el = document.getElementById('expand-' + csm.replace(/\s/g, '-'));
+    if (el) el.classList.remove('open');
+    state.expandedCSM = null;
+  } else {
+    // Collapse previous
+    if (state.expandedCSM) {
+      const prev = document.getElementById('expand-' + state.expandedCSM.replace(/\s/g, '-'));
+      if (prev) prev.classList.remove('open');
+    }
+    state.expandedCSM = csm;
+    const el = document.getElementById('expand-' + csm.replace(/\s/g, '-'));
+    if (el) {
+      // Force reflow for animation
+      void el.offsetHeight;
+      el.classList.add('open');
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CAPACITY TABLE
+// ═══════════════════════════════════════════════════════════════════════════
+const CAP_COLS = [
+  { key: 'csm', label: 'CSM', cls: 'name-cell' },
+  { key: 'segment', label: 'Segment' },
+  { key: 'vertical', label: 'Vertical' },
+  { key: 'bookArr', label: 'ARR', cls: 'num', fmt: fmtArr },
+  { key: '_arrPct', label: 'ARR %', cls: 'num', fmt: v => fmtPct(v, 1) },
+  { key: 'orgCount', label: 'Orgs', cls: 'num', fmt: fmtNum },
+  { key: 'locationCount', label: 'Locs', cls: 'num', fmt: fmtNum },
+  { key: '_locPerOrg', label: 'Loc/Org', cls: 'num', fmt: v => v != null ? v.toFixed(1) : '—' },
+  { key: 'openOnboardingCases', label: 'OB Cases', cls: 'num', fmt: fmtNum },
+  { key: 'openRetentionCases', label: 'Ret Cases', cls: 'num', fmt: fmtNum },
+  { key: 'arsPerDay', label: 'AR/Day', cls: 'num', fmt: v => v != null ? v.toFixed(2) : '—', color: true },
+  { key: 'callScore', label: 'Call Score', cls: 'num', fmt: fmtScore, color: true },
+  { key: 'composite', label: 'Composite', cls: 'num', fmt: fmtScore, color: true },
+];
+
+function renderCapacityTable() {
+  const csms = getCSMs();
+  const totalArr = sum(csms, d => d.bookArr);
+
+  // Enrich with computed fields
+  const enriched = csms.map(d => ({
+    ...d,
+    _arrPct: totalArr > 0 ? (d.bookArr || 0) / totalArr * 100 : 0,
+    _locPerOrg: d.orgCount > 0 ? d.locationCount / d.orgCount : null,
+  }));
+
+  // Sort
+  const sorted = [...enriched].sort((a, b) => {
+    let av = a[state.sortCol], bv = b[state.sortCol];
+    if (typeof av === 'string') return state.sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    if (av == null) av = -Infinity;
+    if (bv == null) bv = -Infinity;
+    return state.sortDir === 'asc' ? av - bv : bv - av;
+  });
+
+  document.getElementById('capSub').textContent = sorted.length + ' CSMs · Click column headers to sort · Click row for details';
+
+  // Header
+  let html = '<thead><tr>';
+  CAP_COLS.forEach(col => {
+    const isSorted = state.sortCol === col.key;
+    const arrow = isSorted ? (state.sortDir === 'asc' ? ' ↑' : ' ↓') : '';
+    html += '<th class="' + (isSorted ? 'sorted' : '') + '" onclick="handleSort(\'' + col.key + '\')">'
+      + col.label + '<span class="sort-icon">' + arrow + '</span></th>';
+  });
+  html += '</tr></thead><tbody>';
+
+  // Rows
+  sorted.forEach(d => {
+    html += '<tr onclick="openPanel(\'' + d.csm.replace(/'/g, "\\'") + '\')">';
+    CAP_COLS.forEach(col => {
+      const val = d[col.key];
+      const display = col.fmt ? col.fmt(val) : (val != null ? val : '—');
+      let cls = col.cls || '';
+      if (col.color && val != null) {
+        cls += ' ' + getScoreClass(col.key, val, d);
+      }
+      html += '<td class="' + cls + '">' + display + '</td>';
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody>';
+  document.getElementById('capTable').innerHTML = html;
+}
+
+function getScoreClass(key, val, d) {
+  if (key === 'composite') {
+    if (val >= 80) return 'sc-green';
+    if (val >= 50) return 'sc-amber';
+    return 'sc-red';
+  }
+  if (key === 'callScore') {
+    if (val >= 80) return 'sc-green';
+    if (val >= 70) return 'sc-amber';
+    return 'sc-red';
+  }
+  if (key === 'arsPerDay') {
+    const seg = d.segment;
+    const thresholds = {
+      'AI/SOA': [3.3, 2.0], 'P+P': [2.0, 1.0],
+      'Mid Market': [2.5, 1.2], 'Strategic': [1.2, 0.7]
+    };
+    const t = thresholds[seg] || [2.0, 1.0];
+    if (val >= t[0]) return 'sc-green';
+    if (val >= t[1]) return 'sc-amber';
+    return 'sc-red';
+  }
+  return '';
+}
+
+function handleSort(col) {
+  if (state.sortCol === col) {
+    state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    state.sortCol = col;
+    state.sortDir = col === 'csm' || col === 'segment' || col === 'vertical' ? 'asc' : 'desc';
+  }
+  renderCapacityTable();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CSM PANEL
+// ═══════════════════════════════════════════════════════════════════════════
+function openPanel(csmName) {
+  const d = DATA.csms.find(c => c.csm === csmName);
+  if (!d) return;
+
+  const months = getMonths();
+  const compStatus = compositeStatus(d.composite);
+  const statusLabel = compStatus === 'yellow' ? 'Amber' : compStatus.charAt(0).toUpperCase() + compStatus.slice(1);
+
+  let html = '<div class="panel-name">' + d.csm + '</div>'
+    + '<div class="panel-meta">'
+    + '<span class="pill pill-muted">' + d.vertical + '</span> '
+    + '<span class="pill pill-muted">' + d.segment + '</span> '
+    + '· ' + d.manager
+    + '</div>';
+
+  // Book stats
+  html += '<div class="panel-section">'
+    + '<div class="panel-section-title">Book of Business</div>'
+    + '<div class="panel-stat-grid">'
+    + statBlock('ARR', fmtArr(d.bookArr))
+    + statBlock('Orgs', fmtNum(d.orgCount))
+    + statBlock('Locations', fmtNum(d.locationCount))
+    + '</div></div>';
+
+  // Composite + pillars
+  html += '<div class="panel-section">'
+    + '<div class="panel-section-title">Performance</div>'
+    + '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px">'
+    + '<span style="font-size:32px;font-weight:800">' + fmtScore(d.composite) + '</span>'
+    + '<span class="pill pill-' + (compStatus === 'yellow' ? 'amber' : compStatus) + '">' + statusLabel + '</span>'
+    + '</div>'
+    + pillarBar('AR/Day', d.arsPerDay, arNorm(d), arColor(d))
+    + pillarBar('Call Score', d.callScore != null ? d.callScore.toFixed(1) : '—', d.callScoreNorm, callColor(d.callScore))
+    + pillarBar('Ret SLA', d.retSLA != null ? fmtPct(d.retSLA * 100) : '—', d.slaScoreNorm, slaColor(d.retSLA))
+    + '</div>';
+
+  // Renewal by month
+  html += '<div class="panel-section">'
+    + '<div class="panel-section-title">Renewal Coverage</div>';
+  months.forEach(m => {
+    const r = getRenewal(d.csm, m);
+    const eff = effectiveRenewals(r);
+    const pct = eff.total > 0 ? Math.round(eff.called / eff.total * 100) : 0;
+    html += '<div class="panel-renewal-row">'
+      + '<span style="font-weight:600">' + m + '</span>'
+      + '<span>' + eff.called + ' / ' + eff.total + ' (' + pct + '%)'
+      + (state.excludeM2M && r.m2m > 0 ? ' <span style="color:var(--muted);font-size:10px">' + r.m2m + ' M2M excl.</span>' : '')
+      + '</span></div>';
+  });
+  html += '</div>';
+
+  // Cases
+  html += '<div class="panel-section">'
+    + '<div class="panel-section-title">Open Cases</div>'
+    + '<div style="display:flex;gap:10px">'
+    + '<span class="pill pill-blue">' + (d.openOnboardingCases || 0) + ' Onboarding</span>'
+    + '<span class="pill pill-amber">' + (d.openRetentionCases || 0) + ' Retention</span>'
+    + '</div></div>';
+
+  // Risk
+  if (d.highRiskOrgCount != null) {
+    html += '<div class="panel-section">'
+      + '<div class="panel-section-title">Risk Intelligence</div>'
+      + '<div class="panel-stat-grid">'
+      + statBlock('High Risk Orgs', d.highRiskOrgCount)
+      + statBlock('Cancel Signals', d.cancellationIntentCount || 0)
+      + statBlock('Avg Risk', d.avgRiskScore != null ? d.avgRiskScore.toFixed(2) : '—')
+      + '</div></div>';
+  }
+
+  document.getElementById('panelContent').innerHTML = html;
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('panelBackdrop').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('panelBackdrop').classList.remove('open');
+}
+
+function statBlock(label, value) {
+  return '<div><div class="panel-stat-label">' + label + '</div><div class="panel-stat-value">' + value + '</div></div>';
+}
+
+function pillarBar(label, display, norm, color) {
+  const w = norm != null ? (norm * 100).toFixed(1) : '0';
+  return '<div class="panel-pillar-row">'
+    + '<span class="panel-pillar-label">' + label + '</span>'
+    + '<div class="panel-pillar-track"><div class="panel-pillar-fill" style="width:' + w + '%;background:' + color + '"></div></div>'
+    + '<span class="panel-pillar-val" style="color:' + color + '">' + display + '</span>'
+    + '</div>';
+}
+
+function arNorm(d) { return d.arScoreNorm; }
+function arColor(d) {
+  const seg = d.segment;
+  const thresholds = { 'AI/SOA': [3.3, 2.0], 'P+P': [2.0, 1.0], 'Mid Market': [2.5, 1.2], 'Strategic': [1.2, 0.7] };
+  const t = thresholds[seg] || [2.0, 1.0];
+  if (d.arsPerDay >= t[0]) return 'var(--green)';
+  if (d.arsPerDay >= t[1]) return 'var(--amber)';
+  return 'var(--red)';
+}
+function callColor(score) {
+  if (score == null) return 'var(--muted)';
+  if (score >= 80) return 'var(--green)';
+  if (score >= 70) return 'var(--amber)';
+  return 'var(--red)';
+}
+function slaColor(sla) {
+  if (sla == null) return 'var(--muted)';
+  if (sla >= 0.8) return 'var(--green)';
+  if (sla >= 0.5) return 'var(--amber)';
+  return 'var(--red)';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// M2M TOGGLE
+// ═══════════════════════════════════════════════════════════════════════════
+function toggleM2M() {
+  state.excludeM2M = document.getElementById('m2mToggle').checked;
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════════════════════════════
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  document.getElementById('themeIcon').textContent = isDark ? '\u263D' : '\u2600';
+  localStorage.setItem('cs-perf-theme', next);
+  // Re-render heatmap for color update
+  if (DATA) renderRenewalCalendar();
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('cs-perf-theme');
+  const theme = saved || 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.textContent = theme === 'dark' ? '\u2600' : '\u263D';
+}
+
+// Keyboard shortcut: Escape closes panel
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePanel();
+});
+</script>
+</body>
+</html>
