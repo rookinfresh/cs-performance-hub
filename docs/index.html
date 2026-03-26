@@ -366,7 +366,36 @@ a { color: inherit; text-decoration: none; }
 /* ── Overview sections ──────────────────────────────────────────────── */
 .overview-section { margin-bottom: 32px; }
 
-/* ── Manager Leaderboard ────────────────────────────────────────────── */
+/* ── Book Distribution ──────────────────────────────────────────────── */
+.bd-bar-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 0; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.1s;
+}
+.bd-bar-row:hover { background: var(--surface2); margin: 0 -12px; padding-left: 12px; padding-right: 12px; border-radius: 6px; }
+.bd-bar-row:last-child { border-bottom: none; }
+.bd-rank { width: 22px; text-align: right; font-size: 11px; font-weight: 600; color: var(--muted2); flex-shrink: 0; }
+.bd-name { width: 140px; flex-shrink: 0; }
+.bd-name-main { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bd-name-sub { font-size: 10px; color: var(--muted); line-height: 1.2; margin-top: 1px; }
+.bd-bar-track { flex: 1; height: 18px; background: var(--surface3); border-radius: 4px; overflow: hidden; min-width: 60px; }
+.bd-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); background: var(--text); opacity: 0.13; }
+.bd-val { width: 80px; text-align: right; font-size: 13px; font-weight: 600; color: var(--text2); white-space: nowrap; flex-shrink: 0; }
+.bd-pct { width: 42px; text-align: right; font-size: 11px; font-weight: 600; color: var(--muted); flex-shrink: 0; }
+.bd-show-more { text-align: center; padding: 8px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.bd-show-more:hover { color: var(--text); }
+.bd-balance { margin-top: 12px; padding: 10px 14px; background: var(--surface2); border-radius: 8px; font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+.bd-balance-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* Book Dist – renewal spread bars */
+.bd-spread-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+.bd-spread-row:hover { background: var(--surface2); margin: 0 -12px; padding-left: 12px; padding-right: 12px; border-radius: 6px; }
+.bd-spread-row:last-child { border-bottom: none; }
+.bd-spread-track { flex: 1; height: 20px; background: var(--surface3); border-radius: 4px; overflow: hidden; display: flex; min-width: 100px; }
+.bd-spread-seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #fff; transition: width 0.4s ease; min-width: 0; overflow: hidden; }
+.bd-spread-total { width: 50px; text-align: right; font-size: 13px; font-weight: 700; color: var(--text); flex-shrink: 0; }
+
+/* Manager Leaderboard ────────────────────────────────────────────── */
 .mgr-list { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden; }
 .mgr-row {
   display: grid;
@@ -880,7 +909,7 @@ td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; color: var(
     <a class="topbar-nav-link" data-level="dive-call" onclick="navTo('dive-call')">Call Quality</a>
     <a class="topbar-nav-link" data-level="dive-ufr" onclick="navTo('dive-ufr')">UFR Coverage</a>
     <span class="topbar-sep"></span>
-    <a class="topbar-nav-link" href="book-distribution.html">Book Distribution</a>
+    <a class="topbar-nav-link" data-level="book-dist" onclick="navTo('book-dist')">Book Distribution</a>
   </nav>
   <div class="topbar-right">
     <span class="topbar-updated" id="topbarUpdated"></span>
@@ -1126,6 +1155,10 @@ let nav = {
 
 let teamViewMode = 'table'; // 'cards' | 'table'
 let teamTableSort = { field: 'composite', asc: false };
+
+let bookDistManager = 'all';
+let bookDistView = 'arr'; // 'arr' | 'orgs' | 'locs'
+let bookDistSort = { field: 'bookArr', asc: false };
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -1599,6 +1632,8 @@ function renderAll() {
     renderUfrDeepDive(main);
   } else if (nav.level === 'dive-call') {
     renderCallDeepDive(main);
+  } else if (nav.level === 'book-dist') {
+    renderBookDist(main);
   }
 
   // Update nav active states
@@ -4486,6 +4521,305 @@ function renderUfrDeepDive(container) {
   window._ufrExpectedPct = expectedPct;
   window._ufrFiltered = filtered;
   renderUfrRaceView();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BOOK DISTRIBUTION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderBookDist(main) {
+  const filtered = getFiltered();
+  const csms = bookDistManager === 'all' ? filtered : filtered.filter(d => d.manager === bookDistManager);
+  const managers = [...new Set(filtered.map(d => d.manager))].filter(Boolean).sort();
+  const months = renewalMonthLabels || [];
+
+  // ── Totals ──
+  const totalArr = csms.reduce((a, d) => a + (d.bookArr || 0), 0);
+  const totalOrgs = csms.reduce((a, d) => a + (d.orgCount || 0), 0);
+  const totalLocs = csms.reduce((a, d) => a + (d.locationCount || 0), 0);
+  const totalOB = csms.reduce((a, d) => a + (d.openOnboardingCases || 0), 0);
+  const totalRet = csms.reduce((a, d) => a + (d.openRetentionCases || 0), 0);
+
+  let totalRenewals = 0;
+  const nonPP = csms.filter(d => d.segment !== 'Phones + Platform');
+  months.forEach(m => {
+    nonPP.forEach(d => {
+      const r = renewalByMonth[m]?.[d.csm];
+      if (r) totalRenewals += excludeM2M ? (r.total - (r.m2m || 0)) : r.total;
+    });
+  });
+
+  // ── Manager dropdown ──
+  const mgrSelect = `<select style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer" onchange="setBookDistManager(this.value)">
+    <option value="all"${bookDistManager === 'all' ? ' selected' : ''}>All Managers</option>
+    ${managers.map(m => `<option value="${m}"${bookDistManager === m ? ' selected' : ''}>${m}</option>`).join('')}
+  </select>`;
+
+  main.innerHTML = `
+    <!-- ── Header + Summary ── -->
+    <div class="overview-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="section-label" style="margin-bottom:0">Book Distribution</div>
+        ${mgrSelect}
+      </div>
+      <div class="hero-kpis" style="grid-template-columns:repeat(5,1fr)">
+        <div class="hero-kpi" style="cursor:default">
+          <div class="hero-kpi-label">Team ARR</div>
+          <div class="hero-kpi-value">${fmtArr(totalArr)}</div>
+          <div class="hero-kpi-sub">${csms.length} CSMs</div>
+        </div>
+        <div class="hero-kpi" style="cursor:default">
+          <div class="hero-kpi-label">Organizations</div>
+          <div class="hero-kpi-value">${totalOrgs.toLocaleString()}</div>
+          <div class="hero-kpi-sub">${csms.length ? Math.round(totalOrgs / csms.length) : 0} avg per CSM</div>
+        </div>
+        <div class="hero-kpi" style="cursor:default">
+          <div class="hero-kpi-label">Locations</div>
+          <div class="hero-kpi-value">${totalLocs.toLocaleString()}</div>
+          <div class="hero-kpi-sub">${totalOrgs ? (totalLocs / totalOrgs).toFixed(1) : '—'} per org</div>
+        </div>
+        <div class="hero-kpi" style="cursor:default">
+          <div class="hero-kpi-label">Renewals</div>
+          <div class="hero-kpi-value">${totalRenewals.toLocaleString()}</div>
+          <div class="hero-kpi-sub">${months.length} months${excludeM2M ? ' · excl. M2M' : ''} · non-P+P</div>
+        </div>
+        <div class="hero-kpi" style="cursor:default">
+          <div class="hero-kpi-label">Open Cases</div>
+          <div class="hero-kpi-value">${(totalOB + totalRet).toLocaleString()}</div>
+          <div class="hero-kpi-sub">${totalOB} onboarding · ${totalRet} retention</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Distribution Bars ── -->
+    <div class="overview-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="section-label" style="margin-bottom:0">Team Distribution</div>
+        <div class="view-toggle" id="bookDistToggle">
+          <button class="toggle-btn${bookDistView === 'arr' ? ' active' : ''}" onclick="setBookDistView('arr')">ARR</button>
+          <button class="toggle-btn${bookDistView === 'orgs' ? ' active' : ''}" onclick="setBookDistView('orgs')">Orgs</button>
+          <button class="toggle-btn${bookDistView === 'locs' ? ' active' : ''}" onclick="setBookDistView('locs')">Locations</button>
+        </div>
+      </div>
+      <div class="card" style="padding:16px 20px">
+        <div id="bdBars"></div>
+        <div id="bdBalance"></div>
+      </div>
+    </div>
+
+    <!-- ── Renewal Spread ── -->
+    <div class="overview-section">
+      <div class="section-label">Renewal Spread <span style="font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">— non-P+P only${excludeM2M ? ' · M2M excluded' : ''}</span></div>
+      <div class="card" style="padding:16px 20px">
+        <div id="bdSpread"></div>
+      </div>
+    </div>
+
+    <!-- ── Capacity Table ── -->
+    <div class="overview-section">
+      <div class="section-label">Team Capacity</div>
+      <div class="table-scroll" style="max-height:640px">
+        <table id="bdCapTable"></table>
+      </div>
+    </div>
+  `;
+
+  renderBdBars(csms, totalArr, totalOrgs, totalLocs);
+  renderBdSpread(nonPP, months);
+  renderBdCapTable(csms);
+}
+
+// ── Distribution bars ──
+function renderBdBars(csms, totalArr, totalOrgs, totalLocs) {
+  const field = bookDistView === 'arr' ? 'bookArr' : bookDistView === 'orgs' ? 'orgCount' : 'locationCount';
+  const fmt = bookDistView === 'arr' ? fmtArr : v => v != null ? v.toLocaleString() : '—';
+  const total = bookDistView === 'arr' ? totalArr : bookDistView === 'orgs' ? totalOrgs : totalLocs;
+  const sorted = [...csms].sort((a, b) => (b[field] || 0) - (a[field] || 0));
+  const maxVal = sorted.length ? (sorted[0][field] || 0) : 0;
+  const limit = sorted.length > 20 && !window._bdShowAll ? 20 : sorted.length;
+
+  let html = '';
+  sorted.slice(0, limit).forEach((d, i) => {
+    const val = d[field] || 0;
+    const pct = total > 0 ? (val / total * 100) : 0;
+    const barW = maxVal > 0 ? (val / maxVal * 100) : 0;
+    html += `<div class="bd-bar-row" onclick="openPanel('${d.csm.replace(/'/g, "\\'")}')">
+      <span class="bd-rank">${i + 1}</span>
+      <div class="bd-name">
+        <div class="bd-name-main" title="${d.csm}">${d.csm}</div>
+        <div class="bd-name-sub">${d.manager} · ${d.vertical}</div>
+      </div>
+      <div class="bd-bar-track"><div class="bd-bar-fill" style="width:${barW.toFixed(1)}%"></div></div>
+      <span class="bd-val">${fmt(val)}</span>
+      <span class="bd-pct">${pct.toFixed(1)}%</span>
+    </div>`;
+  });
+
+  if (sorted.length > 20 && !window._bdShowAll) {
+    html += `<div class="bd-show-more" onclick="window._bdShowAll=true;renderAll()">Show all ${sorted.length} CSMs</div>`;
+  }
+
+  document.getElementById('bdBars').innerHTML = html;
+
+  // Balance indicator
+  if (sorted.length > 1) {
+    const vals = sorted.map(d => d[field] || 0);
+    const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const variance = vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / vals.length;
+    const cv = mean > 0 ? Math.sqrt(variance) / mean : 0;
+    const topPct = total > 0 ? ((sorted[0][field] || 0) / total * 100) : 0;
+    let label, color;
+    if (cv < 0.35) { label = 'Well balanced'; color = 'var(--green)'; }
+    else if (cv < 0.6) { label = 'Moderate spread'; color = 'var(--amber)'; }
+    else { label = 'Concentrated'; color = 'var(--red)'; }
+    document.getElementById('bdBalance').innerHTML = `<div class="bd-balance">
+      <span class="bd-balance-dot" style="background:${color}"></span>
+      <strong>${label}</strong> — ${sorted[0].csm} holds ${topPct.toFixed(1)}% · ${sorted[sorted.length - 1].csm} holds ${(total > 0 ? ((sorted[sorted.length - 1][field] || 0) / total * 100) : 0).toFixed(1)}%
+    </div>`;
+  } else {
+    document.getElementById('bdBalance').innerHTML = '';
+  }
+}
+
+function setBookDistView(view) {
+  bookDistView = view;
+  window._bdShowAll = false;
+  document.querySelectorAll('#bookDistToggle .toggle-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.toLowerCase().startsWith(view === 'locs' ? 'loc' : view));
+  });
+  if (nav.level === 'book-dist') renderAll();
+}
+
+function setBookDistManager(val) {
+  bookDistManager = val;
+  window._bdShowAll = false;
+  if (nav.level === 'book-dist') renderAll();
+}
+
+// ── Renewal spread (stacked horizontal bars per CSM) ──
+const BD_MONTH_SHADES = ['#2563EB', '#60A5FA', '#93C5FD', '#BFDBFE', '#DBEAFE', '#A5B4FC', '#818CF8', '#6366F1', '#4F46E5', '#4338CA', '#3730A3', '#312E81'];
+
+function renderBdSpread(nonPP, months) {
+  if (!months.length) {
+    document.getElementById('bdSpread').innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">No renewal month data available</div>';
+    return;
+  }
+
+  // Per-CSM, per-month effective totals
+  const rows = nonPP.map(d => {
+    const byMonth = {};
+    let rowTotal = 0;
+    months.forEach(m => {
+      const r = renewalByMonth[m]?.[d.csm] || { total: 0, m2m: 0 };
+      const eff = excludeM2M ? Math.max(r.total - (r.m2m || 0), 0) : r.total;
+      byMonth[m] = eff;
+      rowTotal += eff;
+    });
+    return { csm: d.csm, manager: d.manager, vertical: d.vertical, byMonth, total: rowTotal };
+  }).filter(r => r.total > 0).sort((a, b) => b.total - a.total);
+
+  if (!rows.length) {
+    document.getElementById('bdSpread').innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">No renewal data for filtered CSMs</div>';
+    return;
+  }
+
+  const maxTotal = rows[0].total;
+
+  // Legend
+  let html = '<div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">';
+  months.forEach((m, i) => {
+    html += `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--text2)">
+      <span style="width:10px;height:10px;border-radius:2px;background:${BD_MONTH_SHADES[i % BD_MONTH_SHADES.length]}"></span>${m}
+    </span>`;
+  });
+  html += '</div>';
+
+  rows.forEach(r => {
+    const barW = maxTotal > 0 ? (r.total / maxTotal * 100) : 0;
+    html += `<div class="bd-spread-row" onclick="openPanel('${r.csm.replace(/'/g, "\\'")}')">
+      <div class="bd-name">
+        <div class="bd-name-main" title="${r.csm}">${r.csm}</div>
+        <div class="bd-name-sub">${r.manager} · ${r.vertical}</div>
+      </div>
+      <div class="bd-spread-track" style="width:${barW.toFixed(1)}%">`;
+    months.forEach((m, i) => {
+      const count = r.byMonth[m] || 0;
+      if (count === 0) return;
+      const segW = r.total > 0 ? (count / r.total * 100) : 0;
+      html += `<div class="bd-spread-seg" style="width:${segW.toFixed(1)}%;background:${BD_MONTH_SHADES[i % BD_MONTH_SHADES.length]}" title="${m}: ${count}">${count > 0 && segW > 10 ? count : ''}</div>`;
+    });
+    html += `</div>
+      <span class="bd-spread-total">${r.total}</span>
+    </div>`;
+  });
+
+  document.getElementById('bdSpread').innerHTML = html;
+}
+
+// ── Capacity table ──
+function renderBdCapTable(csms) {
+  const totalArr = csms.reduce((a, d) => a + (d.bookArr || 0), 0);
+  const sorted = [...csms].sort((a, b) => {
+    let av = a[bookDistSort.field], bv = b[bookDistSort.field];
+    if (bookDistSort.field === '_arrPct') { av = totalArr > 0 ? (a.bookArr || 0) / totalArr : 0; bv = totalArr > 0 ? (b.bookArr || 0) / totalArr : 0; }
+    if (bookDistSort.field === '_locPerOrg') { av = a.orgCount > 0 ? a.locationCount / a.orgCount : 0; bv = b.orgCount > 0 ? b.locationCount / b.orgCount : 0; }
+    if (typeof av === 'string') return bookDistSort.asc ? av.localeCompare(bv) : bv.localeCompare(av);
+    if (av == null) av = -Infinity; if (bv == null) bv = -Infinity;
+    return bookDistSort.asc ? av - bv : bv - av;
+  });
+
+  const th = (label, field) => {
+    const active = bookDistSort.field === field;
+    const arrow = active ? (bookDistSort.asc ? ' ▴' : ' ▾') : '';
+    return `<th style="${active ? 'color:var(--text);' : ''}text-align:${field === 'csm' ? 'left' : 'center'}" onclick="sortBdTable('${field}')">${label}${arrow}</th>`;
+  };
+
+  let html = `<thead><tr>
+    <th>#</th>
+    ${th('CSM', 'csm')}
+    ${th('Segment', 'segment')}
+    ${th('ARR', 'bookArr')}
+    ${th('ARR %', '_arrPct')}
+    ${th('Orgs', 'orgCount')}
+    ${th('Locations', 'locationCount')}
+    ${th('Loc/Org', '_locPerOrg')}
+    ${th('OB Cases', 'openOnboardingCases')}
+    ${th('Ret Cases', 'openRetentionCases')}
+    ${th('Risk', 'highRiskOrgCount')}
+  </tr></thead><tbody>`;
+
+  sorted.forEach((d, i) => {
+    const arrPct = totalArr > 0 ? (d.bookArr || 0) / totalArr * 100 : 0;
+    const locPerOrg = d.orgCount > 0 ? (d.locationCount / d.orgCount).toFixed(1) : '—';
+    const highRisk = d.highRiskOrgCount || 0;
+    const compStatus = statusFromComposite(calcComposite(d));
+    const borderColor = compStatus === 'green' ? 'var(--green)' : compStatus === 'yellow' ? 'var(--amber)' : compStatus === 'red' ? 'var(--red)' : 'transparent';
+    html += `<tr style="border-left:3px solid ${borderColor}" onclick="openPanel('${d.csm.replace(/'/g, "\\'")}')">
+      <td style="color:var(--muted);font-size:12px">${i + 1}</td>
+      <td>
+        <div><span class="csm-name-link" style="font-weight:600">${d.csm}</span></div>
+        <div style="font-size:11px;color:var(--muted)">${d.manager} · ${d.vertical}</div>
+      </td>
+      <td style="font-size:11px;color:var(--text2);text-align:center">${d.segment || ''}</td>
+      <td style="text-align:right;font-weight:600;font-variant-numeric:tabular-nums">${fmtArr(d.bookArr)}</td>
+      <td style="text-align:center;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums">${arrPct.toFixed(1)}%</td>
+      <td style="text-align:center;font-variant-numeric:tabular-nums">${(d.orgCount || 0).toLocaleString()}</td>
+      <td style="text-align:center;font-variant-numeric:tabular-nums">${(d.locationCount || 0).toLocaleString()}</td>
+      <td style="text-align:center;color:var(--text2);font-variant-numeric:tabular-nums">${locPerOrg}</td>
+      <td style="text-align:center">${(d.openOnboardingCases || 0) > 0 ? `<span class="pill pill-muted">${d.openOnboardingCases}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+      <td style="text-align:center">${(d.openRetentionCases || 0) > 0 ? `<span class="pill pill-amber">${d.openRetentionCases}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+      <td style="text-align:center">${highRisk > 0 ? `<span class="pill pill-red">${highRisk}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`;
+  });
+
+  html += '</tbody>';
+  document.getElementById('bdCapTable').innerHTML = html;
+}
+
+function sortBdTable(field) {
+  if (bookDistSort.field === field) { bookDistSort.asc = !bookDistSort.asc; }
+  else { bookDistSort.field = field; bookDistSort.asc = field === 'csm' || field === 'segment'; }
+  if (nav.level === 'book-dist') renderAll();
 }
 
 function fmtDateShort(d) {
