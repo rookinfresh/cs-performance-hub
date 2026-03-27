@@ -908,6 +908,7 @@ td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; color: var(
     <span class="topbar-sep"></span>
     <a class="topbar-nav-link" data-level="dive-call" onclick="navTo('dive-call')">Call Quality</a>
     <a class="topbar-nav-link" data-level="dive-ufr" onclick="navTo('dive-ufr')">UFR Coverage</a>
+    <a class="topbar-nav-link" data-level="ufr-hitlist" onclick="navTo('ufr-hitlist')">Hitlist</a>
     <span class="topbar-sep"></span>
     <a class="topbar-nav-link" data-level="book-dist" onclick="navTo('book-dist')">Book Distribution</a>
   </nav>
@@ -1632,6 +1633,8 @@ function renderAll() {
     renderUfrDeepDive(main);
   } else if (nav.level === 'dive-call') {
     renderCallDeepDive(main);
+  } else if (nav.level === 'ufr-hitlist') {
+    renderUfrHitlist(main);
   } else if (nav.level === 'book-dist') {
     renderBookDist(main);
   }
@@ -1643,7 +1646,7 @@ function renderAll() {
 
   // Show/hide UFR bar
   const ufrBar = document.getElementById('ufrBar');
-  if (ufrBar) ufrBar.style.display = (nav.level === 'dive-ufr' || nav.level === 'overview' || nav.level === 'dive-call') ? 'flex' : 'none';
+  if (ufrBar) ufrBar.style.display = (nav.level === 'dive-ufr' || nav.level === 'overview' || nav.level === 'dive-call' || nav.level === 'ufr-hitlist') ? 'flex' : 'none';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -4515,12 +4518,168 @@ function renderUfrDeepDive(container) {
       </div>
       <div class="race-list" id="raceList"></div>
     </div>
+
+    <div style="text-align:center;padding:20px 0 8px">
+      <a onclick="navTo('ufr-hitlist')" style="font-size:13px;font-weight:600;color:var(--accent-subtle);cursor:pointer;text-decoration:none;border-bottom:1px dashed var(--border2);padding-bottom:2px">View Hitlist &rarr;</a>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">See every renewal org with contact status</div>
+    </div>
   `;
 
   window._ufrRaceData = raceData;
   window._ufrExpectedPct = expectedPct;
   window._ufrFiltered = filtered;
   renderUfrRaceView();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UFR HITLIST
+// ═══════════════════════════════════════════════════════════════════════════
+
+let hitlistSort = { field: null, asc: true };
+let hitlistFilter = 'all'; // 'all' | 'not-contacted' | 'contacted'
+
+function sortHitlistBy(field) {
+  toggleSort(hitlistSort, field);
+  renderAll();
+}
+
+function setHitlistFilter(val) {
+  hitlistFilter = val;
+  renderAll();
+}
+
+function renderUfrHitlist(container) {
+  const hitlistData = window.ufrHitlist || {};
+  const monthData = hitlistData[selectedRenewalMonth] || [];
+
+  // Apply filters (manager, vertical, segment via CSM lookup, M2M toggle)
+  const csmSegmentMap = {};
+  allData.forEach(d => { csmSegmentMap[d.csm] = d.segment; });
+
+  const filtered = monthData.filter(org => {
+    if (filters.manager.length && !filters.manager.includes(org.manager)) return false;
+    if (filters.vertical.length && !filters.vertical.includes(org.vertical)) return false;
+    if (filters.segment.length) {
+      const seg = csmSegmentMap[org.csm];
+      if (!filters.segment.includes(seg)) return false;
+    }
+    if (excludeM2M && org.contractType === 'Month-to-Month') return false;
+    if (hitlistFilter === 'not-contacted' && org.contacted) return false;
+    if (hitlistFilter === 'contacted' && !org.contacted) return false;
+    return true;
+  });
+
+  // Sort
+  let sorted = [...filtered];
+  if (hitlistSort.field) {
+    sorted.sort((a, b) => {
+      let av, bv;
+      switch (hitlistSort.field) {
+        case 'csm': av = a.csm || ''; bv = b.csm || ''; return hitlistSort.asc ? av.localeCompare(bv) : bv.localeCompare(av);
+        case 'orgName': av = a.orgName || ''; bv = b.orgName || ''; return hitlistSort.asc ? av.localeCompare(bv) : bv.localeCompare(av);
+        case 'arr': av = a.arr || 0; bv = b.arr || 0; break;
+        case 'contractEnd': av = a.contractEnd || '9999'; bv = b.contractEnd || '9999'; return hitlistSort.asc ? av.localeCompare(bv) : bv.localeCompare(av);
+        case 'contacted': av = a.contacted ? 1 : 0; bv = b.contacted ? 1 : 0; break;
+        default: av = a[hitlistSort.field] || 0; bv = b[hitlistSort.field] || 0;
+      }
+      return hitlistSort.asc ? av - bv : bv - av;
+    });
+  } else {
+    // Default: not contacted first, then by contract end soonest
+    sorted.sort((a, b) => {
+      if (a.contacted !== b.contacted) return a.contacted ? 1 : -1;
+      const ae = a.contractEnd || '9999';
+      const be = b.contractEnd || '9999';
+      return ae.localeCompare(be);
+    });
+  }
+
+  // Summary stats
+  const totalOrgs = filtered.length;
+  const contactedCount = filtered.filter(o => o.contacted).length;
+  const contactedPct = totalOrgs > 0 ? Math.round(contactedCount / totalOrgs * 1000) / 10 : 0;
+  const totalArr = filtered.reduce((s, o) => s + (o.arr || 0), 0);
+  const notContactedArr = filtered.filter(o => !o.contacted).reduce((s, o) => s + (o.arr || 0), 0);
+
+  function hitSortHeader(label, field, align) {
+    const isActive = hitlistSort.field === field;
+    const arrow = isActive ? (hitlistSort.asc ? ' &#9652;' : ' &#9662;') : '';
+    const style = align ? `text-align:${align};` : '';
+    return `<th style="${style}cursor:pointer;user-select:none" onclick="sortHitlistBy('${field}')">${label}${arrow}</th>`;
+  }
+
+  const rows = sorted.map((org, i) => {
+    const borderColor = org.contacted ? 'var(--green)' : 'var(--red)';
+    const statusPill = org.contacted
+      ? '<span class="pill pill-green">Contacted</span>'
+      : '<span class="pill pill-red">Not Contacted</span>';
+    const sfUrl = org.sfId ? `https://podium.my.salesforce.com/${org.sfId}` : '#';
+    const endDate = org.contractEnd ? new Date(org.contractEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+    const csmEsc = (org.csm || '').replace(/'/g, "\\'");
+    return `<tr style="border-left:3px solid ${borderColor}">
+      <td style="color:var(--muted);font-weight:600;font-size:12px">${i + 1}</td>
+      <td><span class="csm-name-link" style="font-weight:600" onclick="event.stopPropagation();openPanel('${csmEsc}')">${org.csm}</span><div style="font-size:10px;color:var(--muted);line-height:1.2;margin-top:1px">${org.manager || ''} &middot; ${org.vertical || ''}</div></td>
+      <td><a href="${sfUrl}" target="_blank" rel="noopener" style="font-weight:600;color:var(--text);text-decoration:none;border-bottom:1px dashed var(--border2)" onclick="event.stopPropagation()">${org.orgName || '—'}</a></td>
+      <td style="text-align:right;font-weight:600;font-variant-numeric:tabular-nums">${fmtArr(org.arr)}</td>
+      <td style="text-align:center;font-variant-numeric:tabular-nums;font-size:12px">${endDate}</td>
+      <td style="text-align:center;font-size:11px;color:var(--text2)">${org.contractType === 'Month-to-Month' ? 'M2M' : org.contractType === 'Annual/Multiyear' ? 'Annual' : (org.contractType || '—')}</td>
+      <td style="text-align:center">${statusPill}</td>
+    </tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="overview-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div>
+          <div class="section-label" style="margin-bottom:2px">UFR Hitlist — ${selectedRenewalMonth || '—'}</div>
+          <div style="font-size:12px;color:var(--muted)">Every renewal org with outreach status${excludeM2M ? ' &middot; M2M excluded' : ''}</div>
+        </div>
+        <div class="view-toggle">
+          <button class="toggle-btn${hitlistFilter === 'all' ? ' active' : ''}" onclick="setHitlistFilter('all')">All</button>
+          <button class="toggle-btn${hitlistFilter === 'not-contacted' ? ' active' : ''}" onclick="setHitlistFilter('not-contacted')">Not Contacted</button>
+          <button class="toggle-btn${hitlistFilter === 'contacted' ? ' active' : ''}" onclick="setHitlistFilter('contacted')">Contacted</button>
+        </div>
+      </div>
+
+      <div class="hero-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+        <div class="hero-kpi" style="cursor:default">
+          <div class="hero-kpi-label">Contacted</div>
+          <div class="hero-kpi-value" style="color:var(--green)">${contactedCount}</div>
+          <div class="hero-kpi-sub">${contactedPct}% of ${totalOrgs} orgs</div>
+        </div>
+        <div class="hero-kpi" style="cursor:default">
+          <div class="hero-kpi-label">Not Contacted</div>
+          <div class="hero-kpi-value" style="color:var(--red)">${totalOrgs - contactedCount}</div>
+          <div class="hero-kpi-sub">${fmtArr(notContactedArr)} ARR at risk</div>
+        </div>
+        <div class="hero-kpi" style="cursor:default">
+          <div class="hero-kpi-label">Total Orgs</div>
+          <div class="hero-kpi-value">${totalOrgs}</div>
+          <div class="hero-kpi-sub">${fmtArr(totalArr)} total ARR</div>
+        </div>
+        <div class="hero-kpi" style="cursor:default">
+          <div class="hero-kpi-label">Coverage</div>
+          <div class="hero-kpi-value">${totalOrgs > 0 ? Math.round(contactedCount / totalOrgs * 100) : 0}%</div>
+          <div class="hero-kpi-sub">${selectedRenewalMonth || ''} renewals</div>
+        </div>
+      </div>
+
+      <div class="table-scroll" style="max-height:640px">
+        <table>
+          <thead><tr>
+            <th>#</th>
+            ${hitSortHeader('CSM', 'csm', '')}
+            ${hitSortHeader('Organization', 'orgName', '')}
+            ${hitSortHeader('ARR', 'arr', 'right')}
+            ${hitSortHeader('Contract End', 'contractEnd', 'center')}
+            <th style="text-align:center">Type</th>
+            ${hitSortHeader('Status', 'contacted', 'center')}
+          </tr></thead>
+          <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">No renewal orgs for this month</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -5074,6 +5233,7 @@ fetch('cs_perf_data.json?v=' + Date.now())
     sparklines  = json.sparklines  || {};
     riskDetail  = json.riskDetail  || {};
     window.callsByType = json.callsByType || {};
+    window.ufrHitlist = json.ufrHitlist || {};
     console.log('CS Perf Hub loaded:', {
       csms: allData.length,
       sparklines: Object.keys(sparklines).length,
