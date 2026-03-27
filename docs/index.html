@@ -1327,16 +1327,17 @@ function filterVisibleRows(key) {
   const rows = el.querySelectorAll('tbody tr');
   rows.forEach(tr => {
     if (tr.classList.contains('cq-expand-row') || tr.classList.contains('expand-row')) {
-      // expand rows follow their parent — handled below
+      // expand rows managed by their parent row — skip
       return;
     }
     const text = tr.textContent.toLowerCase();
     const show = !q || text.includes(q);
     tr.style.display = show ? '' : 'none';
-    // Hide paired expand row if next sibling is one
+    // Hide paired expand row when parent is hidden; keep it collapsed (none) when showing
     const next = tr.nextElementSibling;
     if (next && (next.classList.contains('cq-expand-row') || next.classList.contains('expand-row'))) {
-      next.style.display = show ? '' : 'none';
+      if (!show) next.style.display = 'none';
+      // Don't force expand rows visible on clear — they default to display:none
     }
   });
 }
@@ -1733,7 +1734,7 @@ function renderOverview(container) {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div class="section-label" style="margin-bottom:0">Rankings</div>
         <div style="display:flex;align-items:center;gap:10px">
-          ${searchInputHtml('rankings', 'Search CSM...')}
+          ${searchInputHtml('rankings', 'Search...')}
           <div class="view-toggle" id="rankingsToggle">
             <button class="toggle-btn${rankingsView === 'csm' ? ' active' : ''}" onclick="setRankingsView('csm')">CSMs</button>
             <button class="toggle-btn${rankingsView === 'manager' ? ' active' : ''}" onclick="setRankingsView('manager')">Managers</button>
@@ -3954,7 +3955,7 @@ function renderCallDeepDive(container) {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div class="section-label" style="margin-bottom:0">Call Quality Rankings</div>
         <div style="display:flex;align-items:center;gap:10px">
-          ${searchInputHtml('callRankings', 'Search CSM...')}
+          ${searchInputHtml('callRankings', 'Search...')}
           <div class="view-toggle" id="callRankingsToggle">
             <button class="toggle-btn${callRankingsView === 'csm' ? ' active' : ''}" onclick="setCallRankingsView('csm')">CSMs</button>
             <button class="toggle-btn${callRankingsView === 'manager' ? ' active' : ''}" onclick="setCallRankingsView('manager')">Managers</button>
@@ -3970,7 +3971,7 @@ function renderCallDeepDive(container) {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
         <div class="section-label" style="margin-bottom:0">Call Details <span style="font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">— L30 individual calls</span></div>
         <div style="display:flex;align-items:center;gap:10px">
-          ${searchInputHtml('callDetails', 'Search CSM / call...')}
+          ${searchInputHtml('callDetails', 'Search...')}
         </div>
       </div>
       <div class="table-scroll" style="max-height:700px">
@@ -4001,7 +4002,7 @@ function setCallRankingsView(view) {
   filterVisibleRows('callRankings');
 }
 
-// ── Call Detail Table ────────────────────────────────────────────────────────
+// ── Call Detail Table + Slide-Over Panel ─────────────────────────────────────
 
 function sortCallDetailBy(field) {
   if (callDetailSort.field === field) callDetailSort.asc = !callDetailSort.asc;
@@ -4015,13 +4016,12 @@ function renderCallDetailTable() {
   const details = window.callDetails || [];
   if (!details.length) { el.innerHTML = '<tbody><tr><td style="text-align:center;color:var(--muted);padding:40px">No call detail data</td></tr></tbody>'; return; }
 
-  // Filter by active filters + callClassFilter
   const filtered = getFiltered();
   const csmSet = new Set(filtered.map(d => d.csm));
   let calls = details.filter(c => csmSet.has(c.csm));
   if (callClassFilter !== 'all') calls = calls.filter(c => c.type === callClassFilter);
+  window._callDetailFiltered = calls;
 
-  // Sort
   const sf = callDetailSort.field;
   calls.sort((a, b) => {
     let av = a[sf], bv = b[sf];
@@ -4039,18 +4039,15 @@ function renderCallDetailTable() {
   const sentimentPill = (s) => {
     if (!s) return '<span style="color:var(--muted)">—</span>';
     const map = { improved: 'pill-green', stable: 'pill-muted', declined: 'pill-red', mixed: 'pill-amber' };
-    const cls = map[s.toLowerCase()] || 'pill-muted';
-    return `<span class="pill ${cls}" style="font-size:10px;padding:2px 8px">${s}</span>`;
+    return `<span class="pill ${map[s.toLowerCase()] || 'pill-muted'}" style="font-size:10px;padding:2px 8px">${s}</span>`;
   };
 
   const expansionPill = (c) => {
     if (!c.expansionDiscussed) return '<span style="color:var(--muted)">—</span>';
-    const qual = c.expansionDiscovery;
-    const cls = qual === 'strong' ? 'pill-green' : qual === 'moderate' ? 'pill-amber' : qual === 'weak' ? 'pill-red' : 'pill-muted';
+    const cls = c.expansionDiscovery === 'strong' ? 'pill-green' : c.expansionDiscovery === 'moderate' ? 'pill-amber' : c.expansionDiscovery === 'weak' ? 'pill-red' : 'pill-muted';
     return `<span class="pill ${cls}" style="font-size:10px;padding:2px 8px">Yes</span>`;
   };
 
-  // CSM lookup for vertical
   const csmMap = {};
   filtered.forEach(d => { csmMap[d.csm] = d; });
 
@@ -4060,87 +4057,102 @@ function renderCallDetailTable() {
     <th style="text-align:left">Call</th>
     <th style="text-align:center">Type</th>
     ${cdSortH('Score', 'score', 'center')}
-    ${cdSortH('Value', 'value', 'center')}
-    ${cdSortH('Relate', 'relationship', 'center')}
-    ${cdSortH('Adapt', 'adaptiveness', 'center')}
-    ${cdSortH('Own', 'ownership', 'center')}
     <th style="text-align:center">Sentiment</th>
     <th style="text-align:center">Expansion</th>
   </tr></thead><tbody>`;
 
   const limit = 200;
-  const showing = calls.slice(0, limit);
-
-  showing.forEach((c, i) => {
+  calls.slice(0, limit).forEach((c, i) => {
     const csm = csmMap[c.csm] || {};
-    const scoreStatus = c.score >= 80 ? 'green' : c.score >= 70 ? 'yellow' : 'red';
-    const borderColor = scoreStatus === 'green' ? 'var(--green)' : scoreStatus === 'yellow' ? 'var(--amber)' : 'var(--red)';
-    const titleDisplay = c.title ? (c.title.length > 40 ? c.title.slice(0, 40) + '…' : c.title) : '—';
-    const titleLink = c.gongUrl ? `<a href="${c.gongUrl}" target="_blank" rel="noopener" style="color:var(--text);text-decoration:underline;text-decoration-color:var(--border2)">${titleDisplay}</a>` : titleDisplay;
-    const typePill = `<span class="pill pill-muted" style="font-size:10px;padding:2px 8px">${c.type || '—'}</span>`;
+    const scoreColor = c.score >= 80 ? 'var(--green)' : c.score >= 70 ? 'var(--amber)' : 'var(--red)';
+    const titleDisplay = c.title ? (c.title.length > 45 ? c.title.slice(0, 45) + '...' : c.title) : '—';
+    const titleLink = c.gongUrl
+      ? `<a href="${c.gongUrl}" target="_blank" rel="noopener" style="color:var(--text);text-decoration:underline;text-decoration-color:var(--border2)" onclick="event.stopPropagation()">${titleDisplay}</a>`
+      : titleDisplay;
 
-    html += `<tr style="border-left:3px solid ${borderColor};cursor:pointer" onclick="toggleCallDetail(${i})">
+    html += `<tr style="border-left:3px solid ${scoreColor};cursor:pointer" onclick="openCallPanel(${i})">
       <td style="font-size:12px;color:var(--text2)">${c.date || '—'}</td>
       <td>
-        <div><span class="csm-name-link" style="font-weight:600" onclick="event.stopPropagation();openPanel('${(c.csm || '').replace(/'/g, "\\'")}')">${c.csm}</span></div>
+        <div><span style="font-weight:600">${c.csm}</span></div>
         <div style="font-size:10px;color:var(--muted)">${csm.vertical || ''}</div>
       </td>
       <td style="font-size:12px">${titleLink}</td>
-      <td style="text-align:center">${typePill}</td>
+      <td style="text-align:center"><span class="pill pill-muted" style="font-size:10px;padding:2px 8px">${c.type || '—'}</span></td>
       <td>${metricPill(c.score, 'callScore')}</td>
-      <td style="text-align:center;font-size:12px;font-weight:600;color:${c.value >= 80 ? 'var(--green)' : c.value >= 70 ? 'var(--amber)' : 'var(--red)'}">${c.value != null ? Math.round(c.value) : '—'}</td>
-      <td style="text-align:center;font-size:12px;font-weight:600;color:${c.relationship >= 80 ? 'var(--green)' : c.relationship >= 70 ? 'var(--amber)' : 'var(--red)'}">${c.relationship != null ? Math.round(c.relationship) : '—'}</td>
-      <td style="text-align:center;font-size:12px;font-weight:600;color:${c.adaptiveness >= 80 ? 'var(--green)' : c.adaptiveness >= 70 ? 'var(--amber)' : 'var(--red)'}">${c.adaptiveness != null ? Math.round(c.adaptiveness) : '—'}</td>
-      <td style="text-align:center;font-size:12px;font-weight:600;color:${c.ownership >= 80 ? 'var(--green)' : c.ownership >= 70 ? 'var(--amber)' : 'var(--red)'}">${c.ownership != null ? Math.round(c.ownership) : '—'}</td>
       <td style="text-align:center">${sentimentPill(c.sentiment)}</td>
       <td style="text-align:center">${expansionPill(c)}</td>
     </tr>`;
-
-    // Expand row
-    html += `<tr class="cq-expand-row" id="cd-detail-${i}" style="display:none"><td colspan="11" style="padding:0;background:var(--surface2)">
-      <div style="padding:14px 18px;font-size:12px;line-height:1.6">
-        ${c.summary ? `<div style="margin-bottom:10px"><strong style="color:var(--text)">Summary</strong><div style="color:var(--text2)">${c.summary}</div></div>` : ''}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          ${reasonBlock('Value Creation', c.value, c.valueReason)}
-          ${reasonBlock('Relationship', c.relationship, c.relationshipReason)}
-          ${reasonBlock('Adaptiveness', c.adaptiveness, c.adaptivenessReason)}
-          ${reasonBlock('Ownership', c.ownership, c.ownershipReason)}
-        </div>
-        ${c.expansionDiscussed ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-          <strong style="color:var(--text)">Expansion</strong>
-          <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap">
-            <span style="color:var(--text2)">Discovery: <strong>${c.expansionDiscovery || '—'}</strong></span>
-            <span style="color:var(--text2)">Receptivity: <strong>${c.expansionReceptivity || '—'}</strong></span>
-            <span style="color:var(--text2)">Next Steps: <strong>${c.expansionNextSteps ? 'Yes' : 'No'}</strong></span>
-            ${c.expansionProducts ? `<span style="color:var(--text2)">Products: <strong>${c.expansionProducts}</strong></span>` : ''}
-          </div>
-          ${c.expansionSummary ? `<div style="color:var(--text2);margin-top:4px">${c.expansionSummary}</div>` : ''}
-        </div>` : ''}
-      </div>
-    </td></tr>`;
   });
 
   if (calls.length > limit) {
-    html += `<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:12px;font-size:12px">Showing ${limit} of ${calls.length} calls</td></tr>`;
+    html += `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:12px;font-size:12px">Showing ${limit} of ${calls.length} calls</td></tr>`;
   }
-
   html += '</tbody>';
   el.innerHTML = html;
   filterVisibleRows('callDetails');
 }
 
-function reasonBlock(label, score, text) {
-  if (!text) return '';
-  const color = score >= 80 ? 'var(--green)' : score >= 70 ? 'var(--amber)' : 'var(--red)';
-  return `<div style="background:var(--surface);border-radius:8px;padding:10px;border:1px solid var(--border)">
-    <div style="font-weight:600;color:var(--text);margin-bottom:4px">${label} <span style="color:${color};font-size:11px">${score != null ? Math.round(score) : '—'}</span></div>
-    <div style="color:var(--text2);font-size:11px">${text}</div>
-  </div>`;
-}
+function openCallPanel(idx) {
+  const calls = window._callDetailFiltered || [];
+  const c = calls[idx];
+  if (!c) return;
 
-function toggleCallDetail(idx) {
-  const row = document.getElementById('cd-detail-' + idx);
-  if (row) row.style.display = row.style.display === 'none' ? '' : 'none';
+  const scoreColor = v => v >= 80 ? 'var(--green)' : v >= 70 ? 'var(--amber)' : 'var(--red)';
+  const pillarRow = (label, score, reason) => {
+    if (score == null) return '';
+    const color = scoreColor(score);
+    const w = Math.min(score, 100);
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="width:90px;font-size:11px;font-weight:600;color:var(--text2);flex-shrink:0">${label}</span>
+        <div style="flex:1;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden"><div style="width:${w}%;height:100%;background:${color};border-radius:3px"></div></div>
+        <span style="width:32px;text-align:right;font-size:12px;font-weight:700;color:${color}">${Math.round(score)}</span>
+      </div>
+      ${reason ? `<div style="font-size:11px;color:var(--text2);line-height:1.5;margin-left:98px">${reason}</div>` : ''}
+    </div>`;
+  };
+
+  const sentimentColor = { improved: 'var(--green)', stable: 'var(--muted)', declined: 'var(--red)', mixed: 'var(--amber)' };
+
+  let html = `
+    <div style="margin-bottom:16px">
+      <div style="font-size:18px;font-weight:800;margin-bottom:4px">${c.title || 'Call Detail'}</div>
+      <div style="font-size:12px;color:var(--muted)">${c.csm} &middot; ${c.date} &middot; <span class="pill pill-muted" style="font-size:10px;padding:2px 8px">${c.type || '—'}</span></div>
+      ${c.gongUrl ? `<a href="${c.gongUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;margin-top:8px;font-size:12px;font-weight:600;color:var(--text2);text-decoration:underline;text-decoration-color:var(--border2)">Open in Gong &rarr;</a>` : ''}
+    </div>
+
+    <div class="panel-section">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px">
+        <span style="font-size:36px;font-weight:800;color:${scoreColor(c.score)}">${c.score != null ? Math.round(c.score) : '—'}</span>
+        <span style="font-size:12px;color:var(--muted)">Overall Score</span>
+        ${c.sentiment ? `<span style="margin-left:auto;font-size:12px;font-weight:600;color:${sentimentColor[c.sentiment.toLowerCase()] || 'var(--muted)'}">${c.sentiment}</span>` : ''}
+      </div>
+      ${pillarRow('Value', c.value, c.valueReason)}
+      ${pillarRow('Relationship', c.relationship, c.relationshipReason)}
+      ${pillarRow('Adaptiveness', c.adaptiveness, c.adaptivenessReason)}
+      ${pillarRow('Ownership', c.ownership, c.ownershipReason)}
+    </div>
+
+    ${c.expansionDiscussed ? `<div class="panel-section">
+      <div class="panel-section-title">Expansion</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div><div style="font-size:10px;color:var(--muted)">Discovery</div><div style="font-size:13px;font-weight:600">${c.expansionDiscovery || '—'}</div></div>
+        <div><div style="font-size:10px;color:var(--muted)">Receptivity</div><div style="font-size:13px;font-weight:600">${c.expansionReceptivity || '—'}</div></div>
+        <div><div style="font-size:10px;color:var(--muted)">Next Steps</div><div style="font-size:13px;font-weight:600">${c.expansionNextSteps ? 'Yes' : 'No'}</div></div>
+        ${c.expansionProducts ? `<div><div style="font-size:10px;color:var(--muted)">Products</div><div style="font-size:13px;font-weight:600">${c.expansionProducts}</div></div>` : ''}
+      </div>
+      ${c.expansionSummary ? `<div style="font-size:12px;color:var(--text2);line-height:1.5">${c.expansionSummary}</div>` : ''}
+    </div>` : ''}
+
+    ${c.summary ? `<div class="panel-section">
+      <div class="panel-section-title">Summary</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6">${c.summary}</div>
+    </div>` : ''}
+  `;
+
+  document.getElementById('panelContent').innerHTML = html;
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('panelBackdrop').classList.add('open');
 }
 
 function renderCallRankings() {
@@ -4894,7 +4906,7 @@ function renderUfrHitlistInline(container) {
           <div style="font-size:12px;color:var(--muted)">${contactedCount} of ${totalOrgs} orgs contacted (${totalOrgs > 0 ? Math.round(contactedCount/totalOrgs*100) : 0}%)${excludeM2M ? ' · M2M excluded' : ''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-          ${searchInputHtml('hitlist', 'Search CSM / org...')}
+          ${searchInputHtml('hitlist', 'Search...')}
           <div class="view-toggle">
             <button class="toggle-btn${hitlistFilter === 'all' ? ' active' : ''}" onclick="setHitlistFilter('all')">All</button>
             <button class="toggle-btn${hitlistFilter === 'not-contacted' ? ' active' : ''}" onclick="setHitlistFilter('not-contacted')">Not Contacted</button>
@@ -5020,7 +5032,7 @@ function renderBookDist(main) {
     <div class="overview-section">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div class="section-label" style="margin-bottom:0">Team Capacity</div>
-        ${searchInputHtml('bdCap', 'Search CSM...')}
+        ${searchInputHtml('bdCap', 'Search...')}
       </div>
       <div class="table-scroll" style="max-height:640px">
         <table id="bdCapTable"></table>
