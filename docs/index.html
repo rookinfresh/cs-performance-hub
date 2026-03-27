@@ -4540,6 +4540,54 @@ function sortHitlistBy(field) {
   renderAll();
 }
 
+function exportHitlistCsv() {
+  const hitlistData = window.ufrHitlist || {};
+  const monthData = hitlistData[selectedRenewalMonth] || [];
+  const csmSegmentMap = {};
+  allData.forEach(d => { csmSegmentMap[d.csm] = d.segment; });
+  const filtered = monthData.filter(org => {
+    if (filters.manager.length && !filters.manager.includes(org.manager)) return false;
+    if (filters.vertical.length && !filters.vertical.includes(org.vertical)) return false;
+    if (filters.segment.length) { const seg = csmSegmentMap[org.csm]; if (!filters.segment.includes(seg)) return false; }
+    if (excludeM2M && org.contractType === 'Month-to-Month') return false;
+    if (hitlistFilter === 'not-contacted' && org.contacted) return false;
+    if (hitlistFilter === 'contacted' && !org.contacted) return false;
+    return true;
+  });
+  let sorted = [...filtered];
+  if (hitlistSort.field) {
+    sorted.sort((a, b) => {
+      let av, bv;
+      switch (hitlistSort.field) {
+        case 'csm': case 'orgName': case 'contractEnd': av = a[hitlistSort.field] || ''; bv = b[hitlistSort.field] || ''; return hitlistSort.asc ? av.localeCompare(bv) : bv.localeCompare(av);
+        case 'contacted': av = a.contacted ? 1 : 0; bv = b.contacted ? 1 : 0; break;
+        default: av = a[hitlistSort.field] || 0; bv = b[hitlistSort.field] || 0;
+      }
+      return hitlistSort.asc ? av - bv : bv - av;
+    });
+  } else {
+    sorted.sort((a, b) => { if (a.contacted !== b.contacted) return a.contacted ? 1 : -1; return (a.contractEnd || '9999').localeCompare(b.contractEnd || '9999'); });
+  }
+  const headers = ['CSM','Manager','Vertical','Organization','ARR','Contract End','Type','Status','Salesforce URL'];
+  const rows = sorted.map(o => [
+    o.csm, o.manager, o.vertical,
+    '"' + (o.orgName || '').replace(/"/g, '""') + '"',
+    o.arr || 0,
+    o.contractEnd ? new Date(o.contractEnd).toLocaleDateString('en-US') : '',
+    o.contractType || '',
+    o.contacted ? 'Contacted' : 'Not Contacted',
+    o.sfId ? 'https://podium.my.salesforce.com/' + o.sfId : ''
+  ]);
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (selectedRenewalMonth || 'UFR').replace(/\s/g, '_') + '_Hitlist.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function setHitlistFilter(val) {
   hitlistFilter = val;
   renderAll();
@@ -4631,10 +4679,13 @@ function renderUfrHitlistInline(container) {
           <div class="section-label" style="margin-bottom:2px">${selectedRenewalMonth || '—'} Outreach Hitlist</div>
           <div style="font-size:12px;color:var(--muted)">${contactedCount} of ${totalOrgs} orgs contacted (${totalOrgs > 0 ? Math.round(contactedCount/totalOrgs*100) : 0}%)${excludeM2M ? ' · M2M excluded' : ''}</div>
         </div>
-        <div class="view-toggle">
-          <button class="toggle-btn${hitlistFilter === 'all' ? ' active' : ''}" onclick="setHitlistFilter('all')">All</button>
-          <button class="toggle-btn${hitlistFilter === 'not-contacted' ? ' active' : ''}" onclick="setHitlistFilter('not-contacted')">Not Contacted</button>
-          <button class="toggle-btn${hitlistFilter === 'contacted' ? ' active' : ''}" onclick="setHitlistFilter('contacted')">Contacted</button>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="view-toggle">
+            <button class="toggle-btn${hitlistFilter === 'all' ? ' active' : ''}" onclick="setHitlistFilter('all')">All</button>
+            <button class="toggle-btn${hitlistFilter === 'not-contacted' ? ' active' : ''}" onclick="setHitlistFilter('not-contacted')">Not Contacted</button>
+            <button class="toggle-btn${hitlistFilter === 'contacted' ? ' active' : ''}" onclick="setHitlistFilter('contacted')">Contacted</button>
+          </div>
+          <button onclick="exportHitlistCsv()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap" title="Export current view to CSV">Export CSV</button>
         </div>
       </div>
       <div class="table-scroll" style="max-height:640px;overflow-x:hidden;overflow-y:auto">
