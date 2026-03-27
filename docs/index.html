@@ -5026,21 +5026,40 @@ function renderUfrRaceView() {
   const filtered = window._ufrFiltered || getFiltered();
   const expectedPct = window._ufrExpectedPct || 0;
 
+  // Compute absolute rankings from ALL data (unfiltered), then show only filtered rows
+  const hasFilters = filters.manager.length || filters.vertical.length || filters.segment.length;
+
   let leader = null;
   if (ufrRaceView === 'manager') {
-    const managers = [...new Set(filtered.map(d => d.manager))].filter(Boolean);
-    const mgrData = managers.map(m => {
-      const csms = filtered.filter(d => d.manager === m && d.segment !== 'Phones + Platform');
+    // Absolute rankings from all data
+    const allManagers = [...new Set(allData.map(d => d.manager))].filter(Boolean);
+    const allMgrData = allManagers.map(m => {
+      const csms = allData.filter(d => d.manager === m && d.segment !== 'Phones + Platform');
       const agg = aggregatePacingStatus(csms);
       return { name: m, csms, ...agg };
     }).filter(r => r.pct != null).sort((a, b) => (b.ratio || 0) - (a.ratio || 0));
-    renderUfrRaceRows(mgrData, expectedPct, 'manager');
-    leader = mgrData[0];
+    allMgrData.forEach((r, i) => { r.absRank = i + 1; });
+
+    // Filter to visible rows
+    const filteredManagers = new Set(filtered.map(d => d.manager));
+    const visible = hasFilters ? allMgrData.filter(r => filteredManagers.has(r.name)) : allMgrData;
+    renderUfrRaceRows(visible, expectedPct, 'manager');
+    leader = allMgrData[0];
   } else {
-    const raceData = window._ufrRaceData || [];
-    const mapped = raceData.map(r => ({ ...r, name: r.vertical }));
-    renderUfrRaceRows(mapped, expectedPct, 'vertical');
-    leader = mapped[0];
+    // Absolute rankings from all data
+    const allVerts = getUfrVerticals();
+    const allVertData = allVerts.map(v => {
+      const csms = allData.filter(d => d.vertical === v && d.segment !== 'Phones + Platform');
+      const agg = aggregatePacingStatus(csms);
+      return { vertical: v, name: v, csms, ...agg };
+    }).filter(r => r.pct != null).sort((a, b) => (b.ratio || 0) - (a.ratio || 0));
+    allVertData.forEach((r, i) => { r.absRank = i + 1; });
+
+    // Filter to visible rows
+    const filteredVerts = new Set(filtered.map(d => d.vertical));
+    const visible = hasFilters ? allVertData.filter(r => filteredVerts.has(r.name)) : allVertData;
+    renderUfrRaceRows(visible, expectedPct, 'vertical');
+    leader = allVertData[0];
   }
 
   // Update leader card
@@ -5064,18 +5083,19 @@ function renderUfrRaceRows(data, expectedPct, type) {
   const medals = ['', '&#127942;', '&#129352;', '&#129353;'];
 
   el.innerHTML = data.map((r, i) => {
-    const rank = i + 1;
+    const rank = r.absRank != null ? r.absRank : (i + 1);
     const color = r.status === 'green' ? 'var(--green)' : r.status === 'yellow' ? 'var(--amber)' : 'var(--red)';
     const paceAhead = r.ratio ? Math.round((r.ratio - 1) * 100) : 0;
     const pacePillClass = r.status === 'green' ? 'pill-green' : r.status === 'yellow' ? 'pill-amber' : 'pill-red';
     const rankClass = rank <= 3 ? ` rank-${rank}` : '';
     const medalHtml = rank <= 3 ? `<span class="race-medal">${medals[rank]}</span>` : '';
-    const divider = rank === 3 && data.length > 3 ? '<div class="race-divider"></div>' : '';
+    const prevRank = i > 0 ? (data[i - 1].absRank != null ? data[i - 1].absRank : i) : 0;
+    const divider = prevRank === 3 && rank > 3 ? '<div class="race-divider"></div>' : '';
 
     // DoD change — compute from ufrByMonth sparklines
     const dodCsms = type === 'vertical'
-      ? getFiltered().filter(d => d.vertical === r.name && d.segment !== 'Phones + Platform')
-      : getFiltered().filter(d => d.manager === r.name && d.segment !== 'Phones + Platform');
+      ? allData.filter(d => d.vertical === r.name && d.segment !== 'Phones + Platform')
+      : allData.filter(d => d.manager === r.name && d.segment !== 'Phones + Platform');
     const dodDateMap = {};
     const mLabel = selectedRenewalMonth;
     dodCsms.forEach(d => {
