@@ -73,7 +73,7 @@
 
 /* ── Reset & base ────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { overflow-x: hidden; }
+html { overflow-x: clip; }
 body {
   background: var(--bg);
   color: var(--text);
@@ -4518,9 +4518,9 @@ function renderUfrDeepDive(container) {
       <div class="race-list" id="raceList"></div>
     </div>
 
-    <div style="text-align:center;padding:20px 0 8px">
-      <div id="ufrHitlistSection"></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">See every renewal org with contact status</div>
+    <div id="ufrHitlistSection" style="text-align:left"></div>
+    <div style="text-align:center;padding:8px 0">
+      <div style="font-size:11px;color:var(--muted)">See every renewal org with contact status</div>
     </div>
   `;
 
