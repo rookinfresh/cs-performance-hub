@@ -1158,6 +1158,9 @@ let bookDistManager = 'all';
 let bookDistView = 'arr'; // 'arr' | 'orgs' | 'locs'
 let bookDistSort = { field: 'bookArr', asc: false };
 
+let tableSearch = { rankings: '', callRankings: '', hitlist: '', bdCap: '', callDetails: '' };
+let callDetailSort = { field: 'date', asc: false };
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1291,6 +1294,51 @@ function ufrProgressCell(pct, pacingStatus) {
 
 function ordinal(n) {
   return n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : n + 'th';
+}
+
+// ── Table search ──
+function searchInputHtml(key, placeholder) {
+  return `<div style="position:relative;display:inline-flex;align-items:center">
+    <input type="text" id="search_${key}" value="${tableSearch[key] || ''}" placeholder="${placeholder || 'Search...'}"
+      oninput="applyTableSearch('${key}',this.value)"
+      style="padding:5px 28px 5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:500;font-family:inherit;width:160px">
+    <span onclick="clearTableSearch('${key}')" style="position:absolute;right:8px;cursor:pointer;color:var(--muted);font-size:13px;line-height:1;display:${tableSearch[key] ? 'block' : 'none'}" id="searchClear_${key}">&times;</span>
+  </div>`;
+}
+function applyTableSearch(key, value) {
+  tableSearch[key] = value.toLowerCase().trim();
+  const clear = document.getElementById('searchClear_' + key);
+  if (clear) clear.style.display = value ? 'block' : 'none';
+  filterVisibleRows(key);
+}
+function clearTableSearch(key) {
+  tableSearch[key] = '';
+  const input = document.getElementById('search_' + key);
+  if (input) input.value = '';
+  const clear = document.getElementById('searchClear_' + key);
+  if (clear) clear.style.display = 'none';
+  filterVisibleRows(key);
+}
+function filterVisibleRows(key) {
+  const q = tableSearch[key];
+  const containerMap = { rankings: 'unifiedRankingsTable', callRankings: 'callRankingTable', hitlist: 'hitlistTableBody', bdCap: 'bdCapTable', callDetails: 'callDetailTable' };
+  const el = document.getElementById(containerMap[key]);
+  if (!el) return;
+  const rows = el.querySelectorAll('tbody tr');
+  rows.forEach(tr => {
+    if (tr.classList.contains('cq-expand-row') || tr.classList.contains('expand-row')) {
+      // expand rows follow their parent — handled below
+      return;
+    }
+    const text = tr.textContent.toLowerCase();
+    const show = !q || text.includes(q);
+    tr.style.display = show ? '' : 'none';
+    // Hide paired expand row if next sibling is one
+    const next = tr.nextElementSibling;
+    if (next && (next.classList.contains('cq-expand-row') || next.classList.contains('expand-row'))) {
+      next.style.display = show ? '' : 'none';
+    }
+  });
 }
 
 function statusCounts(csms) {
@@ -1684,10 +1732,13 @@ function renderOverview(container) {
     <div class="overview-section" id="unifiedRankings">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div class="section-label" style="margin-bottom:0">Rankings</div>
-        <div class="view-toggle" id="rankingsToggle">
-          <button class="toggle-btn${rankingsView === 'csm' ? ' active' : ''}" onclick="setRankingsView('csm')">CSMs</button>
-          <button class="toggle-btn${rankingsView === 'manager' ? ' active' : ''}" onclick="setRankingsView('manager')">Managers</button>
-          <button class="toggle-btn${rankingsView === 'vertical' ? ' active' : ''}" onclick="setRankingsView('vertical')">Verticals</button>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${searchInputHtml('rankings', 'Search CSM...')}
+          <div class="view-toggle" id="rankingsToggle">
+            <button class="toggle-btn${rankingsView === 'csm' ? ' active' : ''}" onclick="setRankingsView('csm')">CSMs</button>
+            <button class="toggle-btn${rankingsView === 'manager' ? ' active' : ''}" onclick="setRankingsView('manager')">Managers</button>
+            <button class="toggle-btn${rankingsView === 'vertical' ? ' active' : ''}" onclick="setRankingsView('vertical')">Verticals</button>
+          </div>
         </div>
       </div>
       <div id="unifiedRankingsTable" style="min-height:660px"></div>
@@ -2751,11 +2802,13 @@ function toggleSort(sortState, field) {
 function sortRankingsBy(field) {
   toggleSort(rankingsSort, field);
   renderUnifiedRankings(getFiltered());
+  filterVisibleRows('rankings');
 }
 
 function sortCallRankingsBy(field) {
   toggleSort(callRankingsSort, field);
   renderCallRankings();
+  filterVisibleRows('callRankings');
 }
 let overviewGridView = 'vertical'; // 'vertical' | 'manager'
 let overviewCompareView = 'vertical'; // 'vertical' | 'manager'
@@ -2782,6 +2835,7 @@ function setRankingsView(view) {
     b.classList.toggle('active', ['csm', 'manager', 'vertical'][i] === view);
   });
   renderUnifiedRankings(getFiltered());
+  filterVisibleRows('rankings');
 }
 
 function renderUnifiedRankings(filtered) {
@@ -3899,18 +3953,35 @@ function renderCallDeepDive(container) {
     <div class="overview-section">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div class="section-label" style="margin-bottom:0">Call Quality Rankings</div>
-        <div class="view-toggle" id="callRankingsToggle">
-          <button class="toggle-btn${callRankingsView === 'csm' ? ' active' : ''}" onclick="setCallRankingsView('csm')">CSMs</button>
-          <button class="toggle-btn${callRankingsView === 'manager' ? ' active' : ''}" onclick="setCallRankingsView('manager')">Managers</button>
-          <button class="toggle-btn${callRankingsView === 'vertical' ? ' active' : ''}" onclick="setCallRankingsView('vertical')">Verticals</button>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${searchInputHtml('callRankings', 'Search CSM...')}
+          <div class="view-toggle" id="callRankingsToggle">
+            <button class="toggle-btn${callRankingsView === 'csm' ? ' active' : ''}" onclick="setCallRankingsView('csm')">CSMs</button>
+            <button class="toggle-btn${callRankingsView === 'manager' ? ' active' : ''}" onclick="setCallRankingsView('manager')">Managers</button>
+            <button class="toggle-btn${callRankingsView === 'vertical' ? ' active' : ''}" onclick="setCallRankingsView('vertical')">Verticals</button>
+          </div>
         </div>
       </div>
       <div id="callRankingTable" style="min-height:660px"></div>
+    </div>
+
+    <!-- ── Call Details ── -->
+    <div class="overview-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div class="section-label" style="margin-bottom:0">Call Details <span style="font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">— L30 individual calls</span></div>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${searchInputHtml('callDetails', 'Search CSM / call...')}
+        </div>
+      </div>
+      <div class="table-scroll" style="max-height:700px">
+        <table id="callDetailTable"></table>
+      </div>
     </div>`;
 
   window._callScored = scored;
   window._callFiltered = filtered;
   renderCallRankings();
+  renderCallDetailTable();
 }
 
 let callRankingsView = 'csm';
@@ -3927,6 +3998,149 @@ function setCallRankingsView(view) {
     b.classList.toggle('active', ['csm', 'manager', 'vertical'][i] === view);
   });
   renderCallRankings();
+  filterVisibleRows('callRankings');
+}
+
+// ── Call Detail Table ────────────────────────────────────────────────────────
+
+function sortCallDetailBy(field) {
+  if (callDetailSort.field === field) callDetailSort.asc = !callDetailSort.asc;
+  else { callDetailSort.field = field; callDetailSort.asc = field === 'csm' || field === 'title'; }
+  renderCallDetailTable();
+}
+
+function renderCallDetailTable() {
+  const el = document.getElementById('callDetailTable');
+  if (!el) return;
+  const details = window.callDetails || [];
+  if (!details.length) { el.innerHTML = '<tbody><tr><td style="text-align:center;color:var(--muted);padding:40px">No call detail data</td></tr></tbody>'; return; }
+
+  // Filter by active filters + callClassFilter
+  const filtered = getFiltered();
+  const csmSet = new Set(filtered.map(d => d.csm));
+  let calls = details.filter(c => csmSet.has(c.csm));
+  if (callClassFilter !== 'all') calls = calls.filter(c => c.type === callClassFilter);
+
+  // Sort
+  const sf = callDetailSort.field;
+  calls.sort((a, b) => {
+    let av = a[sf], bv = b[sf];
+    if (av == null) return 1; if (bv == null) return -1;
+    if (typeof av === 'string') return callDetailSort.asc ? av.localeCompare(bv) : bv.localeCompare(av);
+    return callDetailSort.asc ? av - bv : bv - av;
+  });
+
+  const cdSortH = (label, field, align) => {
+    const active = callDetailSort.field === field;
+    const arrow = active ? (callDetailSort.asc ? ' ▴' : ' ▾') : '';
+    return `<th style="text-align:${align || 'center'};cursor:pointer;${active ? 'color:var(--text)' : ''}" onclick="sortCallDetailBy('${field}')">${label}${arrow}</th>`;
+  };
+
+  const sentimentPill = (s) => {
+    if (!s) return '<span style="color:var(--muted)">—</span>';
+    const map = { improved: 'pill-green', stable: 'pill-muted', declined: 'pill-red', mixed: 'pill-amber' };
+    const cls = map[s.toLowerCase()] || 'pill-muted';
+    return `<span class="pill ${cls}" style="font-size:10px;padding:2px 8px">${s}</span>`;
+  };
+
+  const expansionPill = (c) => {
+    if (!c.expansionDiscussed) return '<span style="color:var(--muted)">—</span>';
+    const qual = c.expansionDiscovery;
+    const cls = qual === 'strong' ? 'pill-green' : qual === 'moderate' ? 'pill-amber' : qual === 'weak' ? 'pill-red' : 'pill-muted';
+    return `<span class="pill ${cls}" style="font-size:10px;padding:2px 8px">Yes</span>`;
+  };
+
+  // CSM lookup for vertical
+  const csmMap = {};
+  filtered.forEach(d => { csmMap[d.csm] = d; });
+
+  let html = `<thead><tr>
+    ${cdSortH('Date', 'date', 'left')}
+    ${cdSortH('CSM', 'csm', 'left')}
+    <th style="text-align:left">Call</th>
+    <th style="text-align:center">Type</th>
+    ${cdSortH('Score', 'score', 'center')}
+    ${cdSortH('Value', 'value', 'center')}
+    ${cdSortH('Relate', 'relationship', 'center')}
+    ${cdSortH('Adapt', 'adaptiveness', 'center')}
+    ${cdSortH('Own', 'ownership', 'center')}
+    <th style="text-align:center">Sentiment</th>
+    <th style="text-align:center">Expansion</th>
+  </tr></thead><tbody>`;
+
+  const limit = 200;
+  const showing = calls.slice(0, limit);
+
+  showing.forEach((c, i) => {
+    const csm = csmMap[c.csm] || {};
+    const scoreStatus = c.score >= 80 ? 'green' : c.score >= 70 ? 'yellow' : 'red';
+    const borderColor = scoreStatus === 'green' ? 'var(--green)' : scoreStatus === 'yellow' ? 'var(--amber)' : 'var(--red)';
+    const titleDisplay = c.title ? (c.title.length > 40 ? c.title.slice(0, 40) + '…' : c.title) : '—';
+    const titleLink = c.gongUrl ? `<a href="${c.gongUrl}" target="_blank" rel="noopener" style="color:var(--text);text-decoration:underline;text-decoration-color:var(--border2)">${titleDisplay}</a>` : titleDisplay;
+    const typePill = `<span class="pill pill-muted" style="font-size:10px;padding:2px 8px">${c.type || '—'}</span>`;
+
+    html += `<tr style="border-left:3px solid ${borderColor};cursor:pointer" onclick="toggleCallDetail(${i})">
+      <td style="font-size:12px;color:var(--text2)">${c.date || '—'}</td>
+      <td>
+        <div><span class="csm-name-link" style="font-weight:600" onclick="event.stopPropagation();openPanel('${(c.csm || '').replace(/'/g, "\\'")}')">${c.csm}</span></div>
+        <div style="font-size:10px;color:var(--muted)">${csm.vertical || ''}</div>
+      </td>
+      <td style="font-size:12px">${titleLink}</td>
+      <td style="text-align:center">${typePill}</td>
+      <td>${metricPill(c.score, 'callScore')}</td>
+      <td style="text-align:center;font-size:12px;font-weight:600;color:${c.value >= 80 ? 'var(--green)' : c.value >= 70 ? 'var(--amber)' : 'var(--red)'}">${c.value != null ? Math.round(c.value) : '—'}</td>
+      <td style="text-align:center;font-size:12px;font-weight:600;color:${c.relationship >= 80 ? 'var(--green)' : c.relationship >= 70 ? 'var(--amber)' : 'var(--red)'}">${c.relationship != null ? Math.round(c.relationship) : '—'}</td>
+      <td style="text-align:center;font-size:12px;font-weight:600;color:${c.adaptiveness >= 80 ? 'var(--green)' : c.adaptiveness >= 70 ? 'var(--amber)' : 'var(--red)'}">${c.adaptiveness != null ? Math.round(c.adaptiveness) : '—'}</td>
+      <td style="text-align:center;font-size:12px;font-weight:600;color:${c.ownership >= 80 ? 'var(--green)' : c.ownership >= 70 ? 'var(--amber)' : 'var(--red)'}">${c.ownership != null ? Math.round(c.ownership) : '—'}</td>
+      <td style="text-align:center">${sentimentPill(c.sentiment)}</td>
+      <td style="text-align:center">${expansionPill(c)}</td>
+    </tr>`;
+
+    // Expand row
+    html += `<tr class="cq-expand-row" id="cd-detail-${i}" style="display:none"><td colspan="11" style="padding:0;background:var(--surface2)">
+      <div style="padding:14px 18px;font-size:12px;line-height:1.6">
+        ${c.summary ? `<div style="margin-bottom:10px"><strong style="color:var(--text)">Summary</strong><div style="color:var(--text2)">${c.summary}</div></div>` : ''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          ${reasonBlock('Value Creation', c.value, c.valueReason)}
+          ${reasonBlock('Relationship', c.relationship, c.relationshipReason)}
+          ${reasonBlock('Adaptiveness', c.adaptiveness, c.adaptivenessReason)}
+          ${reasonBlock('Ownership', c.ownership, c.ownershipReason)}
+        </div>
+        ${c.expansionDiscussed ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+          <strong style="color:var(--text)">Expansion</strong>
+          <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap">
+            <span style="color:var(--text2)">Discovery: <strong>${c.expansionDiscovery || '—'}</strong></span>
+            <span style="color:var(--text2)">Receptivity: <strong>${c.expansionReceptivity || '—'}</strong></span>
+            <span style="color:var(--text2)">Next Steps: <strong>${c.expansionNextSteps ? 'Yes' : 'No'}</strong></span>
+            ${c.expansionProducts ? `<span style="color:var(--text2)">Products: <strong>${c.expansionProducts}</strong></span>` : ''}
+          </div>
+          ${c.expansionSummary ? `<div style="color:var(--text2);margin-top:4px">${c.expansionSummary}</div>` : ''}
+        </div>` : ''}
+      </div>
+    </td></tr>`;
+  });
+
+  if (calls.length > limit) {
+    html += `<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:12px;font-size:12px">Showing ${limit} of ${calls.length} calls</td></tr>`;
+  }
+
+  html += '</tbody>';
+  el.innerHTML = html;
+  filterVisibleRows('callDetails');
+}
+
+function reasonBlock(label, score, text) {
+  if (!text) return '';
+  const color = score >= 80 ? 'var(--green)' : score >= 70 ? 'var(--amber)' : 'var(--red)';
+  return `<div style="background:var(--surface);border-radius:8px;padding:10px;border:1px solid var(--border)">
+    <div style="font-weight:600;color:var(--text);margin-bottom:4px">${label} <span style="color:${color};font-size:11px">${score != null ? Math.round(score) : '—'}</span></div>
+    <div style="color:var(--text2);font-size:11px">${text}</div>
+  </div>`;
+}
+
+function toggleCallDetail(idx) {
+  const row = document.getElementById('cd-detail-' + idx);
+  if (row) row.style.display = row.style.display === 'none' ? '' : 'none';
 }
 
 function renderCallRankings() {
@@ -4680,6 +4894,7 @@ function renderUfrHitlistInline(container) {
           <div style="font-size:12px;color:var(--muted)">${contactedCount} of ${totalOrgs} orgs contacted (${totalOrgs > 0 ? Math.round(contactedCount/totalOrgs*100) : 0}%)${excludeM2M ? ' · M2M excluded' : ''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
+          ${searchInputHtml('hitlist', 'Search CSM / org...')}
           <div class="view-toggle">
             <button class="toggle-btn${hitlistFilter === 'all' ? ' active' : ''}" onclick="setHitlistFilter('all')">All</button>
             <button class="toggle-btn${hitlistFilter === 'not-contacted' ? ' active' : ''}" onclick="setHitlistFilter('not-contacted')">Not Contacted</button>
@@ -4700,11 +4915,13 @@ function renderUfrHitlistInline(container) {
             <th style="text-align:center">Type</th>
             ${hitSortHeader('Status', 'contacted', 'center')}
           </tr></thead>
-          <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">No renewal orgs for this month</td></tr>'}</tbody>
+          <tbody id="hitlistTableBody">${rows || '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">No renewal orgs for this month</td></tr>'}</tbody>
         </table>
       </div>
     </div>
   `;
+  // Re-apply search after hitlist re-renders
+  setTimeout(() => filterVisibleRows('hitlist'), 0);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -4801,7 +5018,10 @@ function renderBookDist(main) {
 
     <!-- ── Capacity Table ── -->
     <div class="overview-section">
-      <div class="section-label">Team Capacity</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="section-label" style="margin-bottom:0">Team Capacity</div>
+        ${searchInputHtml('bdCap', 'Search CSM...')}
+      </div>
       <div class="table-scroll" style="max-height:640px">
         <table id="bdCapTable"></table>
       </div>
@@ -5278,6 +5498,7 @@ fetch('cs_perf_data.json?v=' + Date.now())
     sparklines  = json.sparklines  || {};
     riskDetail  = json.riskDetail  || {};
     window.callsByType = json.callsByType || {};
+    window.callDetails = json.callDetails || [];
     window.ufrHitlist = json.ufrHitlist || {};
     console.log('CS Perf Hub loaded:', {
       csms: allData.length,
