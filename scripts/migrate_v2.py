@@ -251,15 +251,31 @@ csm_roster AS (
     GROUP BY o.CSM_NAME, v.PRIMARY_VERTICAL, s.PRIMARY_SEGMENT
 ),
 
--- ── Renewal cohort: derived from curr_month_orgs (no extra MRR scan) ─────────
+-- ── Renewal cohort: each month uses its own MRR snapshot + active contract validation ──
 renewal_cohort_all AS (
-    SELECT DISTINCT CSM_NAME, ORGANIZATION_UID, DATE_TRUNC(''month'', CONTRACT_END_MONTH) AS RENEWAL_MONTH, CONTRACT_TYPE
-    FROM curr_month_orgs
-    WHERE DATE_TRUNC(''month'', CONTRACT_END_MONTH) IN (
-        DATE_TRUNC(''month'', DATEADD(''month'', 1, CURRENT_DATE)),
-        DATE_TRUNC(''month'', DATEADD(''month'', 2, CURRENT_DATE)),
-        DATE_TRUNC(''month'', DATEADD(''month'', 3, CURRENT_DATE))
-    )
+    SELECT DISTINCT u.SALESFORCE_USER_FULL_NAME AS CSM_NAME, m.ORGANIZATION_UID,
+           DATE_TRUNC(''month'', m.MONTH_START_CONTRACT_END_MONTH) AS RENEWAL_MONTH,
+           m.MONTH_START_CONTRACT_TYPE_BUCKET AS CONTRACT_TYPE
+    FROM ANALYSIS.FINANCE.SALESFORCE_ORGANIZATION_MONTH_MRR_PLUS_6_MONTHS m
+    INNER JOIN BUILD.SALESFORCE.CORE_ACCOUNTS a ON m.ORGANIZATION_UID = a.ORGANIZATION_UID
+    INNER JOIN BUILD.SALESFORCE.CORE_USERS u ON a.ACCOUNT_OWNER_ID = u.SALESFORCE_USER_ID
+    INNER JOIN csm_allowlist al ON u.SALESFORCE_USER_FULL_NAME = al.CSM_NAME
+    INNER JOIN BUILD.SALESFORCE.CORE_CONTRACTS c
+        ON m.ORGANIZATION_UID = c.ORGANIZATION_UID
+        AND c.CONTRACT_STATUS = ''Activated''
+        AND c.CONTRACT_END_DATE >= DATE_TRUNC(''month'', m.MONTH_START_CONTRACT_END_MONTH)
+        AND c.CONTRACT_END_DATE < DATEADD(''month'', 1, DATE_TRUNC(''month'', m.MONTH_START_CONTRACT_END_MONTH))
+    WHERE m.ORGANIZATION_MONTH_START_MRR_USD > 0
+      AND (
+          (DATE_TRUNC(''month'', m.MONTH_START_CONTRACT_END_MONTH) = DATE_TRUNC(''month'', DATEADD(''month'', 1, CURRENT_DATE))
+           AND m.MONTH = DATE_TRUNC(''month'', DATEADD(''month'', 1, CURRENT_DATE)))
+          OR
+          (DATE_TRUNC(''month'', m.MONTH_START_CONTRACT_END_MONTH) = DATE_TRUNC(''month'', DATEADD(''month'', 2, CURRENT_DATE))
+           AND m.MONTH = DATE_TRUNC(''month'', DATEADD(''month'', 2, CURRENT_DATE)))
+          OR
+          (DATE_TRUNC(''month'', m.MONTH_START_CONTRACT_END_MONTH) = DATE_TRUNC(''month'', DATEADD(''month'', 3, CURRENT_DATE))
+           AND m.MONTH = DATE_TRUNC(''month'', DATEADD(''month'', 3, CURRENT_DATE)))
+      )
 ),
 
 -- ── SFDC ARs: scanned ONCE with wide window, filtered for different uses ─────
@@ -347,7 +363,7 @@ renewal_coverage_all AS (
            COUNT(DISTINCT CASE WHEN rc.CONTRACT_TYPE = ''Month-to-Month'' THEN rc.ORGANIZATION_UID END) AS M2M_ORGS,
            COUNT(DISTINCT CASE WHEN rc.CONTRACT_TYPE = ''Month-to-Month'' AND ar.ORGANIZATION_UID IS NOT NULL THEN rc.ORGANIZATION_UID END) AS M2M_CALLED,
            COUNT(DISTINCT CASE WHEN rc.CONTRACT_TYPE != ''Month-to-Month'' OR rc.CONTRACT_TYPE IS NULL THEN rc.ORGANIZATION_UID END) AS ANNUAL_ORGS
-    FROM renewal_cohort_all rc LEFT JOIN renewal_ar_events ar ON rc.ORGANIZATION_UID = ar.ORGANIZATION_UID AND rc.CSM_NAME = ar.CSM_NAME
+    FROM renewal_cohort_all rc LEFT JOIN renewal_ar_events ar ON rc.ORGANIZATION_UID = ar.ORGANIZATION_UID
     GROUP BY rc.CSM_NAME, rc.RENEWAL_MONTH
 ),
 renewal_m1 AS (SELECT * FROM renewal_coverage_all WHERE RENEWAL_MONTH = DATE_TRUNC(''month'', DATEADD(''month'', 1, CURRENT_DATE))),
