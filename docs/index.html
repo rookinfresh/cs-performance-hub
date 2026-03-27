@@ -4627,46 +4627,77 @@ function renderUfrHitlist(container) {
     </tr>`;
   }).join('');
 
+  // Month summaries (same as UFR deep dive)
+  const hlMonthSummaries = renewalMonthLabels.map(lbl => {
+    const mOrgs = (hitlistData[lbl] || []).filter(o => !excludeM2M || o.contractType !== 'Month-to-Month');
+    const mCalled = mOrgs.filter(o => o.contacted).length;
+    const mTotal = mOrgs.length;
+    const mPct = mTotal > 0 ? Math.round(mCalled / mTotal * 100) : null;
+    const mWin = getPacingWindow(lbl);
+    const pastWindow = mWin && new Date() > mWin.activeEnd;
+    const daysLeft = mWin ? Math.max(0, mWin.totalActiveBizDays - mWin.elapsedBizDays) : 0;
+    return { label: lbl, pct: mPct, totalCalled: mCalled, totalCohort: mTotal, pastWindow, daysLeft };
+  });
+
+  // Pacing for selected month
+  const hlWin = getPacingWindow(selectedRenewalMonth);
+  const hlExpected = hlWin && totalOrgs > 0 ? Math.floor(totalOrgs * hlWin.progressRatio) : 0;
+  const hlPaceAhead = hlExpected > 0 ? contactedCount - hlExpected : 0;
+  const hlPaceColor = hlPaceAhead >= 0 ? 'var(--green)' : 'var(--red)';
+  const hlRemainingBiz = hlWin ? Math.max(0, hlWin.totalActiveBizDays - hlWin.elapsedBizDays) : 0;
+  const hlPastWindow = hlWin && new Date() > hlWin.activeEnd;
+
   container.innerHTML = `
     <div class="overview-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-        <div>
-          <div class="section-label" style="margin-bottom:2px">UFR Hitlist — ${selectedRenewalMonth || '—'}</div>
-          <div style="font-size:12px;color:var(--muted)">Every renewal org with outreach status${excludeM2M ? ' &middot; M2M excluded' : ''}</div>
-        </div>
+      <div class="section-label">Renewal Months</div>
+      <div class="hero-kpis">
+        ${hlMonthSummaries.map(m => `
+          <div class="hero-kpi" onclick="setRenewalMonth('${m.label}')" style="cursor:pointer;${m.label === selectedRenewalMonth ? 'border-color:var(--text);box-shadow:var(--shadow-md)' : ''}">
+            <div class="hero-kpi-label">${m.label}</div>
+            <div class="hero-kpi-value" style="color:${m.pct != null && m.pct >= 80 ? 'var(--green)' : m.pct >= 50 ? 'var(--amber)' : 'var(--red)'}">${m.pct != null ? m.pct + '%' : '—'}</div>
+            <div class="hero-kpi-sub" style="font-size:12px;font-weight:500;color:var(--text2)">${m.totalCalled} / ${m.totalCohort} orgs</div>
+            <div class="hero-kpi-bottom">
+              <div style="font-size:11px;color:var(--muted)">${m.pastWindow ? 'Window closed' : m.daysLeft + ' biz days left'}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="overview-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+        <div class="section-label" style="margin-bottom:0">${selectedRenewalMonth || '—'} Hitlist</div>
         <div class="view-toggle">
           <button class="toggle-btn${hitlistFilter === 'all' ? ' active' : ''}" onclick="setHitlistFilter('all')">All</button>
           <button class="toggle-btn${hitlistFilter === 'not-contacted' ? ' active' : ''}" onclick="setHitlistFilter('not-contacted')">Not Contacted</button>
           <button class="toggle-btn${hitlistFilter === 'contacted' ? ' active' : ''}" onclick="setHitlistFilter('contacted')">Contacted</button>
         </div>
       </div>
-
-      <div class="hero-kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
-        <div class="hero-kpi" style="cursor:default">
-          <div class="hero-kpi-label">Contacted</div>
-          <div class="hero-kpi-value" style="color:var(--green)">${contactedCount}</div>
-          <div class="hero-kpi-sub">${contactedPct}% of ${totalOrgs} orgs</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+        <div class="card" style="padding:12px 16px">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Not Contacted</div>
+          <div style="font-size:28px;font-weight:800;color:var(--red)">${totalOrgs - contactedCount}</div>
+          <div style="font-size:11px;color:var(--muted)">$${(notContactedArr/1000000).toFixed(1)}M ARR at risk</div>
         </div>
-        <div class="hero-kpi" style="cursor:default">
-          <div class="hero-kpi-label">Not Contacted</div>
-          <div class="hero-kpi-value" style="color:var(--red)">${totalOrgs - contactedCount}</div>
-          <div class="hero-kpi-sub">${fmtArr(notContactedArr)} ARR at risk</div>
+        <div class="card" style="padding:12px 16px">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Contacted</div>
+          <div style="font-size:28px;font-weight:800;color:var(--green)">${contactedCount}</div>
+          <div style="font-size:11px;color:var(--muted)">${contactedPct}% of ${totalOrgs} orgs</div>
         </div>
-        <div class="hero-kpi" style="cursor:default">
-          <div class="hero-kpi-label">Total Orgs</div>
-          <div class="hero-kpi-value">${totalOrgs}</div>
-          <div class="hero-kpi-sub">${fmtArr(totalArr)} total ARR</div>
+        <div class="card" style="padding:12px 16px">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Pacing</div>
+          <div style="font-size:28px;font-weight:800;color:${hlPaceColor}">${hlPaceAhead >= 0 ? 'Ahead' : 'Behind'}</div>
+          <div style="font-size:11px;color:var(--muted)">${hlPastWindow ? 'Window closed' : hlRemainingBiz + ' biz days left'}</div>
         </div>
-        <div class="hero-kpi" style="cursor:default">
-          <div class="hero-kpi-label">Coverage</div>
-          <div class="hero-kpi-value">${totalOrgs > 0 ? Math.round(contactedCount / totalOrgs * 100) : 0}%</div>
-          <div class="hero-kpi-sub">${selectedRenewalMonth || ''} renewals</div>
+        <div class="card" style="padding:12px 16px">
+          <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px">Total ARR</div>
+          <div style="font-size:28px;font-weight:800">$${(totalArr/1000000).toFixed(1)}M</div>
+          <div style="font-size:11px;color:var(--muted)">${totalOrgs} renewal orgs</div>
         </div>
       </div>
-
       <div class="table-scroll" style="max-height:640px;overflow-x:hidden">
         <table style="table-layout:fixed;width:100%">
-          <colgroup><col style="width:36px"><col style="width:20%"><col><col style="width:90px"><col style="width:95px"><col style="width:70px"><col style="width:95px"></colgroup>
+          <colgroup><col style="width:32px"><col style="width:18%"><col><col style="width:80px"><col style="width:90px"><col style="width:60px"><col style="width:110px"></colgroup>
           <thead><tr>
             <th>#</th>
             ${hitSortHeader('CSM', 'csm', '')}
