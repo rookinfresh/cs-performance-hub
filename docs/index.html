@@ -4627,7 +4627,7 @@ function renderUfrHitlistInline(container) {
   }).join('');
 
   container.innerHTML = `
-    <div class="overview-section" style="margin-top:12px">
+    <div style="margin-top:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
         <div>
           <div class="section-label" style="margin-bottom:2px">${selectedRenewalMonth || '—'} Outreach Hitlist</div>
@@ -4639,7 +4639,7 @@ function renderUfrHitlistInline(container) {
           <button class="toggle-btn${hitlistFilter === 'contacted' ? ' active' : ''}" onclick="setHitlistFilter('contacted')">Contacted</button>
         </div>
       </div>
-      <div class="table-scroll" style="max-height:none;overflow-x:hidden">
+      <div class="table-scroll" style="max-height:640px;overflow-x:hidden;overflow-y:auto">
         <table style="table-layout:fixed;width:100%">
           <colgroup><col style="width:32px"><col style="width:15%"><col style="width:28%"><col style="width:70px"><col style="width:100px"><col style="width:65px"><col style="width:120px"></colgroup>
           <thead><tr>
