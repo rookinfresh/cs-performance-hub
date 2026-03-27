@@ -251,7 +251,9 @@ csm_roster AS (
     GROUP BY o.CSM_NAME, v.PRIMARY_VERTICAL, s.PRIMARY_SEGMENT
 ),
 
--- ── Renewal cohort: each month uses its own MRR snapshot + active contract validation ──
+-- ── Renewal cohort: cohort-month MRR + active contract + existing customer filter ──
+-- Uses MONTH = cohort month for each renewal month, validates active contracts,
+-- and requires org existed in prior month MRR (excludes new signups/onboarding)
 renewal_cohort_all AS (
     SELECT DISTINCT u.SALESFORCE_USER_FULL_NAME AS CSM_NAME, m.ORGANIZATION_UID,
            DATE_TRUNC(''month'', m.MONTH_START_CONTRACT_END_MONTH) AS RENEWAL_MONTH,
@@ -260,11 +262,18 @@ renewal_cohort_all AS (
     INNER JOIN BUILD.SALESFORCE.CORE_ACCOUNTS a ON m.ORGANIZATION_UID = a.ORGANIZATION_UID
     INNER JOIN BUILD.SALESFORCE.CORE_USERS u ON a.ACCOUNT_OWNER_ID = u.SALESFORCE_USER_ID
     INNER JOIN csm_allowlist al ON u.SALESFORCE_USER_FULL_NAME = al.CSM_NAME
+    -- Active contract must exist ending in the renewal month
     INNER JOIN BUILD.SALESFORCE.CORE_CONTRACTS c
         ON m.ORGANIZATION_UID = c.ORGANIZATION_UID
         AND c.CONTRACT_STATUS = ''Activated''
         AND c.CONTRACT_END_DATE >= DATE_TRUNC(''month'', m.MONTH_START_CONTRACT_END_MONTH)
         AND c.CONTRACT_END_DATE < DATEADD(''month'', 1, DATE_TRUNC(''month'', m.MONTH_START_CONTRACT_END_MONTH))
+    -- Org must have existed in prior month MRR (not a new signup)
+    INNER JOIN (
+        SELECT DISTINCT ORGANIZATION_UID
+        FROM ANALYSIS.FINANCE.SALESFORCE_ORGANIZATION_MONTH_MRR_PLUS_6_MONTHS
+        WHERE MONTH = DATE_TRUNC(''month'', CURRENT_DATE) AND ORGANIZATION_MONTH_START_MRR_USD > 0
+    ) prior ON m.ORGANIZATION_UID = prior.ORGANIZATION_UID
     WHERE m.ORGANIZATION_MONTH_START_MRR_USD > 0
       AND (
           (DATE_TRUNC(''month'', m.MONTH_START_CONTRACT_END_MONTH) = DATE_TRUNC(''month'', DATEADD(''month'', 1, CURRENT_DATE))
