@@ -4659,7 +4659,7 @@ function renderUfrHitlistInline(container) {
       ? '<span class="pill pill-green">Contacted</span>'
       : '<span class="pill pill-red">Not Contacted</span>';
     const sfUrl = org.sfId ? `https://podium.my.salesforce.com/${org.sfId}` : '#';
-    const endDate = org.contractEnd ? new Date(org.contractEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+    const endDate = org.contractEnd ? new Date(org.contractEnd + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
     const csmEsc = (org.csm || '').replace(/'/g, "\\'");
     return `<tr style="border-left:3px solid ${borderColor}">
       <td style="color:var(--muted);font-weight:600;font-size:12px">${i + 1}</td>
