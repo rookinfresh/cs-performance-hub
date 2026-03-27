@@ -4617,8 +4617,8 @@ function renderUfrHitlistInline(container) {
     const csmEsc = (org.csm || '').replace(/'/g, "\\'");
     return `<tr style="border-left:3px solid ${borderColor}">
       <td style="color:var(--muted);font-weight:600;font-size:12px">${i + 1}</td>
-      <td style="overflow:hidden"><span class="csm-name-link" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block" onclick="event.stopPropagation();openPanel('${csmEsc}')">${org.csm}</span><div style="font-size:10px;color:var(--muted);line-height:1.2;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${org.manager || ''} &middot; ${org.vertical || ''}</div></td>
-      <td style="max-width:220px"><a href="${sfUrl}" target="_blank" rel="noopener" style="font-weight:600;color:var(--text);text-decoration:none;border-bottom:1px dashed var(--border2);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="event.stopPropagation()" title="${(org.orgName || '').replace(/"/g, '&quot;')}">${org.orgName || '—'}</a></td>
+      <td style="text-align:left;overflow:hidden"><span class="csm-name-link" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block" onclick="event.stopPropagation();openPanel('${csmEsc}')">${org.csm}</span><div style="font-size:10px;color:var(--muted);line-height:1.2;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${org.manager || ''} &middot; ${org.vertical || ''}</div></td>
+      <td style="text-align:left;overflow:hidden"><a href="${sfUrl}" target="_blank" rel="noopener" style="font-weight:600;color:var(--text);text-decoration:none;border-bottom:1px dashed var(--border2);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="event.stopPropagation()" title="${(org.orgName || '').replace(/"/g, '&quot;')}">${org.orgName || '—'}</a></td>
       <td style="text-align:right;font-weight:600;font-variant-numeric:tabular-nums">${fmtArr(org.arr)}</td>
       <td style="text-align:center;font-variant-numeric:tabular-nums;font-size:12px">${endDate}</td>
       <td style="text-align:center;font-size:11px;color:var(--text2)">${org.contractType === 'Month-to-Month' ? 'M2M' : org.contractType === 'Annual/Multiyear' ? 'Annual' : (org.contractType || '—')}</td>
@@ -4627,7 +4627,7 @@ function renderUfrHitlistInline(container) {
   }).join('');
 
   container.innerHTML = `
-    <div class="overview-section" style="margin-top:24px">
+    <div class="overview-section" style="margin-top:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
         <div>
           <div class="section-label" style="margin-bottom:2px">${selectedRenewalMonth || '—'} Outreach Hitlist</div>
@@ -4639,13 +4639,13 @@ function renderUfrHitlistInline(container) {
           <button class="toggle-btn${hitlistFilter === 'contacted' ? ' active' : ''}" onclick="setHitlistFilter('contacted')">Contacted</button>
         </div>
       </div>
-      <div class="table-scroll" style="max-height:640px;overflow-x:hidden">
+      <div class="table-scroll" style="max-height:none;overflow-x:hidden">
         <table style="table-layout:fixed;width:100%">
-          <colgroup><col style="width:32px"><col style="width:18%"><col><col style="width:80px"><col style="width:90px"><col style="width:60px"><col style="width:110px"></colgroup>
+          <colgroup><col style="width:32px"><col style="width:15%"><col style="width:28%"><col style="width:70px"><col style="width:100px"><col style="width:65px"><col style="width:120px"></colgroup>
           <thead><tr>
             <th>#</th>
-            ${hitSortHeader('CSM', 'csm', '')}
-            ${hitSortHeader('Organization', 'orgName', '')}
+            ${hitSortHeader('CSM', 'csm', 'left')}
+            ${hitSortHeader('Organization', 'orgName', 'left')}
             ${hitSortHeader('ARR', 'arr', 'right')}
             ${hitSortHeader('Contract End', 'contractEnd', 'center')}
             <th style="text-align:center">Type</th>
