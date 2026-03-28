@@ -1325,19 +1325,17 @@ function filterVisibleRows(key) {
   const el = document.getElementById(containerMap[key]);
   if (!el) return;
   const rows = el.querySelectorAll('tbody tr');
+  const isExpandRow = (tr) => tr.classList.contains('cq-expand-row') || tr.classList.contains('expand-row')
+    || (tr.id && (tr.id.startsWith('cq-detail-') || tr.id.startsWith('cd-detail-')));
   rows.forEach(tr => {
-    if (tr.classList.contains('cq-expand-row') || tr.classList.contains('expand-row')) {
-      // expand rows managed by their parent row — skip
-      return;
-    }
+    if (isExpandRow(tr)) return; // skip — managed by parent
     const text = tr.textContent.toLowerCase();
     const show = !q || text.includes(q);
     tr.style.display = show ? '' : 'none';
-    // Hide paired expand row when parent is hidden; keep it collapsed (none) when showing
     const next = tr.nextElementSibling;
-    if (next && (next.classList.contains('cq-expand-row') || next.classList.contains('expand-row'))) {
+    if (next && isExpandRow(next)) {
+      // When hiding parent, hide expand row too. When showing parent, leave expand row as-is (collapsed by default).
       if (!show) next.style.display = 'none';
-      // Don't force expand rows visible on clear — they default to display:none
     }
   });
 }
@@ -3969,7 +3967,7 @@ function renderCallDeepDive(container) {
     <!-- ── Call Details ── -->
     <div class="overview-section">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-        <div class="section-label" style="margin-bottom:0">Call Details <span style="font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">— L30 individual calls</span></div>
+        <div class="section-label" style="margin-bottom:0">Call Details <span style="font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">— L90 individual calls</span></div>
         <div style="display:flex;align-items:center;gap:10px">
           ${searchInputHtml('callDetails', 'Search...')}
         </div>
@@ -4039,7 +4037,8 @@ function renderCallDetailTable() {
   const sentimentPill = (s) => {
     if (!s) return '<span style="color:var(--muted)">—</span>';
     const map = { improved: 'pill-green', stable: 'pill-muted', declined: 'pill-red', mixed: 'pill-amber' };
-    return `<span class="pill ${map[s.toLowerCase()] || 'pill-muted'}" style="font-size:10px;padding:2px 8px">${s}</span>`;
+    const label = s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+    return `<span class="pill ${map[s.toLowerCase()] || 'pill-muted'}" style="font-size:10px;padding:2px 8px">${label}</span>`;
   };
 
   const expansionPill = (c) => {
@@ -4125,7 +4124,7 @@ function openCallPanel(idx) {
       <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px">
         <span style="font-size:36px;font-weight:800;color:${scoreColor(c.score)}">${c.score != null ? Math.round(c.score) : '—'}</span>
         <span style="font-size:12px;color:var(--muted)">Overall Score</span>
-        ${c.sentiment ? `<span style="margin-left:auto;font-size:12px;font-weight:600;color:${sentimentColor[c.sentiment.toLowerCase()] || 'var(--muted)'}">${c.sentiment}</span>` : ''}
+        ${c.sentiment ? `<span style="margin-left:auto;font-size:12px;font-weight:600;color:${sentimentColor[c.sentiment.toLowerCase()] || 'var(--muted)'}">${c.sentiment.charAt(0).toUpperCase() + c.sentiment.slice(1).toLowerCase()}</span>` : ''}
       </div>
       ${pillarRow('Value', c.value, c.valueReason)}
       ${pillarRow('Relationship', c.relationship, c.relationshipReason)}
