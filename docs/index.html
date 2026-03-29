@@ -4051,6 +4051,7 @@ function renderCallDetailTable() {
     <th style="text-align:left">Call</th>
     <th style="text-align:center">Type</th>
     ${cdSortH('Score', 'score', 'center')}
+    <th style="text-align:center" title="Net adjustment from breakthroughs/detriments">Adj</th>
     <th style="text-align:center">Sentiment</th>
     <th style="text-align:center">Expansion</th>
   </tr></thead><tbody>`;
@@ -4062,6 +4063,10 @@ function renderCallDetailTable() {
     const titleLink = c.gongUrl
       ? `<a href="${c.gongUrl}" target="_blank" rel="noopener" style="color:var(--text);text-decoration:underline;text-decoration-color:var(--border2)" onclick="event.stopPropagation()">${titleDisplay}</a>`
       : titleDisplay;
+    const net = (c.breakthrough || 0) + (c.detriment || 0);
+    const adjHtml = net !== 0
+      ? `<span style="font-size:11px;font-weight:700;color:${net > 0 ? 'var(--green)' : 'var(--red)'}">${net > 0 ? '+' : ''}${net}</span>`
+      : '<span style="color:var(--muted);font-size:11px">—</span>';
 
     html += `<tr style="border-left:3px solid ${scoreColor};cursor:pointer" onclick="openCallPanel(${i})">
       <td style="font-size:12px;color:var(--text2)">${c.date || '—'}</td>
@@ -4072,6 +4077,7 @@ function renderCallDetailTable() {
       <td style="font-size:12px">${titleLink}</td>
       <td style="text-align:center"><span class="pill pill-muted" style="font-size:10px;padding:2px 8px">${c.type || '—'}</span></td>
       <td>${metricPill(c.score, 'callScore')}</td>
+      <td style="text-align:center">${adjHtml}</td>
       <td style="text-align:center">${sentimentPill(c.sentiment)}</td>
       <td style="text-align:center">${expansionPill(c)}</td>
     </tr>`;
@@ -4120,18 +4126,48 @@ function openCallPanel(idx) {
       <div style="font-size:13px;color:var(--text);line-height:1.65">${c.summary}</div>
     </div>` : ''}
 
-    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:14px">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px">
       <span style="font-size:42px;font-weight:800;color:${sColor(c.score)}">${c.score != null ? Math.round(c.score) : '—'}</span>
       <span style="font-size:13px;color:var(--muted)">Overall Score</span>
       ${c.sentiment ? `<span class="pill ${sentMap[c.sentiment.toLowerCase()] || 'pill-muted'}" style="margin-left:auto">${sentLabel(c.sentiment)}</span>` : ''}
     </div>
+    ${(c.baseScore != null && (c.breakthrough || c.detriment)) ? `<div style="font-size:12px;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <span>Base: <strong>${Math.round(c.baseScore)}</strong></span>
+      ${c.breakthrough ? `<span style="color:var(--green);font-weight:600">+${c.breakthrough} breakthrough</span>` : ''}
+      ${c.detriment ? `<span style="color:var(--red);font-weight:600">${c.detriment} detriment</span>` : ''}
+      <span style="color:var(--muted)">&rarr; Final: ${Math.round(c.score)}</span>
+    </div>` : '<div style="margin-bottom:14px"></div>'}
 
-    <div style="margin-bottom:20px">
+    <div style="margin-bottom:16px">
       ${pillar('cm-val-' + idx, 'Value Creation', c.value, c.valueReason)}
       ${pillar('cm-rel-' + idx, 'Relationship', c.relationship, c.relationshipReason)}
       ${pillar('cm-adp-' + idx, 'Adaptiveness', c.adaptiveness, c.adaptivenessReason)}
       ${pillar('cm-own-' + idx, 'Ownership', c.ownership, c.ownershipReason)}
     </div>
+
+    ${c.criticalMoments && (c.criticalMoments.breakthroughs?.length || c.criticalMoments.detriments?.length) ? `<div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:4px" onclick="var e=document.getElementById('cm-crit-${idx}'),a=document.getElementById('cm-crit-${idx}-a');e.style.display=e.style.display==='none'?'block':'none';a.textContent=e.style.display==='none'?'\\u25B8':'\\u25BE'">
+        <span style="color:var(--muted);font-size:11px;width:12px" id="cm-crit-${idx}-a">&#9656;</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)">Critical Moments</span>
+        <span style="font-size:11px;color:var(--muted)">(${(c.criticalMoments.breakthroughs?.length || 0) + (c.criticalMoments.detriments?.length || 0)})</span>
+      </div>
+      <div id="cm-crit-${idx}" style="display:none;margin-left:18px">
+        ${(c.criticalMoments.breakthroughs || []).map(b => `<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="flex-shrink:0;width:8px;height:8px;border-radius:50%;background:var(--green);margin-top:5px"></span>
+          <div>
+            <div style="font-size:10px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px">Breakthrough <span style="color:var(--muted);font-weight:500;text-transform:capitalize">&middot; ${b.severity || ''}</span></div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.5">${b.description}</div>
+          </div>
+        </div>`).join('')}
+        ${(c.criticalMoments.detriments || []).map(d => `<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="flex-shrink:0;width:8px;height:8px;border-radius:50%;background:var(--red);margin-top:5px"></span>
+          <div>
+            <div style="font-size:10px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px">Detriment <span style="color:var(--muted);font-weight:500;text-transform:capitalize">&middot; ${d.severity || ''}</span></div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.5">${d.description}</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>` : ''}
 
     ${c.expansionDiscussed ? `<div style="border-top:2px solid var(--border);margin-top:4px;padding-top:18px">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:10px">Expansion</div>
