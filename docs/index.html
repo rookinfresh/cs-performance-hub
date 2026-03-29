@@ -1324,7 +1324,7 @@ function filterVisibleRows(key) {
   if (!el) return;
   const rows = el.querySelectorAll('tbody tr');
   const isExpandRow = (tr) => tr.classList.contains('cq-expand-row') || tr.classList.contains('expand-row')
-    || (tr.id && (tr.id.startsWith('cq-detail-') || tr.id.startsWith('cd-detail-')));
+    || (tr.id && (tr.id.startsWith('cq-detail-') || tr.id.startsWith('cd-detail-') || tr.id.startsWith('cq-mgr-') || tr.id.startsWith('cq-vert-')));
   rows.forEach(tr => {
     if (isExpandRow(tr)) return; // skip — managed by parent
     const text = tr.textContent.toLowerCase();
@@ -4055,8 +4055,7 @@ function renderCallDetailTable() {
     <th style="text-align:center">Expansion</th>
   </tr></thead><tbody>`;
 
-  const limit = 200;
-  calls.slice(0, limit).forEach((c, i) => {
+  calls.forEach((c, i) => {
     const csm = csmMap[c.csm] || {};
     const scoreColor = c.score >= 80 ? 'var(--green)' : c.score >= 70 ? 'var(--amber)' : 'var(--red)';
     const titleDisplay = c.title ? (c.title.length > 45 ? c.title.slice(0, 45) + '...' : c.title) : '—';
@@ -4078,9 +4077,6 @@ function renderCallDetailTable() {
     </tr>`;
   });
 
-  if (calls.length > limit) {
-    html += `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:12px;font-size:12px">Showing ${limit} of ${calls.length} calls</td></tr>`;
-  }
   html += '</tbody>';
   el.innerHTML = html;
   filterVisibleRows('callDetails');
